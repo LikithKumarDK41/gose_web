@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "mapbox-gl/dist/mapbox-gl.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -120,3 +121,5 @@
     @apply bg-background text-foreground;
   }
 }
+
+#map { width: 100%; height: 100vh; }
