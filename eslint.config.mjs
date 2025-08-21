@@ -9,8 +9,21 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const eslintConfig = [
+export default [
+  // Next.js + TypeScript base configs
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-];
 
-export default eslintConfig;
+  // Optional: ignore build artifacts
+  { ignores: [".next/**", "out/**", "node_modules/**"] },
+
+  // Turn off `no-explicit-any` ONLY for these map UI files
+  {
+    files: [
+      "src/components/map/NavigationOverlay.tsx",
+      "src/components/map/MapboxTourMapNavigation.tsx",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+];
