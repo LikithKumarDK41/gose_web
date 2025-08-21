@@ -1,12 +1,19 @@
 // src/lib/data/tours.ts
+
 export type Place = {
     id: string;
     name: string;
     blurb?: string;
-    time?: string; // optional ETA like "09:40"
+    /** Optional ETA like "09:40" */
+    time?: string;
+    /** Latitude (deg) */
     lat?: number;
+    /** Longitude (deg) */
     lng?: number;
+    /** Optional thumbnail/image URL */
     image?: string;
+    /** Geofence radius in meters (small circle around the point) */
+    geofenceRadius?: number;
 };
 
 export type Tour = {
@@ -22,123 +29,83 @@ export type Tour = {
 export const tours: Tour[] = [
     {
         id: "hoskeralli",
-        title: "Hosakerehalli Heritage Walk",
-        description:
-            "Explore calm lakes, temples, and sunset points around Hosakerehalli. Gentle walk, lots of photo spots.",
+        title: "Hosakerehalli – Micro Test Loop",
+        description: "Tiny loop of very-nearby spots around your current location for quick geofence testing.",
         createdAt: "2025-02-01",
-        image: "https://picsum.photos/seed/hoskeralli/1200/600",
-        tags: ["Culture", "Easy"],
+        image: "https://picsum.photos/seed/hoskeralli-test/1200/600",
+        tags: ["Test", "Nearby"],
         places: [
             {
                 id: "hk-0",
                 name: "Entry – My Current Location (Hosakerehalli)",
                 time: "09:30",
-                blurb: "Starting point of the walk.",
-                image: "https://picsum.photos/seed/hk0/320/220",
-                lat: 12.9369,
-                lng: 77.5412,
+                blurb: "Start here.",
+                image: "https://picsum.photos/seed/hk0-test/320/220",
+                lat: 12.932924661301934,
+                lng: 77.5402787066928,
+                geofenceRadius: 25
             },
             {
                 id: "hk-1",
-                name: "Hosakerehalli Lake View",
-                time: "09:40",
-                blurb: "Birds & calm waters.",
-                image: "https://picsum.photos/seed/hk1/320/220",
-                lat: 12.9380,
-                lng: 77.5418,
+                name: "Corner Tea Stall",
+                time: "09:35",
+                blurb: "Quick chai stop.",
+                image: "https://picsum.photos/seed/hk1-test/320/220",
+                lat: 12.9302528,            // ~50 m east
+                lng: 77.5492105,
+                geofenceRadius: 20
             },
             {
                 id: "hk-2",
-                name: "Temple Street",
-                time: "09:55",
-                blurb: "Local shrine & markets.",
-                image: "https://picsum.photos/seed/hk2/320/220",
-                lat: 12.9390,
-                lng: 77.5430,
+                name: "Small Temple",
+                time: "09:40",
+                blurb: "Local shrine.",
+                image: "https://picsum.photos/seed/hk2-test/320/220",
+                lat: 12.9307028,            // ~50 m north-east
+                lng: 77.5492105,
+                geofenceRadius: 20
             },
             {
                 id: "hk-3",
-                name: "Old Banyan Circle",
-                time: "10:10",
-                blurb: "Iconic meeting spot under a banyan tree.",
-                image: "https://picsum.photos/seed/hk3/320/220",
-                lat: 12.9374,
-                lng: 77.5438,
+                name: "Park Gate",
+                time: "09:45",
+                blurb: "Entrance to the pocket park.",
+                image: "https://picsum.photos/seed/hk3-test/320/220",
+                lat: 12.9307028,            // ~50 m north
+                lng: 77.5487488,
+                geofenceRadius: 22
             },
             {
                 id: "hk-4",
-                name: "Sunset Ridge",
-                time: "10:30",
-                blurb: "Golden-hour viewpoint.",
-                image: "https://picsum.photos/seed/hk4/320/220",
-                lat: 12.9359,
-                lng: 77.5447,
+                name: "Library Kiosk",
+                time: "09:50",
+                blurb: "Street book kiosk.",
+                image: "https://picsum.photos/seed/hk4-test/320/220",
+                lat: 12.9307028,            // ~50 m north-west
+                lng: 77.5482871,
+                geofenceRadius: 22
             },
             {
                 id: "hk-5",
-                name: "Hosakerehalli Park",
-                time: "10:45",
-                blurb: "Green space with benches and playground.",
-                image: "https://picsum.photos/seed/hk5/320/220",
-                lat: 12.9349,
-                lng: 77.5436,
-            },
-            {
-                id: "hk-6",
-                name: "Lakeside Cafe",
-                time: "11:00",
-                blurb: "Tea and snacks by the water.",
-                image: "https://picsum.photos/seed/hk6/320/220",
-                lat: 12.9355,
-                lng: 77.5410,
-            },
-            {
-                id: "hk-7",
-                name: "Heritage Well",
-                time: "11:20",
-                blurb: "Historic stepwell still used by locals.",
-                image: "https://picsum.photos/seed/hk7/320/220",
-                lat: 12.9363,
-                lng: 77.5398,
-            },
-            {
-                id: "hk-8",
-                name: "Crafts Market",
-                time: "11:40",
-                blurb: "Handmade souvenirs and local art.",
-                image: "https://picsum.photos/seed/hk8/320/220",
-                lat: 12.9378,
-                lng: 77.5390,
-            },
-            {
-                id: "hk-9",
-                name: "Community Library",
-                time: "12:00",
-                blurb: "Old community library with archives.",
-                image: "https://picsum.photos/seed/hk9/320/220",
-                lat: 12.9386,
-                lng: 77.5402,
-            },
-            {
-                id: "hk-10",
-                name: "Garden Temple",
-                time: "12:20",
-                blurb: "Peaceful shrine surrounded by gardens.",
-                image: "https://picsum.photos/seed/hk10/320/220",
-                lat: 12.9394,
-                lng: 77.5424,
+                name: "Lake View Point",
+                time: "09:55",
+                blurb: "Quick viewpoint over the lake.",
+                image: "https://picsum.photos/seed/hk5-test/320/220",
+                lat: 12.9293528,            // ~100 m south-west
+                lng: 77.5478254,
+                geofenceRadius: 30
             },
             {
                 id: "hk-end",
                 name: "End – Hosakerehalli",
-                time: "12:40",
-                blurb: "Loop ends back at the entry point.",
-                image: "https://picsum.photos/seed/hkend/320/220",
-                lat: 12.9369,
-                lng: 77.5412,
-            },
+                time: "10:00",
+                blurb: "Loop ends back where you started.",
+                image: "https://picsum.photos/seed/hkend-test/320/220",
+                lat: 12.9302528,
+                lng: 77.5487488,
+                geofenceRadius: 25
+            }
         ]
-
     },
     {
         id: "vijayanagar",
