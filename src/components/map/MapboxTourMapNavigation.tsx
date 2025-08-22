@@ -1,3 +1,4 @@
+// src/components/map/MapboxTourMapNavigation.tsx
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -10,6 +11,7 @@ declare global {
     __tourNavigateStart?: () => void;
     __tourNavigatePause?: () => void;
     __tourNavigateResume?: () => void;
+    __tourShouldFollow?: boolean; // persisted follow flag across screens
   }
 }
 
@@ -79,7 +81,7 @@ function bearingFrom(a: [number, number], b: [number, number]) {
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
-// ---- “Spiderfy” helpers for overlapping markers ----
+// Spiderfy helpers
 function offsetLngLat(lng: number, lat: number, meters: number, angleDeg: number): [number, number] {
   const rad = (angleDeg * Math.PI) / 180;
   const dNorth = Math.cos(rad) * meters;
@@ -97,16 +99,17 @@ function spreadOffsets(lng: number, lat: number, n: number): [number, number][] 
   return result;
 }
 
-// Geolocate event shape (typed; avoids `any`)
+// Geolocate typings
 type GeolocateEventLike = {
-  coords?: {
-    longitude: number;
-    latitude: number;
-    heading?: number | null;
-  };
+  coords?: { longitude: number; latitude: number; heading?: number | null };
   longitude?: number;
   latitude?: number;
   heading?: number | null;
+};
+type GeoCtrl = {
+  on: (ev: 'geolocate' | 'error', cb: (e: GeolocateEventLike | Error) => void) => void;
+  off?: (ev: 'geolocate' | 'error', cb: (e: GeolocateEventLike | Error) => void) => void;
+  trigger?: () => void;
 };
 
 export default function MapboxTourMapNavigation({
@@ -117,14 +120,18 @@ export default function MapboxTourMapNavigation({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const geolocateRef = useRef<mapboxgl.GeolocateControl | null>(null);
+
+  const geoEventFiredRef = useRef(false);
+  const browserWatchIdRef = useRef<number | null>(null);
+
   const lastPosRef = useRef<[number, number] | null>(null);
   const lastFetchTsRef = useRef<number>(0);
   const followRef = useRef<boolean>(false);
   const pausedRef = useRef<boolean>(false);
-  const checkedInRef = useRef<Set<string>>(new Set()); // ⬅️ prevent duplicate check-ins
 
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<{ distance: number; duration: number } | null>(null);
+  const [loading, setLoading] = useState(true); // show loader until style loads
 
   // Camera/profile
   const FOLLOW_ZOOM = 17.5;
@@ -145,11 +152,9 @@ export default function MapboxTourMapNavigation({
       if (!token) { setError('Missing NEXT_PUBLIC_MAPBOX_TOKEN'); return; }
       mapboxgl.accessToken = token;
 
-      // Validate inputs
       const geoAll = (places ?? []).filter(hasCoords);
       if (geoAll.length < 2) { setError('Need at least one stop plus End'); return; }
 
-      // Last is End (E); all before are numbered
       const end = geoAll[geoAll.length - 1];
       const numbered = geoAll.slice(0, -1);
       const endLL: [number, number] = [end.lng, end.lat];
@@ -157,7 +162,6 @@ export default function MapboxTourMapNavigation({
       const first = numbered[0];
       const initialCenter: [number, number] = [first.lng, first.lat];
 
-      // Map
       const map = new mapboxgl.Map({
         container: mapDivRef.current as HTMLDivElement,
         style: 'mapbox://styles/mapbox/navigation-day-v1',
@@ -169,7 +173,9 @@ export default function MapboxTourMapNavigation({
       });
       mapRef.current = map;
 
-      // Controls
+      // Loader hides as soon as style is loaded
+      map.on('load', () => setLoading(false));
+
       map.addControl(new mapboxgl.NavigationControl(), 'top-right');
       const geolocate = new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
@@ -187,14 +193,11 @@ export default function MapboxTourMapNavigation({
       map.on('rotatestart', stopFollow);
       map.on('pitchstart', stopFollow);
 
-      // ---- Build display points with labels/colors (and keep originals for geofence) ----
+      // ---- Build display points & markers ----
       type DisplayPt = {
         lng: number; lat: number;
         baseLng: number; baseLat: number;
-        label: string; color: string;
-        popupHTML: string;
-        placeId: string;
-        geofenceRadius: number;
+        label: string; color: string; popupHTML: string;
       };
       const displayPts: DisplayPt[] = [];
 
@@ -212,21 +215,15 @@ export default function MapboxTourMapNavigation({
               ${p.image ? `<img src="${p.image}" alt="${p.name}" style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover" />` : ''}
             </div>
           `,
-          placeId: p.id,
-          geofenceRadius: Math.max(5, p.geofenceRadius ?? 30),
         });
       });
 
-      // End point (E)
       displayPts.push({
         lng: end.lng, lat: end.lat, baseLng: end.lng, baseLat: end.lat,
         label: 'E', color: '#111827',
         popupHTML: `<div style="min-width:200px;font-weight:600">End – ${end.name ?? 'Finish'}</div>`,
-        placeId: end.id,
-        geofenceRadius: Math.max(5, end.geofenceRadius ?? 25),
       });
 
-      // Group exact matches and spiderfy
       const keyOf = (lng: number, lat: number) => `${lng.toFixed(6)},${lat.toFixed(6)}`;
       const groups = new Map<string, DisplayPt[]>();
       for (const pt of displayPts) {
@@ -236,7 +233,6 @@ export default function MapboxTourMapNavigation({
         groups.set(k, arr);
       }
 
-      // Create markers (SVG pins with numbers)
       const markers: mapboxgl.Marker[] = [];
       for (const [, arr] of groups) {
         const offsets = spreadOffsets(arr[0].baseLng, arr[0].baseLat, arr.length);
@@ -260,7 +256,7 @@ export default function MapboxTourMapNavigation({
         });
       }
 
-      // ---- Route layers (white casing + blue line) ----
+      // ---- Route layers ----
       const emptyLine: GeoJSON.Feature<GeoJSON.LineString> = {
         type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {},
       };
@@ -288,7 +284,6 @@ export default function MapboxTourMapNavigation({
           });
         }
 
-        // Initial static route: hk-0 → hk-1 → … → hk-10 → hk-end
         const orderedCoords: [number, number][] = [
           [numbered[0].lng, numbered[0].lat],
           ...numbered.slice(1).map(p => [p.lng, p.lat] as [number, number]),
@@ -296,18 +291,68 @@ export default function MapboxTourMapNavigation({
         ];
         await fetchAndRenderDirections(orderedCoords, token, profile, map, setStats);
 
-        // Fit bounds
         const b = new mapboxgl.LngLatBounds();
         orderedCoords.forEach(([lng, lat]) => b.extend([lng, lat]));
         if (!b.isEmpty()) map.fitBounds(b, { padding: 60, duration: 600, maxZoom: 16 });
       });
 
-      // Expose direct functions (overlay can call these reliably)
-      window.__tourNavigateStart = () => { pausedRef.current = false; followRef.current = true; geolocateRef.current?.trigger(); };
-      window.__tourNavigatePause = () => { pausedRef.current = true; followRef.current = false; };
-      window.__tourNavigateResume = () => { pausedRef.current = false; followRef.current = true; geolocateRef.current?.trigger(); };
+      // ---------- Reliable START/PAUSE/RESUME ----------
+      const geoCtrl = geolocate as unknown as GeoCtrl;
 
-      // Also listen to custom events (fallback)
+      const startBrowserWatch = () => {
+        if (browserWatchIdRef.current != null) return;
+        if ('geolocation' in navigator) {
+          browserWatchIdRef.current = navigator.geolocation.watchPosition(
+            (pos) => {
+              const e: GeolocateEventLike = {
+                coords: {
+                  longitude: pos.coords.longitude,
+                  latitude: pos.coords.latitude,
+                  heading: pos.coords.heading ?? null,
+                },
+              };
+              handleGeolocate(e);
+            },
+            () => { },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+          );
+        }
+      };
+
+      const kickstartGeolocation = () => {
+        geoEventFiredRef.current = false;
+        geoCtrl.trigger?.();
+        // If Mapbox doesn't emit quickly, fall back to browser watch.
+        window.setTimeout(() => {
+          if (!geoEventFiredRef.current) {
+            startBrowserWatch();
+          }
+        }, 1500);
+      };
+
+      window.__tourNavigateStart = () => {
+        pausedRef.current = false;
+        followRef.current = true;
+        window.__tourShouldFollow = true;
+        kickstartGeolocation();
+      };
+      window.__tourNavigatePause = () => {
+        pausedRef.current = true;
+        followRef.current = false;
+        window.__tourShouldFollow = false;
+      };
+      window.__tourNavigateResume = () => {
+        pausedRef.current = false;
+        followRef.current = true;
+        window.__tourShouldFollow = true;
+        kickstartGeolocation();
+      };
+
+      // If user returns to this screen AND tour was running, start immediately
+      if (window.__tourShouldFollow) {
+        window.__tourNavigateResume?.();
+      }
+
       const onStartEvent = () => window.__tourNavigateStart?.();
       const onPauseEvent = () => window.__tourNavigatePause?.();
       const onResumeEvent = () => window.__tourNavigateResume?.();
@@ -316,35 +361,7 @@ export default function MapboxTourMapNavigation({
       window.addEventListener('tour:pause', onPauseEvent);
       window.addEventListener('tour:resume', onResumeEvent);
 
-      // ---- Geofence check utility
-      function checkGeofences(curr: [number, number]) {
-        // Use ORIGINAL coordinates (not spiderfied) for geofence math
-        for (const p of [...numbered, end] as PlaceWithCoords[]) {
-          const radius = Math.max(5, p.geofenceRadius ?? 30); // meters
-          const d = haversine(curr, [p.lng, p.lat]);
-          if (d <= radius && !checkedInRef.current.has(p.id)) {
-            checkedInRef.current.add(p.id);
-
-            // Notify anyone listening (NavigationOverlay will show a card/toast)
-            window.dispatchEvent(
-              new CustomEvent('tour:checkin', {
-                detail: {
-                  id: p.id,
-                  name: p.name,
-                  blurb: p.blurb,
-                  time: p.time,
-                  lat: p.lat,
-                  lng: p.lng,
-                  radius,
-                  distance: Math.round(d),
-                },
-              })
-            );
-          }
-        }
-      }
-
-      // Live updates from Geolocate control
+      // ---- Live updates (map follow + reroute) ----
       const onGeo = async (evt: GeolocateEventLike) => {
         if (pausedRef.current) return;
 
@@ -354,9 +371,6 @@ export default function MapboxTourMapNavigation({
         if (typeof lng !== 'number' || typeof lat !== 'number') return;
 
         const curr: [number, number] = [lng, lat];
-
-        // Geofence detection first (fast)
-        checkGeofences(curr);
 
         const now = Date.now();
         const last = lastPosRef.current;
@@ -387,29 +401,37 @@ export default function MapboxTourMapNavigation({
         await fetchAndRenderDirections(orderedFromHere, token, profile, map, setStats);
       };
 
-      // Hook geolocate events (types vary between versions, so we cast once here)
-      (geolocate as unknown as { on: (ev: 'geolocate' | 'error', cb: (e: GeolocateEventLike | Error) => void) => void })
-        .on('geolocate', (e: GeolocateEventLike | Error) => {
-          if (!(e instanceof Error)) {
-            // Call the async handler, but don't await
-            void onGeo(e);
-          }
-        });
-      (geolocate as unknown as { on: (ev: 'geolocate' | 'error', cb: (e: GeolocateEventLike | Error) => void) => void })
-        .on('error', (e: GeolocateEventLike | Error) => {
-          const msg = (e as Error)?.message ?? 'Geolocation error';
-          setError(msg);
-        });
+      const handleGeolocate = (e: GeolocateEventLike | Error) => {
+        if (!(e instanceof Error)) {
+          geoEventFiredRef.current = true;
+          void onGeo(e);
+        }
+      };
+      const handleGeoError = (e: GeolocateEventLike | Error) => {
+        const msg = (e as Error)?.message ?? 'Geolocation error';
+        setError(msg);
+      };
+
+      geoCtrl.on('geolocate', handleGeolocate);
+      geoCtrl.on('error', handleGeoError);
 
       cleanup = () => {
         delete window.__tourNavigateStart;
         delete window.__tourNavigatePause;
         delete window.__tourNavigateResume;
+
         window.removeEventListener('tour:start', onStartEvent);
         window.removeEventListener('tour:pause', onPauseEvent);
         window.removeEventListener('tour:resume', onResumeEvent);
-        (geolocate as any).off?.('geolocate', onGeo);
-        (geolocate as any).off?.('error', () => { });
+
+        geoCtrl.off?.('geolocate', handleGeolocate);
+        geoCtrl.off?.('error', handleGeoError);
+
+        if (browserWatchIdRef.current != null) {
+          navigator.geolocation.clearWatch(browserWatchIdRef.current);
+          browserWatchIdRef.current = null;
+        }
+
         markers.forEach(m => m.remove());
         map.remove();
         mapRef.current = null;
@@ -429,15 +451,33 @@ export default function MapboxTourMapNavigation({
   };
 
   return (
-    <div className="relative w-full overflow-hidden rounded-lg border" style={{ height }}>
+    <div
+      className="relative w-full overflow-hidden rounded-lg border bg-gray-50 dark:bg-gray-900"
+      style={{ height }}
+    >
+      {/* Map container */}
       <div ref={mapDivRef} className="h-full w-full" />
+
+      {/* Loader while style loads */}
+      {loading && (
+        <div className="absolute inset-0 grid place-items-center">
+          <div className="flex items-center gap-3 rounded-xl bg-white/80 p-3 shadow dark:bg-black/60">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
+            <span className="text-sm">Loading map…</span>
+          </div>
+        </div>
+      )}
+
+      {/* Errors */}
       {error && (
         <div className="pointer-events-none absolute left-3 top-3 rounded bg-black/70 px-3 py-2 text-xs text-white">
           {error}
         </div>
       )}
+
+      {/* Route stats */}
       {stats && !error && (
-        <div className="absolute right-3 top-3 rounded bg-white/90 px-3 py-2 text-xs shadow">
+        <div className="absolute right-3 top-3 rounded bg-white/90 px-3 py-2 text-xs shadow dark:bg-black/70 dark:text-white">
           Route: {pretty(stats)}
         </div>
       )}
@@ -445,7 +485,52 @@ export default function MapboxTourMapNavigation({
   );
 }
 
-// ---- Directions helper ----
+// ---- Directions helper (safe) ----
+function safeSetRouteData(
+  map: mapboxgl.Map,
+  geometry: GeoJSON.LineString
+) {
+  // If style not loaded yet, wait once and retry
+  if (!map.isStyleLoaded()) {
+    map.once('load', () => safeSetRouteData(map, geometry));
+    return;
+  }
+
+  // Ensure the source exists (layers may have been added elsewhere)
+  let src = map.getSource('tour-route') as mapboxgl.GeoJSONSource | undefined;
+  if (!src) {
+    // Create the source and layers if missing
+    map.addSource('tour-route', {
+      type: 'geojson',
+      data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} }
+    });
+
+    if (!map.getLayer('tour-route-casing')) {
+      map.addLayer({
+        id: 'tour-route-casing',
+        type: 'line',
+        source: 'tour-route',
+        paint: { 'line-width': 10, 'line-color': '#ffffff', 'line-opacity': 0.9 },
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+      });
+    }
+    if (!map.getLayer('tour-route-line')) {
+      map.addLayer({
+        id: 'tour-route-line',
+        type: 'line',
+        source: 'tour-route',
+        paint: { 'line-width': 6, 'line-color': '#2563eb', 'line-opacity': 0.95 },
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+      });
+    }
+
+    src = map.getSource('tour-route') as mapboxgl.GeoJSONSource;
+  }
+
+  // Finally safe to set
+  src.setData({ type: 'Feature', geometry, properties: {} });
+}
+
 async function fetchAndRenderDirections(
   waypoints: [number, number][],
   token: string,
@@ -478,17 +563,11 @@ async function fetchAndRenderDirections(
     const route = data.routes?.[0];
     if (!route) throw new Error('No route');
 
-    (map.getSource('tour-route') as mapboxgl.GeoJSONSource).setData({
-      type: 'Feature',
-      geometry: route.geometry,
-      properties: {},
-    });
+    safeSetRouteData(map, route.geometry);
     setStats({ distance: route.distance, duration: route.duration });
   } catch {
-    (map.getSource('tour-route') as mapboxgl.GeoJSONSource).setData({
-      type: 'Feature',
-      geometry: { type: 'LineString', coordinates: waypoints },
-      properties: {},
-    });
+    // Fallback: draw straight polyline between waypoints
+    safeSetRouteData(map, { type: 'LineString', coordinates: waypoints });
   }
 }
+
