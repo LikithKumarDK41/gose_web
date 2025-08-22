@@ -2,7 +2,7 @@
 import { notFound } from "next/navigation";
 import { getTourById, tours } from "@/lib/data/tours";
 import MapboxTourMapNavigation from "@/components/map/MapboxTourMapNavigation";
-import NavigationOverlay from "@/components/map/NavigationOverlay"; // ⬅️ new
+import NavigationOverlay from "@/components/map/NavigationOverlay";
 
 export const dynamic = "error";
 export const dynamicParams = false;
@@ -24,11 +24,11 @@ export default async function NavigationPage({ params }: { params: ParamsPromise
   const tour = getTourById(id);
   if (!tour) return notFound();
 
-  // Fullscreen map (z-50 ensures it sits above any header)
   return (
     <div className="fixed inset-0 z-50">
       <MapboxTourMapNavigation places={tour.places} profile="walking" height="100vh" />
-      <NavigationOverlay /> {/* bottom-centered Start button */}
+      {/* IMPORTANT: pass tourId and places so Start can initialize the global run */}
+      <NavigationOverlay tourId={tour.id} places={tour.places} defaultProfile="walking" />
     </div>
   );
 }
