@@ -116,7 +116,7 @@ export default function TourDetailsClientPage() {
       {/* Timeline */}
       <section id="timeline" className="space-y-4">
         <h2 className="text-lg font-semibold">Timeline</h2>
-        <Timeline places={tour.places} />
+        <Timeline />
       </section>
     </div>
   );

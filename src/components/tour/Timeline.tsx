@@ -1,11 +1,9 @@
-// src/components/tour/Timeline.tsx
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import Image from "next/image";
-import { Place } from "@/lib/data/tours";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useMemo, useState } from 'react';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
     Dialog,
     DialogContent,
@@ -13,17 +11,31 @@ import {
     DialogTitle,
     DialogDescription,
     DialogClose,
-} from "@/components/ui/dialog";
-import { ImageIcon, CheckCircle2, Info } from "lucide-react";
+} from '@/components/ui/dialog';
+import { ImageIcon, CheckCircle2, Info } from 'lucide-react';
 
-// Helper type: some places may include tags
+import type { Place } from '@/lib/data/tourTypes';
+import { useAppSelector } from '@/lib/store/hook';
+import { selectActiveTour, selectTourById } from '@/lib/store/slices/toursSlice';
+
+type Props = {
+    /** Optional: show the timeline for a specific tour. Defaults to active tour. */
+    tourId?: string;
+};
+
+// Some places may include tags in seed or later edits
 type PlaceWithTags = Place & { tags?: string[] };
+const getTags = (p: Place): string[] => (p as PlaceWithTags).tags ?? [];
 
-function getTags(p: Place): string[] {
-    return (p as PlaceWithTags).tags ?? [];
-}
+export default function Timeline({ tourId }: Props) {
+    // Pull tour from Redux (prefer explicit tourId, else active)
+    const tourById = useAppSelector(tourId ? selectTourById(tourId) : () => null);
+    const activeTour = useAppSelector(selectActiveTour);
+    const tour = tourById ?? activeTour;
 
-export default function Timeline({ places }: { places: Place[] }) {
+    const places = tour?.places ?? [];
+
+    // Local “checked-in” UI state (you can wire to Redux later if desired)
     const [checked, setChecked] = useState<Record<string, boolean>>({});
     const [openId, setOpenId] = useState<string | null>(null);
 
@@ -31,6 +43,22 @@ export default function Timeline({ places }: { places: Place[] }) {
         () => places.find((p) => p.id === openId) ?? null,
         [openId, places]
     );
+
+    if (!tour) {
+        return (
+            <div className="flex min-h-[30vh] items-center justify-center">
+                <div className="text-sm text-muted-foreground">No tour selected.</div>
+            </div>
+        );
+    }
+
+    if (places.length === 0) {
+        return (
+            <div className="flex min-h-[30vh] items-center justify-center">
+                <div className="text-sm text-muted-foreground">This tour has no places yet.</div>
+            </div>
+        );
+    }
 
     return (
         <div className="relative mx-auto max-w-5xl">
@@ -55,12 +83,12 @@ export default function Timeline({ places }: { places: Place[] }) {
                             {/* --- Desktop (alternating) --- */}
                             <div className="hidden md:flex">
                                 <div
-                                    className={`relative flex w-1/2 ${isLeft ? "justify-end pr-6" : "justify-start pl-6 ml-auto"
+                                    className={`relative flex w-1/2 ${isLeft ? 'justify-end pr-6' : 'justify-start pl-6 ml-auto'
                                         }`}
                                 >
                                     {/* Connector from spine to card */}
                                     <div
-                                        className={`absolute top-1/2 h-px w-8 bg-border ${isLeft ? "right-0" : "left-0"
+                                        className={`absolute top-1/2 h-px w-8 bg-border ${isLeft ? 'right-0' : 'left-0'
                                             }`}
                                     />
 
@@ -100,7 +128,7 @@ export default function Timeline({ places }: { places: Place[] }) {
                                                     {p.name}
                                                 </h3>
                                                 <div className="shrink-0 text-right text-xs text-muted-foreground">
-                                                    {p.time ?? ""}
+                                                    {p.time ?? ''}
                                                 </div>
                                             </div>
 
@@ -130,7 +158,7 @@ export default function Timeline({ places }: { places: Place[] }) {
                                             {isChecked ? (
                                                 <Badge className="gap-1 bg-emerald-600 text-white hover:bg-emerald-600/90">
                                                     <CheckCircle2 className="h-3.5 w-3.5" />
-                                                    Checked‑in
+                                                    Checked-in
                                                 </Badge>
                                             ) : (
                                                 <span />
@@ -139,12 +167,12 @@ export default function Timeline({ places }: { places: Place[] }) {
                                             <div className="flex items-center gap-2">
                                                 <Button
                                                     size="sm"
-                                                    variant={isChecked ? "secondary" : "default"}
+                                                    variant={isChecked ? 'secondary' : 'default'}
                                                     onClick={() =>
                                                         setChecked((s) => ({ ...s, [p.id]: !s[p.id] }))
                                                     }
                                                 >
-                                                    {isChecked ? "Undo" : "Check‑in"}
+                                                    {isChecked ? 'Undo' : 'Check-in'}
                                                 </Button>
                                                 <Button
                                                     size="icon"
@@ -196,7 +224,7 @@ export default function Timeline({ places }: { places: Place[] }) {
                                                 {p.name}
                                             </h3>
                                             <div className="shrink-0 text-right text-xs text-muted-foreground">
-                                                {p.time ?? ""}
+                                                {p.time ?? ''}
                                             </div>
                                         </div>
 
@@ -223,7 +251,7 @@ export default function Timeline({ places }: { places: Place[] }) {
                                         {isChecked ? (
                                             <Badge className="gap-1 bg-emerald-600 text-white hover:bg-emerald-600/90">
                                                 <CheckCircle2 className="h-3.5 w-3.5" />
-                                                Checked‑in
+                                                Checked-in
                                             </Badge>
                                         ) : (
                                             <span />
@@ -231,12 +259,12 @@ export default function Timeline({ places }: { places: Place[] }) {
                                         <div className="flex items-center gap-2">
                                             <Button
                                                 size="sm"
-                                                variant={isChecked ? "secondary" : "default"}
+                                                variant={isChecked ? 'secondary' : 'default'}
                                                 onClick={() =>
                                                     setChecked((s) => ({ ...s, [p.id]: !s[p.id] }))
                                                 }
                                             >
-                                                {isChecked ? "Undo" : "Check‑in"}
+                                                {isChecked ? 'Undo' : 'Check-in'}
                                             </Button>
                                             <Button
                                                 size="icon"
@@ -294,7 +322,7 @@ export default function Timeline({ places }: { places: Place[] }) {
                                         setChecked((s) => ({ ...s, [active.id]: !s[active.id] }))
                                     }
                                 >
-                                    {checked[active.id] ? "Undo Check‑in" : "Check‑in here"}
+                                    {checked[active.id] ? 'Undo Check-in' : 'Check-in here'}
                                 </Button>
                                 <DialogClose asChild>
                                     <Button variant="outline">Close</Button>
