@@ -1,7 +1,7 @@
 // src/components/nav/NavLink.tsx
 "use client";
 import Link from "next/link";
-import { useGlobalLoader } from "@/components/system/LoaderProvider";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
 
 type Props = React.ComponentProps<typeof Link>;
 export default function NavLink({ onClick, ...props }: Props) {

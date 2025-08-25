@@ -1,29 +1,27 @@
-import "@/app/globals.css";
-import type { Metadata, Viewport } from "next";
-import Providers from "@/app/providers";
-import AppShell from "@/components/layout/AppShell";
-import LoaderProvider from "@/components/system/LoaderProvider";
-import TourNavProvider from "@/providers/TourNavProvider";
-import GeofenceProvider from "@/providers/GeofenceProvider";
-import GlobalCheckinToasts from "@/components/nav/GlobalCheckinToasts"; // <-- NEW
+import '@/app/globals.css';
+import type { Metadata, Viewport } from 'next';
+import StoreProvider from '@/providers/StoreProvider';
+import AppShell from '@/components/layout/AppShell';
+import LoaderProvider from '@/providers/LoaderProvider';
+import GeoWatcher from '@/components/geo/GeoWatcher';
+import GlobalCheckinToasts from '@/components/nav/GlobalCheckinToasts';
 
-export const metadata: Metadata = { title: "Tourist" };
-export const viewport: Viewport = { themeColor: "#0b0f14" };
+export const metadata: Metadata = { title: 'Tourist' };
+export const viewport: Viewport = { themeColor: '#0b0f14' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="bg-background text-foreground">
-        <Providers>
+        <StoreProvider>
           <LoaderProvider>
-            <TourNavProvider>
-              <GeofenceProvider>
-                <AppShell>{children}</AppShell>
-                <GlobalCheckinToasts />  {/* global top-center toast */}
-              </GeofenceProvider>
-            </TourNavProvider>
+            <AppShell>
+              {children}
+            </AppShell>
+            <GeoWatcher />
+            <GlobalCheckinToasts />
           </LoaderProvider>
-        </Providers>
+        </StoreProvider>
       </body>
     </html>
   );
