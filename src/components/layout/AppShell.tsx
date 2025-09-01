@@ -1,5 +1,6 @@
 // src/components/layout/AppShell.tsx
 "use client";
+
 import { useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import HeaderBar from "@/components/nav/HeaderBar";
@@ -19,12 +20,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex min-h-0 flex-1">
-          <div className="hidden lg:block">
+          {/* <div className="hidden lg:block">
             <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
-          </div>
+          </div> */}
           <MobileSidebar open={mobileOpen} onOpenChange={setMobileOpen} />
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-background via-background to-background">
+            {/* subtle top background shimmer */}
             <main className="flex-1 overflow-y-auto px-4 py-6">{children}</main>
             <div className="shrink-0">
               <FooterBar />
