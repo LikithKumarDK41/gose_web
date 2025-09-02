@@ -14,6 +14,7 @@ import {
   Navigation2,
   Clock4,
   Sparkles,
+  MapPin, Navigation
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -72,6 +73,8 @@ export default function ToursDashboardPage() {
 
   const hasTours = (tours?.length ?? 0) > 0;
 
+  const maxStops = Math.max(1, ...(tours ?? []).map(t => t.places?.length ?? 0));
+
   return (
     <div className="space-y-8">
       {/* ===== Hero (vivid) ===== */}
@@ -96,13 +99,12 @@ export default function ToursDashboardPage() {
           {/* Active pill */}
           <div className="flex items-center gap-3 rounded-xl bg-white/15 p-3 text-white backdrop-blur">
             <span
-              className={`grid h-9 w-9 place-items-center rounded-full shadow ${
-                nav.status === 'running' ? 'bg-emerald-500' : nav.status === 'paused' ? 'bg-amber-500' : 'bg-slate-400'
-              }`}
+              className={`grid h-9 w-9 place-items-center rounded-full shadow ${nav.status === 'running' ? 'bg-emerald-500' : nav.status === 'paused' ? 'bg-amber-500' : 'bg-slate-400'
+                }`}
             >
               {nav.status === 'running' ? <PlayCircle className="h-5 w-5" /> :
-               nav.status === 'paused' ? <PauseCircle className="h-5 w-5" /> :
-               <Route className="h-5 w-5" />}
+                nav.status === 'paused' ? <PauseCircle className="h-5 w-5" /> :
+                  <Route className="h-5 w-5" />}
             </span>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold capitalize">{nav.status}</div>
@@ -142,9 +144,8 @@ export default function ToursDashboardPage() {
               <GlassTile title="Status" subtitle="Current session">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`h-2.5 w-2.5 rounded-full ${
-                      nav.status === 'running' ? 'bg-emerald-500' : nav.status === 'paused' ? 'bg-amber-500' : 'bg-slate-400'
-                    }`}
+                    className={`h-2.5 w-2.5 rounded-full ${nav.status === 'running' ? 'bg-emerald-500' : nav.status === 'paused' ? 'bg-amber-500' : 'bg-slate-400'
+                      }`}
                   />
                   <span className="font-semibold capitalize">{nav.status}</span>
                 </div>
@@ -377,64 +378,144 @@ export default function ToursDashboardPage() {
             </div>
           </div>
 
-          <div className="grid items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {tours!.map((tour) => (
-              <Card key={tour.id} className="group flex h-full min-h-[420px] flex-col overflow-hidden pt-0 transition-transform hover:-translate-y-0.5">
-                {tour.image ? (
-                  <img
-                    src={tour.image}
-                    alt={tour.title}
-                    className="h-40 w-full rounded-t-lg object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                  />
-                ) : (
-                  <div className="grid h-40 w-full place-items-center rounded-t-lg bg-muted text-muted-foreground">
-                    <ImageIcon className="h-8 w-8" />
-                  </div>
-                )}
 
-                <CardHeader className="px-4 pt-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="line-clamp-1 text-lg font-semibold">{tour.title}</h3>
-                    <span className="text-xs text-muted-foreground">
-                      {tour.createdAt ? new Date(tour.createdAt).toLocaleDateString() : '—'}
-                    </span>
-                  </div>
-                </CardHeader>
+          <div className="grid items-stretch gap-7 md:grid-cols-2 xl:grid-cols-3">
+            {tours!.map((tour, idx) => {
+              const isNew =
+                !!tour.createdAt &&
+                Date.now() - new Date(tour.createdAt).getTime() < 1000 * 60 * 60 * 24 * 14;
 
-                <CardContent className="flex flex-1 flex-col gap-3 px-4 pb-3">
-                  <p className="line-clamp-3 text-sm text-muted-foreground">{tour.description}</p>
+              // slight variation per card so gradients don’t all look the same
+              const frames = [
+                "from-indigo-500 via-sky-500 to-emerald-500",
+                "from-fuchsia-500 via-violet-500 to-sky-500",
+                "from-amber-500 via-orange-500 to-rose-500",
+                "from-teal-500 via-emerald-500 to-lime-500",
+              ];
+              const frame = frames[idx % frames.length];
 
-                  <div className="flex flex-wrap gap-2">
-                    {tour.tags?.map((tag) => (
-                      <Badge key={tag} variant="secondary">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
+              const stops = tour.places.length;
+              const stopsPct = Math.min(100, Math.round((stops / maxStops) * 100));
 
-                  {/* tiny “spark” */}
-                  {/* <div className="mt-1 flex items-center gap-2">
-                    <div className="h-2 flex-1 overflow-hidden rounded bg-muted" title={`${tour.places.length} stops`}>
-                      <div
-                        className="h-full bg-gradient-to-r from-indigo-500 to-sky-500"
-                        style={{ width: `${Math.min(100, (tour.places.length / Math.max(1, metrics.avgStops * 2)) * 100)}%` }}
-                      />
+              return (
+                <div key={tour.id} className="group relative">
+                  {/* Aurora frame */}
+                  <div className={`absolute inset-0 -z-10 rounded-2xl bg-gradient-to-r ${frame} opacity-80 blur-sm transition-opacity group-hover:opacity-100`} />
+                  {/* Card body with 1px gradient border */}
+                  <div className="relative rounded-2xl bg-card/80 ring-1 ring-black/5 backdrop-blur supports-[backdrop-filter]:bg-card/70 dark:ring-white/10">
+                    {/* top shimmer accent */}
+                    <div className={`pointer-events-none absolute -inset-x-10 -top-10 h-24 bg-gradient-to-r ${frame} opacity-0 blur-2xl transition-all duration-500 group-hover:opacity-40`} />
+
+                    {/* media */}
+                    <div className="relative overflow-hidden rounded-t-2xl">
+                      {tour.image ? (
+                        <img
+                          src={tour.image}
+                          alt={tour.title}
+                          className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div className="grid h-48 w-full place-items-center bg-muted text-muted-foreground">
+                          <ImageIcon className="h-8 w-8" />
+                        </div>
+                      )}
+
+                      {/* glass info bar on image */}
+                      <div className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-xs text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:bg-black/55 dark:text-white dark:ring-white/10">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {stops} {stops === 1 ? "stop" : "stops"}
+                      </div>
+
+                      {/* corner ribbons */}
+                      <div className="absolute left-2 top-2 flex gap-2">
+                        {isNew && (
+                          <span className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 shadow backdrop-blur dark:bg-black/70 dark:text-emerald-300">
+                            New
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">{tour.places.length}</span>
-                  </div> */}
 
-                  <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
-                    <Button asChild variant="secondary">
-                      <Link href={`/tours/detail?id=${tour.id}`}>Details</Link>
-                    </Button>
-                    <Button asChild>
-                      <Link href={`/tours/detail/navigation?id=${tour.id}`}>Navigate</Link>
-                    </Button>
+                    {/* content */}
+                    <div className="space-y-3 px-4 pb-4 pt-3">
+                      {/* title row */}
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="line-clamp-1 text-base font-semibold">{tour.title}</h3>
+                        <Sparkles
+                          className="h-4 w-4 text-indigo-500 opacity-0 transition-opacity group-hover:opacity-100"
+                          aria-hidden
+                        />
+                      </div>
+
+                      {/* description */}
+                      {tour.description && (
+                        <p className="line-clamp-3 text-sm text-muted-foreground">
+                          {tour.description}
+                        </p>
+                      )}
+
+                      {/* tags: soft colorful pills */}
+                      {tour.tags?.length ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {tour.tags.map((tag, i) => {
+                            const tagPalettes = [
+                              "from-indigo-500/12 to-sky-500/12 text-indigo-700 dark:text-indigo-200",
+                              "from-rose-500/12 to-orange-500/12 text-rose-700 dark:text-rose-200",
+                              "from-emerald-500/12 to-teal-500/12 text-emerald-700 dark:text-emerald-200",
+                              "from-fuchsia-500/12 to-violet-500/12 text-fuchsia-700 dark:text-fuchsia-200",
+                            ];
+                            const palette = tagPalettes[i % tagPalettes.length];
+                            return (
+                              <span
+                                key={tag}
+                                className={`rounded-full border border-white/30 bg-gradient-to-r ${palette} px-2 py-1 text-[11px] font-medium ring-1 ring-black/5 dark:border-white/10`}
+                              >
+                                {tag}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+
+                      {/* stops progress bar relative to max */}
+                      <div className="mt-1">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={`h-full rounded-full bg-gradient-to-r ${frame}`}
+                            style={{ width: `${stopsPct}%` }}
+                          />
+                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          Stops relative to your busiest tour
+                        </div>
+                      </div>
+
+                      {/* actions */}
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button
+                          asChild
+                          variant="secondary"
+                          className="rounded-full border border-white/40 backdrop-blur-sm dark:border-white/10"
+                        >
+                          <Link href={`/tours/detail?id=${tour.id}`}>Details</Link>
+                        </Button>
+                        <Button
+                          asChild
+                          className="rounded-full bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow hover:from-indigo-700 hover:to-sky-700"
+                        >
+                          <Link href={`/tours/detail/navigation?id=${tour.id}`}>
+                            <Navigation className="mr-1 h-4 w-4" />
+                            Navigate
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              );
+            })}
           </div>
+
         </>
       )}
 

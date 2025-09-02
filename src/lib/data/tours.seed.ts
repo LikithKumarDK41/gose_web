@@ -1,3 +1,4 @@
+// src/lib/data/tours.seed.ts
 import type { Tour } from './tourTypes';
 
 export const seedTours: Tour[] = [
@@ -5,10 +6,20 @@ export const seedTours: Tour[] = [
         id: 'hoskeralli',
         title: 'Hosakerehalli Heritage Walk',
         description:
-            'Explore calm lakes, temples, and sunset points around Hosakerehalli. Gentle walk, lots of photo spots.',
+            'A gentle loop around lakes, shrines, and leafy lanes of Hosakerehalli. Expect calm water views, a few short climbs, and plenty of photo stops. Ideal for a relaxed weekend morning.',
         createdAt: '2025-02-01',
         image: 'https://picsum.photos/seed/hoskeralli/1200/600',
-        tags: ['Culture', 'Easy'],
+        tags: ['Culture', 'Easy', 'Lakes', 'Family-friendly', 'Photography'],
+        // Tour-level extras
+        distanceMetersTotal: 2200,           // ~2.2 km including a few short vehicle hops
+        walkTimeMinutesTotal: 35,            // moving time (excl. on-site)
+        suggestedPace: 'Leisurely (2–3 km/h)',
+        bestTimeToGo: 'Morning 9:30 – 12:30',
+        safetyNotes: [
+            'Footpaths can be uneven near the banyan circle—mind your step.',
+            'Carry water and a cap after 11 AM; limited shade near the market.',
+        ],
+
         places: [
             {
                 id: 'hk-0',
@@ -20,7 +31,14 @@ export const seedTours: Tour[] = [
                 lng: 77.5487488,
                 geofenceRadius: 25,
                 kind: 'start',
+                tags: ['Meeting point'],
+                visitDurationMin: 5,
+                address: 'Hosakerehalli Main Rd, Bengaluru',
+                tips: 'Check water, sunscreen, and battery. Keep small cash for snacks.',
+                highlights: ['Orientation', 'First lake glimpse'],
+                // first stop has no previous travel
             },
+
             {
                 id: 'hk-1',
                 name: 'Hosakerehalli Lake View',
@@ -31,7 +49,14 @@ export const seedTours: Tour[] = [
                 lng: 77.5496722,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Lake', 'Birding', 'Photos'],
+                visitDurationMin: 10,
+                address: 'Lake bund, East Edge',
+                tips: 'Stand near the railing; best reflections if it’s not windy.',
+                highlights: ['Water reflections', 'Egrets at the far bank'],
+                travelFromPrev: { mode: 'walk', distanceMeters: 110, durationMin: 2 },
             },
+
             {
                 id: 'hk-2',
                 name: 'Temple Street',
@@ -42,7 +67,14 @@ export const seedTours: Tour[] = [
                 lng: 77.5496722,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Temple', 'Streetscape', 'Culture'],
+                visitDurationMin: 12,
+                address: 'Temple St, Hosakerehalli',
+                tips: 'Remove footwear when entering; photography outside only if crowded.',
+                highlights: ['Flower stalls', 'Bell chimes'],
+                travelFromPrev: { mode: 'walk', distanceMeters: 100, durationMin: 2 },
             },
+
             {
                 id: 'hk-3',
                 name: 'Old Banyan Circle',
@@ -53,7 +85,14 @@ export const seedTours: Tour[] = [
                 lng: 77.5487488,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Landmark', 'Shade', 'People watching'],
+                visitDurationMin: 8,
+                address: 'Banyan Circle, North-West corner',
+                tips: 'Benches usually free; quick rest stop.',
+                highlights: ['Aerial roots', 'Local chats'],
+                travelFromPrev: { mode: 'walk', distanceMeters: 95, durationMin: 2 },
             },
+
             {
                 id: 'hk-4',
                 name: 'Sunset Ridge',
@@ -64,7 +103,14 @@ export const seedTours: Tour[] = [
                 lng: 77.5478254,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Viewpoint', 'Photos'],
+                visitDurationMin: 10,
+                address: 'Small rise behind the circle',
+                tips: 'Short climb: take the steps along the left fence, then a 40 m dirt path.',
+                highlights: ['Wide lake rim view'],
+                travelFromPrev: { mode: 'walk', distanceMeters: 105, durationMin: 3 },
             },
+
             {
                 id: 'hk-5',
                 name: 'Hosakerehalli Park',
@@ -75,7 +121,14 @@ export const seedTours: Tour[] = [
                 lng: 77.5478254,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Park', 'Play area', 'Rest'],
+                visitDurationMin: 10,
+                address: 'Park gate, West side',
+                tips: 'Shaded benches on the left; good spot to refill water bottle.',
+                highlights: ['Playground bustle', 'Shade'],
+                travelFromPrev: { mode: 'walk', distanceMeters: 120, durationMin: 3 },
             },
+
             {
                 id: 'hk-6',
                 name: 'Lakeside Cafe',
@@ -86,7 +139,16 @@ export const seedTours: Tour[] = [
                 lng: 77.5478254,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Cafe', 'Snacks', 'Restroom'],
+                visitDurationMin: 20,
+                address: 'Bund road, kiosk row',
+                tips:
+                    'From the park gate, it’s easier by auto if crowded: take an auto for ~550 m along the bund, then walk the last 80–100 m to the kiosk row.',
+                highlights: ['Waterfront stools', 'Local snacks'],
+                // mix vehicle + short walk (summarized as "drive" for the leg meta)
+                travelFromPrev: { mode: 'drive', distanceMeters: 650, durationMin: 4 },
             },
+
             {
                 id: 'hk-7',
                 name: 'Heritage Well',
@@ -97,7 +159,14 @@ export const seedTours: Tour[] = [
                 lng: 77.5487488,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Heritage', 'Architecture'],
+                visitDurationMin: 10,
+                address: 'Lane behind the kiosk row',
+                tips: 'Walk through the lane behind the kiosks; steps can be slick after rain.',
+                highlights: ['Stone steps', 'Water draw'],
+                travelFromPrev: { mode: 'walk', distanceMeters: 150, durationMin: 3 },
             },
+
             {
                 id: 'hk-8',
                 name: 'Crafts Market',
@@ -108,7 +177,14 @@ export const seedTours: Tour[] = [
                 lng: 77.5496722,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Market', 'Handicrafts', 'Shopping'],
+                visitDurationMin: 20,
+                address: 'Market lane (weekends busier)',
+                tips: 'Carry small change; ask before photographing stalls.',
+                highlights: ['Block prints', 'Cane baskets'],
+                travelFromPrev: { mode: 'walk', distanceMeters: 120, durationMin: 3 },
             },
+
             {
                 id: 'hk-9',
                 name: 'Community Library',
@@ -119,7 +195,16 @@ export const seedTours: Tour[] = [
                 lng: 77.5505956,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Library', 'Quiet', 'History'],
+                visitDurationMin: 10,
+                address: 'Library Rd, NE corner',
+                tips:
+                    'Best via bus for one stop (or shared auto) from the market, then a short 120 m walk to the NE corner.',
+                highlights: ['Local history shelf', 'Reading hall'],
+                // transit hop + short walk (summarized as "transit")
+                travelFromPrev: { mode: 'transit', distanceMeters: 720, durationMin: 6 },
             },
+
             {
                 id: 'hk-10',
                 name: 'Garden Temple',
@@ -130,7 +215,14 @@ export const seedTours: Tour[] = [
                 lng: 77.5505956,
                 geofenceRadius: 30,
                 kind: 'place',
+                tags: ['Temple', 'Garden', 'Calm'],
+                visitDurationMin: 10,
+                address: 'Temple gardens, North',
+                tips: 'Carry a light scarf/shawl; observe silence signs.',
+                highlights: ['Garden path', 'Shrine bells'],
+                travelFromPrev: { mode: 'walk', distanceMeters: 200, durationMin: 3 },
             },
+
             {
                 id: 'hk-end',
                 name: 'End – Hosakerehalli',
@@ -141,6 +233,13 @@ export const seedTours: Tour[] = [
                 lng: 77.5487488,
                 geofenceRadius: 25,
                 kind: 'end',
+                tags: ['Finish'],
+                visitDurationMin: 0,
+                address: 'Same as start',
+                tips:
+                    'If tired, take an auto from the temple gate back to the start (~1.1 km). Otherwise, walk via the lake bund for a scenic finish.',
+                // final return by auto is common; summarised as "drive"
+                travelFromPrev: { mode: 'drive', distanceMeters: 1100, durationMin: 5 },
             },
         ],
     },

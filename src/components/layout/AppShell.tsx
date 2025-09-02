@@ -1,12 +1,11 @@
 // src/components/layout/AppShell.tsx
-"use client";
-
-import { useState } from "react";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import HeaderBar from "@/components/nav/HeaderBar";
-import Sidebar from "@/components/nav/Sidebar";
-import MobileSidebar from "@/components/nav/MobileSidebar";
-import FooterBar from "@/components/nav/FooterBar";
+'use client';
+import { useState } from 'react';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import HeaderBar from '@/components/nav/HeaderBar';
+import Sidebar from '@/components/nav/Sidebar';
+import MobileSidebar from '@/components/nav/MobileSidebar';
+import FooterBar from '@/components/nav/FooterBar';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -14,7 +13,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex h-dvh flex-col overflow-hidden">
+      {/* ⬇️ Was: h-dvh overflow-hidden — this made only <main> scroll */}
+      <div className="flex min-h-dvh flex-col">
         <div className="shrink-0">
           <HeaderBar onOpenSidebar={() => setMobileOpen(true)} />
         </div>
@@ -25,9 +25,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div> */}
           <MobileSidebar open={mobileOpen} onOpenChange={setMobileOpen} />
 
-          <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-background via-background to-background">
-            {/* subtle top background shimmer */}
-            <main className="flex-1 overflow-y-auto px-4 py-6">{children}</main>
+          <div className="flex min-w-0 flex-1 flex-col">
+            {/* ⬇️ Removed overflow-y-auto so page scrolls normally */}
+            <main className="flex-1 px-4 py-6">{children}</main>
             <div className="shrink-0">
               <FooterBar />
             </div>
