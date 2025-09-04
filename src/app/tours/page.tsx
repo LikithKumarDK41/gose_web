@@ -258,24 +258,31 @@ export default function ToursPage() {
             {pageItems.map((tour, idx) => {
               const isNew =
                 !!tour.createdAt &&
-                Date.now() - new Date(tour.createdAt).getTime() < 1000 * 60 * 60 * 24 * 14;
+                Date.now() - new Date(tour.createdAt).getTime() <
+                1000 * 60 * 60 * 24 * 14;
               const frames = [
-                'from-indigo-500 via-sky-500 to-emerald-500',
-                'from-fuchsia-500 via-violet-500 to-sky-500',
-                'from-amber-500 via-orange-500 to-rose-500',
-                'from-teal-500 via-emerald-500 to-lime-500',
+                "from-indigo-500 via-sky-500 to-emerald-500",
+                "from-fuchsia-500 via-violet-500 to-sky-500",
+                "from-amber-500 via-orange-500 to-rose-500",
+                "from-teal-500 via-emerald-500 to-lime-500",
               ];
               const frame = frames[(startIdx + idx) % frames.length];
               const stops = tour.places.length;
-              const busiest = Math.max(1, ...pageItems.map((t) => t.places.length));
-              const stopsPct = Math.min(100, Math.round((stops / busiest) * 100));
+              const busiest = Math.max(
+                1,
+                ...pageItems.map((t) => t.places.length)
+              );
+              const stopsPct = Math.min(
+                100,
+                Math.round((stops / busiest) * 100)
+              );
 
               return (
-                <div key={tour.id} className="group relative">
-                  <div className={`absolute inset-0 -z-10 rounded-2xl bg-gradient-to-r ${frame} opacity-80 blur-sm transition-opacity group-hover:opacity-100`} />
-                  <div className="relative rounded-2xl bg-card/80 ring-1 ring-black/5 backdrop-blur supports-[backdrop-filter]:bg-card/70 dark:ring-white/10">
-                    <div className={`pointer-events-none absolute -inset-x-10 -top-10 h-24 bg-gradient-to-r ${frame} opacity-0 blur-2xl transition-all duration-500 group-hover:opacity-40`} />
-
+                <div
+                  key={tour.id}
+                  className="group relative transition-transform hover:-translate-y-0.5"
+                >
+                  <div className="relative rounded-2xl bg-card/80 border shadow-sm ring-1 ring-black/5 backdrop-blur supports-[backdrop-filter]:bg-card/70 dark:ring-white/10">
                     <div className="relative overflow-hidden rounded-t-2xl">
                       {tour.image ? (
                         <img
@@ -305,8 +312,13 @@ export default function ToursPage() {
 
                     <div className="space-y-3 px-4 pb-4 pt-3">
                       <div className="flex items-start justify-between gap-3">
-                        <h3 className="line-clamp-1 text-base font-semibold">{tour.title}</h3>
-                        <Sparkles className="h-4 w-4 text-indigo-500 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
+                        <h3 className="line-clamp-1 text-base font-semibold">
+                          {tour.title}
+                        </h3>
+                        <Sparkles
+                          className="h-4 w-4 text-indigo-500 opacity-0 transition-opacity group-hover:opacity-100"
+                          aria-hidden
+                        />
                       </div>
 
                       {tour.description && (
@@ -319,10 +331,10 @@ export default function ToursPage() {
                         <div className="flex flex-wrap gap-1.5">
                           {tour.tags.map((tg, i) => {
                             const palettes = [
-                              'from-indigo-500/12 to-sky-500/12 text-indigo-700 dark:text-indigo-200',
-                              'from-rose-500/12 to-orange-500/12 text-rose-700 dark:text-rose-200',
-                              'from-emerald-500/12 to-teal-500/12 text-emerald-700 dark:text-emerald-200',
-                              'from-fuchsia-500/12 to-violet-500/12 text-fuchsia-700 dark:text-fuchsia-200',
+                              "from-indigo-500/12 to-sky-500/12 text-indigo-700 dark:text-indigo-200",
+                              "from-rose-500/12 to-orange-500/12 text-rose-700 dark:text-rose-200",
+                              "from-emerald-500/12 to-teal-500/12 text-emerald-700 dark:text-emerald-200",
+                              "from-fuchsia-500/12 to-violet-500/12 text-fuchsia-700 dark:text-fuchsia-200",
                             ];
                             const palette = palettes[i % palettes.length];
                             return (
@@ -339,7 +351,10 @@ export default function ToursPage() {
 
                       <div className="mt-1">
                         <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                          <div className={`h-full rounded-full bg-gradient-to-r ${frame}`} style={{ width: `${stopsPct}%` }} />
+                          <div
+                            className={`h-full rounded-full bg-gradient-to-r ${frame}`}
+                            style={{ width: `${stopsPct}%` }}
+                          />
                         </div>
                         <div className="mt-1 text-[11px] text-muted-foreground">
                           Stops relative to this page&apos;s busiest tour
@@ -358,7 +373,9 @@ export default function ToursPage() {
                           asChild
                           className="rounded-full bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow hover:from-indigo-700 hover:to-sky-700"
                         >
-                          <Link href={`/tours/detail/navigation?id=${tour.id}`}>
+                          <Link
+                            href={`/tours/detail/navigation?id=${tour.id}`}
+                          >
                             <Navigation className="mr-1 h-4 w-4" />
                             Navigate
                           </Link>
@@ -374,7 +391,7 @@ export default function ToursPage() {
           {/* pagination */}
           <div className="flex items-center justify-between gap-3 pt-2">
             <div className="text-xs text-muted-foreground">
-              Page <span className="text-foreground">{current}</span> of{' '}
+              Page <span className="text-foreground">{current}</span> of{" "}
               <span className="text-foreground">{totalPages}</span>
             </div>
             <div className="flex items-center gap-1">
@@ -390,8 +407,11 @@ export default function ToursPage() {
               </Button>
               <div className="hidden sm:flex items-center gap-1">
                 {rangeAround(current, totalPages, 2).map((n, i) =>
-                  n === '…' ? (
-                    <span key={`dots-${i}`} className="px-2 text-sm text-muted-foreground">
+                  n === "…" ? (
+                    <span
+                      key={`dots-${i}`}
+                      className="px-2 text-sm text-muted-foreground"
+                    >
                       …
                     </span>
                   ) : (
@@ -399,9 +419,11 @@ export default function ToursPage() {
                       key={n}
                       onClick={() => setPage(n)}
                       className={[
-                        'h-8 min-w-8 rounded-md px-2 text-sm',
-                        n === current ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
-                      ].join(' ')}
+                        "h-8 min-w-8 rounded-md px-2 text-sm",
+                        n === current
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted",
+                      ].join(" ")}
                     >
                       {n}
                     </button>

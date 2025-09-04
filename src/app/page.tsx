@@ -214,160 +214,6 @@ export default function ToursDashboardPage() {
         </Card>
       </div>
 
-      {/* ===== Quick Launch carousel (colorful) ===== */}
-      {hasTours && (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Quick Launch</h2>
-            <div className="text-xs text-muted-foreground">Jump straight into a tour</div>
-          </div>
-
-          <div className="no-scrollbar flex gap-4 overflow-x-auto pb-1">
-            {(tours ?? []).map((t, i) => (
-              <article
-                key={t.id}
-                className="group relative min-w-[280px] flex-1 overflow-hidden rounded-2xl border"
-              >
-                {/* background image or gradient */}
-                {t.image ? (
-                  // image bg
-                  <img src={t.image} alt={t.title} className="absolute inset-0 h-full w-full object-cover opacity-70 transition-transform duration-500 group-hover:scale-[1.03]" />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-500 opacity-50" />
-                )}
-                {/* glass overlay */}
-                <div className="relative flex h-36 items-end justify-between gap-3 p-4 backdrop-blur-sm">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-white drop-shadow">{t.title}</div>
-                    <div className="text-[11px] text-white/90 drop-shadow">
-                      {t.places.length} stops • {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '—'}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button asChild size="sm" variant="secondary" className="bg-white/90 text-gray-900 hover:bg-white">
-                      <Link href={`/tours/detail?id=${t.id}`}>Details</Link>
-                    </Button>
-                    <Button asChild size="sm" className="bg-indigo-600 hover:bg-indigo-600/90">
-                      <Link href={`/tours/detail/navigation?id=${t.id}`}>Navigate</Link>
-                    </Button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ===== Progress by tour + Top tags ===== */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Progress by tour */}
-        <Card className="lg:col-span-2">
-          <div className="border-b px-5 py-3">
-            <div className="text-sm font-semibold">Tours Progress</div>
-            <div className="text-xs text-muted-foreground">Visited stops vs total per tour</div>
-          </div>
-          <CardContent className="p-5">
-            {perTourProgress.length === 0 ? (
-              <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">Nothing to show yet.</div>
-            ) : (
-              <ul className="space-y-3">
-                {perTourProgress.map((t) => (
-                  <li key={t.id} className="rounded-xl border p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-14 overflow-hidden rounded-md bg-muted">
-                        {t.img ? (
-                          <img src={t.img} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="grid h-full w-full place-items-center text-muted-foreground">
-                            <ImageIcon className="h-4 w-4" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="truncate text-sm font-semibold">{t.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {t.visited}/{t.total} • {t.pct}%
-                          </div>
-                        </div>
-                        <div className="mt-2 h-2 w-full overflow-hidden rounded bg-muted">
-                          <div
-                            className="h-full bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 transition-all"
-                            style={{ width: `${t.pct}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="ml-2 hidden sm:block">
-                        <Button asChild size="sm" variant="secondary">
-                          <Link href={`/tours/detail?id=${t.id}`}>Open</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top Tags */}
-        <Card>
-          <div className="border-b px-5 py-3">
-            <div className="text-sm font-semibold">Top Tags</div>
-            <div className="text-xs text-muted-foreground">Most-used across your tours</div>
-          </div>
-          <CardContent className="p-5">
-            {metrics.topTags.length === 0 ? (
-              <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">No tags yet.</div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {metrics.topTags.map((t, i) => (
-                  <Badge
-                    key={t.name}
-                    variant="secondary"
-                    className="gap-2 bg-gradient-to-r from-sky-500/20 to-indigo-500/20 text-sky-900 ring-1 ring-sky-500/30 dark:text-sky-100"
-                  >
-                    {t.name}
-                    <span className="rounded bg-white/60 px-1.5 text-[10px] font-semibold text-sky-700 dark:bg-white/10 dark:text-sky-100">
-                      {t.count}
-                    </span>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ===== Recently created ===== */}
-      <Card>
-        <div className="border-b px-5 py-3">
-          <div className="text-sm font-semibold">Recently Created</div>
-          <div className="text-xs text-muted-foreground">Last three tours</div>
-        </div>
-        <CardContent className="p-5">
-          {metrics.recent.length === 0 ? (
-            <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">No recent tours to show.</div>
-          ) : (
-            <ul className="space-y-3">
-              {metrics.recent.map((t) => (
-                <li key={t.id} className="flex items-center justify-between gap-3 rounded-xl border p-3 transition-transform hover:-translate-y-0.5">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{t.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '—'} • {t.places.length} stops
-                    </div>
-                  </div>
-                  <Button asChild size="sm" variant="secondary">
-                    <Link href={`/tours/detail?id=${t.id}`}>Open</Link>
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
       {/* ===== All tours grid ===== */}
       {hasTours && (
         <>
@@ -378,14 +224,13 @@ export default function ToursDashboardPage() {
             </div>
           </div>
 
-
           <div className="grid items-stretch gap-7 md:grid-cols-2 xl:grid-cols-3">
             {tours!.map((tour, idx) => {
               const isNew =
                 !!tour.createdAt &&
-                Date.now() - new Date(tour.createdAt).getTime() < 1000 * 60 * 60 * 24 * 14;
+                Date.now() - new Date(tour.createdAt).getTime() <
+                1000 * 60 * 60 * 24 * 14;
 
-              // slight variation per card so gradients don’t all look the same
               const frames = [
                 "from-indigo-500 via-sky-500 to-emerald-500",
                 "from-fuchsia-500 via-violet-500 to-sky-500",
@@ -398,14 +243,12 @@ export default function ToursDashboardPage() {
               const stopsPct = Math.min(100, Math.round((stops / maxStops) * 100));
 
               return (
-                <div key={tour.id} className="group relative">
-                  {/* Aurora frame */}
-                  <div className={`absolute inset-0 -z-10 rounded-2xl bg-gradient-to-r ${frame} opacity-80 blur-sm transition-opacity group-hover:opacity-100`} />
-                  {/* Card body with 1px gradient border */}
-                  <div className="relative rounded-2xl bg-card/80 ring-1 ring-black/5 backdrop-blur supports-[backdrop-filter]:bg-card/70 dark:ring-white/10">
-                    {/* top shimmer accent */}
-                    <div className={`pointer-events-none absolute -inset-x-10 -top-10 h-24 bg-gradient-to-r ${frame} opacity-0 blur-2xl transition-all duration-500 group-hover:opacity-40`} />
-
+                <div
+                  key={tour.id}
+                  className="group relative transition-transform hover:-translate-y-0.5"
+                >
+                  {/* Card body with shadow like MonumentCard */}
+                  <div className="relative overflow-hidden rounded-2xl border bg-card/80 shadow-sm ring-1 ring-black/5 backdrop-blur supports-[backdrop-filter]:bg-card/70 dark:ring-white/10">
                     {/* media */}
                     <div className="relative overflow-hidden rounded-t-2xl">
                       {tour.image ? (
@@ -420,7 +263,7 @@ export default function ToursDashboardPage() {
                         </div>
                       )}
 
-                      {/* glass info bar on image */}
+                      {/* glass info bar */}
                       <div className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-xs text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:bg-black/55 dark:text-white dark:ring-white/10">
                         <MapPin className="h-3.5 w-3.5" />
                         {stops} {stops === 1 ? "stop" : "stops"}
@@ -438,23 +281,22 @@ export default function ToursDashboardPage() {
 
                     {/* content */}
                     <div className="space-y-3 px-4 pb-4 pt-3">
-                      {/* title row */}
                       <div className="flex items-start justify-between gap-3">
-                        <h3 className="line-clamp-1 text-base font-semibold">{tour.title}</h3>
+                        <h3 className="line-clamp-1 text-base font-semibold">
+                          {tour.title}
+                        </h3>
                         <Sparkles
                           className="h-4 w-4 text-indigo-500 opacity-0 transition-opacity group-hover:opacity-100"
                           aria-hidden
                         />
                       </div>
 
-                      {/* description */}
                       {tour.description && (
                         <p className="line-clamp-3 text-sm text-muted-foreground">
                           {tour.description}
                         </p>
                       )}
 
-                      {/* tags: soft colorful pills */}
                       {tour.tags?.length ? (
                         <div className="flex flex-wrap gap-1.5">
                           {tour.tags.map((tag, i) => {
@@ -477,7 +319,6 @@ export default function ToursDashboardPage() {
                         </div>
                       ) : null}
 
-                      {/* stops progress bar relative to max */}
                       <div className="mt-1">
                         <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                           <div
@@ -490,7 +331,6 @@ export default function ToursDashboardPage() {
                         </div>
                       </div>
 
-                      {/* actions */}
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <Button
                           asChild
@@ -515,7 +355,6 @@ export default function ToursDashboardPage() {
               );
             })}
           </div>
-
         </>
       )}
 

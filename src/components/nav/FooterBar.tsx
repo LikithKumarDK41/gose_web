@@ -2,8 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
-import { Compass, Map, SatelliteDish, BookMarked, Github } from 'lucide-react';
+import { Compass, Github, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 export default function FooterBar() {
   return (
@@ -32,59 +31,41 @@ export default function FooterBar() {
             </p>
           </div>
 
-          {/* nav */}
-          <nav className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-            <FooterLink href="/tours" label="Tours" icon={<Compass className="h-4 w-4" />} />
-            <FooterLink href="/map" label="Map" icon={<Map className="h-4 w-4" />} />
-            <FooterLink href="/tracking" label="Live" icon={<SatelliteDish className="h-4 w-4" />} />
-            <FooterLink href="/library" label="Library" icon={<BookMarked className="h-4 w-4" />} />
-          </nav>
-
-          {/* tech chips */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <Badge variant="secondary" className="bg-muted">Next.js</Badge>
-            <Badge variant="secondary" className="bg-muted">MapLibre</Badge>
-            <Badge variant="secondary" className="bg-muted">turf.js</Badge>
-            <Badge className="bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-700 ring-1 ring-emerald-500/30 dark:text-emerald-200">
-              PWA
-            </Badge>
+          {/* social links */}
+          <div className="flex items-center gap-4">
+            <SocialLink href="https://github.com" icon={<Github className="h-5 w-5" />} label="GitHub" />
+            <SocialLink href="https://twitter.com" icon={<Twitter className="h-5 w-5" />} label="Twitter" />
+            <SocialLink href="https://instagram.com" icon={<Instagram className="h-5 w-5" />} label="Instagram" />
+            <SocialLink href="https://linkedin.com" icon={<Linkedin className="h-5 w-5" />} label="LinkedIn" />
           </div>
         </div>
 
         <div className="mt-6 flex items-center justify-between border-t pt-4 text-xs text-muted-foreground">
           <div>© {new Date().getFullYear()} Tourist. All rights reserved.</div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="https://github.com/"
-              target="_blank"
-              className="inline-flex items-center gap-1 hover:text-foreground"
-            >
-              <Github className="h-4 w-4" />
-              <span>GitHub</span>
-            </Link>
-          </div>
         </div>
       </div>
     </footer>
   );
 }
 
-function FooterLink({
+function SocialLink({
   href,
-  label,
   icon,
+  label,
 }: {
   href: string;
-  label: string;
   icon: React.ReactNode;
+  label: string;
 }) {
   return (
     <Link
       href={href}
-      className="group inline-flex items-center gap-2 rounded-md px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition"
     >
-      <span className="text-muted-foreground group-hover:text-foreground">{icon}</span>
-      <span>{label}</span>
+      {icon}
     </Link>
   );
 }

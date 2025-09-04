@@ -12,7 +12,7 @@ export const NAV_ITEMS: NavItem[] = [
     { href: "/", label: "Home", icon: Home },
     { href: "/tours", label: "Tour List", icon: List },
     { href: "/mylist", label: "My List", icon: BookmarkCheck },
-    { href: "/guide", label: "Guide", icon: BookOpen },
+    // { href: "/guide", label: "Guide", icon: BookOpen },
 ];
 
 /** best-effort active matcher: exact or prefix match for section roots */

@@ -419,7 +419,6 @@ function MonumentCard({ m }: { m: MonumentItem }) {
   );
 }
 
-
 function TourCard({ t, maxStops }: { t: TourItem; maxStops: number }) {
   const stops = t.places?.length ?? 0;
   const progress = Math.min(
