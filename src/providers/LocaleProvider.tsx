@@ -6,19 +6,19 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 type Translations = Record<string, any>;
 type LocaleContextType = {
   locale: string;
-  setLocale: (l: string) => void;
+  setLocale: (l: string) => Promise<void>;
   t: (key: string, vars?: Record<string, any>) => string;
 };
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
-const DEFAULT_LOCALE = "en";
+const DEFAULT_LOCALE = "ja"; // default Japanese
 const LOCALE_STORAGE_KEY = "site_locale";
 
 // Load JSON from /public/locales/<locale>.json
 async function loadLocaleJson(locale: string): Promise<Translations> {
   try {
-    const res = await fetch(`/locales/${locale}.json?ts=${Date.now()}`); // prevent caching during dev
+    const res = await fetch(`/locales/${locale}.json?ts=${Date.now()}`);
     if (!res.ok) throw new Error("Locale file not found");
     return await res.json();
   } catch (err) {
@@ -39,7 +39,6 @@ function interp(str: string, vars?: Record<string, any>) {
   });
 }
 
-// very basic plural support
 function pluralizePattern(pattern: string, vars?: Record<string, any>) {
   const match = pattern.match(/\{(\w+),\s*plural,\s*one\s*\{([^}]+)\}\s*other\s*\{([^}]+)\}\}/);
   if (!match) return interp(pattern, vars);
@@ -52,10 +51,10 @@ function pluralizePattern(pattern: string, vars?: Record<string, any>) {
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<string>(() => {
     if (typeof window === "undefined") return DEFAULT_LOCALE;
-    return localStorage.getItem(LOCALE_STORAGE_KEY) || navigator.language?.split("-")[0] || DEFAULT_LOCALE;
+    return localStorage.getItem(LOCALE_STORAGE_KEY) || DEFAULT_LOCALE;
   });
 
-  const [translations, setTranslations] = useState<Translations | null>(null); // null until loaded
+  const [translations, setTranslations] = useState<Translations | null>(null);
 
   // Load translations whenever locale changes
   useEffect(() => {
@@ -69,15 +68,21 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     };
   }, [locale]);
 
-  // update locale and persist
-  const setLocale = (l: string) => {
+  // Update <html lang> dynamically
+  useEffect(() => {
+    document.documentElement.setAttribute("lang", locale);
+  }, [locale]);
+
+  // Async setLocale function
+  const setLocale = async (l: string) => {
     setLocaleState(l);
     try {
       localStorage.setItem(LOCALE_STORAGE_KEY, l);
     } catch {}
+    const t = await loadLocaleJson(l);
+    setTranslations(t || {});
   };
 
-  // translation function
   const t = (key: string, vars?: Record<string, any>) => {
     if (!translations) return ""; // not loaded yet
     const found = getNested(translations, key);
@@ -91,8 +96,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({ locale, setLocale, t }), [locale, translations]);
 
-  // Don't render children until translations loaded
-  if (!translations) return <div>Loading translations...</div>;
+  if (!translations) return <div></div>; // loading fallback
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }

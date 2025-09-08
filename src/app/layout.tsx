@@ -12,7 +12,7 @@ export const viewport: Viewport = { themeColor: '#0b0f14' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang='ja'>
       <body className="bg-background text-foreground">
         <StoreProvider>
           <LoaderProvider>

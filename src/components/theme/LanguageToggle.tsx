@@ -16,13 +16,12 @@ export default function LanguageToggle() {
         const currentIndex = SUPPORTED.indexOf(locale as Lang);
         const next = SUPPORTED[(currentIndex + 1) % SUPPORTED.length];
 
-        const MIN_DURATION = 800; // ms, increased for better visibility
+        const MIN_DURATION = 800; // ms
         const start = Date.now();
 
         try {
-            show(); // show loader immediately
+            show();
             await setLocale(next); // load translations
-            document.documentElement.setAttribute("lang", next);
         } finally {
             const elapsed = Date.now() - start;
             const remaining = MIN_DURATION - elapsed;
@@ -34,6 +33,8 @@ export default function LanguageToggle() {
         }
     };
 
+    const color = locale === "en" ? "text-blue-500" : "text-red-500";
+
     return (
         <Button
             variant="outline"
@@ -41,11 +42,7 @@ export default function LanguageToggle() {
             onClick={cycle}
             title={`Language: ${locale.toUpperCase()}`}
         >
-            {locale === "en" ? (
-                <Globe className="h-4 w-4 text-blue-500" />
-            ) : (
-                <Globe className="h-4 w-4 text-red-500" />
-            )}
+            <Globe className={`h-4 w-4 ${color}`} />
             <span className="sr-only">Toggle language</span>
         </Button>
     );
