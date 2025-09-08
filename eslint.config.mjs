@@ -22,6 +22,7 @@ export default [
       "src/components/map/NavigationOverlay.tsx",
       "src/components/map/MapboxTourMapNavigation.tsx",
       "src/components/geo/GeoWatcher.tsx",
+      "src/components/theme/ThemeToggle.tsx",
     ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",

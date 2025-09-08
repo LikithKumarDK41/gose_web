@@ -4,15 +4,14 @@ import { Home, List, BookmarkCheck, BookOpen } from "lucide-react";
 
 export type NavItem = {
     href: string;
-    label: string;
+    labelKey: string;
     icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
 export const NAV_ITEMS: NavItem[] = [
-    { href: "/", label: "Home", icon: Home },
-    { href: "/tours", label: "Tour List", icon: List },
-    { href: "/mylist", label: "My List", icon: BookmarkCheck },
-    // { href: "/guide", label: "Guide", icon: BookOpen },
+  { href: "/", labelKey: "nav.home", icon: Home },
+  { href: "/tours", labelKey: "nav.tours", icon: List },
+  { href: "/mylist", labelKey: "nav.myList", icon: BookmarkCheck },
 ];
 
 /** best-effort active matcher: exact or prefix match for section roots */
@@ -24,5 +23,5 @@ export function isActivePath(pathname: string, href: string) {
 /** find a human title for the current route based on sidebar items */
 export function currentSectionTitle(pathname: string) {
     const found = NAV_ITEMS.find((n) => isActivePath(pathname, n.href));
-    return found?.label ?? "Tourist";
+    return found?.labelKey ?? "Tourist";
 }

@@ -12,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   ImageIcon,
@@ -20,13 +19,13 @@ import {
   Bike,
   Bus,
   Train,
-  Footprints, // If your lucide version lacks this, replace with Move or CircleDot.
+  Footprints,
   Clock,
   MapPin,
   Sparkles,
 } from "lucide-react";
+import { useLocale } from "@/providers/LocaleProvider";
 
-/* ---------- Compat types (do NOT use optional chaining in types) ---------- */
 type Mode = "walk" | "drive" | "cycle" | "transit" | "other";
 type PlaceCompat = Place & {
   tags?: string[];
@@ -43,14 +42,14 @@ type PlaceCompat = Place & {
 
 export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const active = useMemo(
-    () => places.find((p) => p.id === openId) ?? null,
-    [openId, places]
-  );
+  const active = useMemo(() => places.find((p) => p.id === openId) ?? null, [
+    openId,
+    places,
+  ]);
+  const { t } = useLocale();
 
   return (
     <div className="relative mx-auto w-full max-w-6xl">
-      {/* center spine */}
       <div className="pointer-events-none absolute left-8 top-0 bottom-0 w-px bg-border/70" />
 
       <ul className="space-y-12 md:space-y-14">
@@ -61,18 +60,13 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
           const leg = p.travelFromPrev;
 
           return (
-            <li
-              key={p.id}
-              className="grid grid-cols-[64px_1fr] items-start gap-4 sm:gap-6"
-            >
-              {/* leg pill between items */}
+            <li key={p.id} className="grid grid-cols-[64px_1fr] items-start gap-4 sm:gap-6">
               {idx > 0 && (
                 <div className="col-span-2 -mb-6 -mt-6 pl-[80px] md:-mb-7 md:-mt-7">
-                  <LegPill accent={accent} leg={leg} />
+                  <LegPill accent={accent} leg={leg} t={t} />
                 </div>
               )}
 
-              {/* marker column */}
               <div className="relative h-full w-16">
                 <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-px bg-border/50" />
                 <div className="absolute left-1/2 top-0 -translate-x-1/2">
@@ -85,16 +79,7 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                 </div>
               </div>
 
-              {/* card */}
-              <article
-                className="
-                  group relative grid w-full grid-cols-1 gap-5 overflow-hidden
-                  rounded-2xl border bg-card/80 p-4 shadow-sm ring-1 ring-black/5 backdrop-blur
-                  transition-all hover:-translate-y-[2px] hover:shadow-md dark:ring-white/10
-                  sm:grid-cols-[440px_1fr]
-                "
-              >
-                {/* hover aura */}
+              <article className="group relative grid w-full grid-cols-1 gap-5 overflow-hidden rounded-2xl border bg-card/80 p-4 shadow-sm ring-1 ring-black/5 backdrop-blur transition-all hover:-translate-y-[2px] hover:shadow-md dark:ring-white/10 sm:grid-cols-[440px_1fr]">
                 <div
                   className="pointer-events-none absolute inset-0 -z-10 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-60"
                   style={{
@@ -103,9 +88,8 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                   }}
                 />
 
-                {/* media */}
                 <button
-                  aria-label={`Open ${p.name}`}
+                  aria-label={t('tourDetails.openPlace', { name: p.name })}
                   onClick={() => setOpenId(p.id)}
                   className="relative h-64 w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border"
                 >
@@ -125,7 +109,6 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                   )}
                 </button>
 
-                {/* body */}
                 <div className="min-w-0">
                   <div className="flex items-start justify-between gap-3">
                     <h3
@@ -138,11 +121,11 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                     </h3>
 
                     <div className="flex items-center gap-2">
-                      <ModeChip mode={leg?.mode} />
+                      <ModeChip mode={leg?.mode} t={t} />
                       {p.time && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="h-3.5 w-3.5" />
-                          {p.time}
+                          {t('tourDetails.time')}: {p.time}
                         </div>
                       )}
                     </div>
@@ -156,32 +139,30 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                   )}
 
                   {p.blurb && (
-                    <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                      {p.blurb}
-                    </p>
+                    <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{p.blurb}</p>
                   )}
 
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
                     {p.visitDurationMin != null && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
                         <Clock className="h-3.5 w-3.5" />
-                        {p.visitDurationMin} min on site
+                        {p.visitDurationMin} {t('tourDetails.minOnSite')}
                       </span>
                     )}
                     {!!p.highlights?.length && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
                         <Sparkles className="h-3.5 w-3.5" />
-                        {p.highlights.length} highlight
-                        {p.highlights.length > 1 ? "s" : ""}
+                        {p.highlights.length}{" "}
+                        {p.highlights.length > 1 ? t('tourDetails.highlightsPlural') : t('tourDetails.highlightsSingular')}
                       </span>
                     )}
                   </div>
 
                   {!!tags.length && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      {tags.slice(0, 6).map((t, i) => (
+                      {tags.slice(0, 6).map((tTag, i) => (
                         <Badge
-                          key={t}
+                          key={tTag}
                           variant="secondary"
                           className="rounded-md px-1.5 py-0 text-[10px]"
                           style={{
@@ -189,19 +170,15 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                             borderWidth: 1,
                           }}
                         >
-                          {t}
+                          {tTag}
                         </Badge>
                       ))}
                     </div>
                   )}
 
                   <div className="mt-4">
-                    <Button
-                      size="sm"
-                      className="rounded-full"
-                      onClick={() => setOpenId(p.id)}
-                    >
-                      View details
+                    <Button size="sm" className="rounded-full" onClick={() => setOpenId(p.id)}>
+                      {t('tourDetails.viewDetails')}
                     </Button>
                   </div>
                 </div>
@@ -217,7 +194,9 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
           <DialogHeader>
             <DialogTitle>{active?.name}</DialogTitle>
             {!!active?.time && (
-              <DialogDescription>Time: {active.time}</DialogDescription>
+              <DialogDescription>
+                {t('tourDetails.time')}: {active.time}
+              </DialogDescription>
             )}
           </DialogHeader>
 
@@ -257,17 +236,12 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                   ))}
                 </ul>
               )}
+
               {active.tips && (
                 <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
                   {active.tips}
                 </div>
               )}
-
-              {/* <div className="flex items-center justify-end gap-2">
-                <DialogClose asChild>
-                  <Button variant="outline">Close</Button>
-                </DialogClose>
-              </div> */}
             </div>
           )}
         </DialogContent>
@@ -303,7 +277,6 @@ function fmtMinutes(min?: number) {
   return mm ? `${h}h ${mm}m` : `${h}h`;
 }
 
-/* Mode visuals */
 function modeStyles(mode?: Mode) {
   switch (mode) {
     case "drive":
@@ -350,8 +323,9 @@ function modeStyles(mode?: Mode) {
   }
 }
 
-function ModeChip({ mode }: { mode?: Mode }) {
+function ModeChip({ mode, t }: { mode?: Mode; t: any }) {
   const s = modeStyles(mode);
+  const label = t(`tourDetails.modes.${s.label.toLowerCase()}`, { defaultValue: s.label });
   return (
     <span
       className={[
@@ -361,44 +335,28 @@ function ModeChip({ mode }: { mode?: Mode }) {
         s.text,
         "ring-1",
       ].join(" ")}
-      title={s.label}
+      title={label}
     >
       {s.icon}
-      {s.label}
+      {label}
     </span>
   );
 }
 
-function LegPill({
-  accent,
-  leg,
-}: {
-  accent: string;
-  leg?: PlaceCompat["travelFromPrev"];
-}) {
+function LegPill({ accent, leg, t }: { accent: string; leg?: PlaceCompat["travelFromPrev"]; t: any }) {
   const s = modeStyles(leg?.mode);
+  const label = t(`tourDetails.modes.${s.label.toLowerCase()}`, { defaultValue: s.label });
   return (
-    <div
-      className={[
-        "inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] shadow",
-        "bg-card/95 ring-1 ring-border",
-      ].join(" ")}
-    >
+    <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] shadow bg-card/95 ring-1 ring-border">
       <span
-        className={[
-          "inline-flex items-center justify-center rounded-full p-1",
-          s.bg,
-          s.text,
-          s.ring,
-          "ring-1",
-        ].join(" ")}
+        className={["inline-flex items-center justify-center rounded-full p-1", s.bg, s.text, s.ring, "ring-1"].join(" ")}
         style={{ boxShadow: `0 0 0 2px ${accent}22 inset` }}
         aria-hidden
       >
         {s.icon}
       </span>
 
-      <span className="font-semibold">{s.label}</span>
+      <span className="font-semibold">{label}</span>
 
       {leg?.distanceMeters != null && (
         <>

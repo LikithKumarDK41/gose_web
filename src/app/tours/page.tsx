@@ -1,4 +1,3 @@
-// src/app/tours/page.tsx
 'use client';
 
 import Link from 'next/link';
@@ -30,8 +29,10 @@ import { Separator } from '@/components/ui/separator';
 
 import { useAppSelector } from '@/lib/store/hook';
 import { selectTours } from '@/lib/store/slices/toursSlice';
+import { useLocale } from '@/providers/LocaleProvider';
 
 export default function ToursPage() {
+  const { t } = useLocale();
   const tours = useAppSelector(selectTours);
   const hasTours = (tours?.length ?? 0) > 0;
 
@@ -82,8 +83,6 @@ export default function ToursPage() {
   const startIdx = (current - 1) * perPage;
   const pageItems = filteredSorted.slice(startIdx, startIdx + perPage);
 
-  const firstId = filteredSorted?.[0]?.id;
-
   /* ---------- banner stats ---------- */
   const stats = useMemo(() => {
     const totalTours = tours?.length ?? 0;
@@ -94,12 +93,12 @@ export default function ToursPage() {
 
   return (
     <div className="space-y-8">
-      {/* ===== Rich banner (no CTA buttons; vibrant but readable) ===== */}
+      {/* ===== Rich banner ===== */}
       <div className="relative overflow-hidden rounded-2xl border">
-        {/* Vivid gradient blobs (work well in light & dark) */}
+        {/* gradient blobs */}
         <div className="pointer-events-none absolute -top-20 -right-8 h-72 w-72 rounded-full bg-gradient-to-tr from-sky-400 via-indigo-400 to-fuchsia-400 opacity-60 blur-3xl dark:opacity-40" />
         <div className="pointer-events-none absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-gradient-to-tr from-emerald-400 via-teal-400 to-cyan-400 opacity-60 blur-3xl dark:opacity-40" />
-        {/* Soft mesh wash to tie colors together */}
+        {/* mesh wash */}
         <div className="absolute inset-0
           [background:
             radial-gradient(120%_80%_at_0%_0%,rgba(99,102,241,.20),transparent_60%),
@@ -112,43 +111,39 @@ export default function ToursPage() {
             radial-gradient(100%_120%_at_50%_100%,rgba(16,185,129,.30),transparent_55%)
           ]"
         />
-        {/* Veil for light-mode contrast (kept very light) */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/60 to-white/20 dark:from-transparent dark:via-transparent dark:to-transparent" />
-        {/* Subtle dot texture */}
         <div className="pointer-events-none absolute inset-0 opacity-[0.05] bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_1px)] [background-size:12px_12px] dark:opacity-[0.08]" />
 
         <div className="relative p-6 sm:p-7">
           <div className="flex flex-col gap-3">
             <div className="inline-flex w-fit items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow ring-1 ring-white/10 backdrop-blur dark:bg-black/60">
               <Sparkles className="h-3.5 w-3.5" />
-              Live tours
+              {t('tours.liveTours')}
             </div>
             <h1 className="text-2xl font-semibold text-gray-900 drop-shadow-sm dark:text-white">
-              Explore & Navigate Curated Tours
+              {t('tours.exploreTours')}
             </h1>
             <p className="text-sm text-gray-700/85 dark:text-white/90">
-              Search, filter by tag, sort by newest or most stops, and jump into any tour’s details or navigation.
+              {t('tours.bannerDescription')}
             </p>
           </div>
 
-          {/* stat chips (kept prominent since there are no CTAs) */}
           <div className="mt-4 flex flex-wrap gap-2">
-            <Chip label="Tours" value={stats.totalTours} />
-            <Chip label="Stops" value={stats.totalStops} />
-            <Chip label="Avg Stops/Tour" value={stats.avgStops} />
-            <Chip label="Tags" value={stats.uniqueTags} />
+            <Chip label={t('tours.stats.tours')} value={stats.totalTours} />
+            <Chip label={t('tours.stats.stops')} value={stats.totalStops} />
+            <Chip label={t('tours.stats.avgStops')} value={stats.avgStops} />
+            <Chip label={t('tours.stats.tags')} value={stats.uniqueTags} />
           </div>
         </div>
       </div>
 
-      {/* ===== Toolbar (shadcn inputs) ===== */}
+      {/* ===== Toolbar ===== */}
       <Card className="border bg-card/70 backdrop-blur">
         <CardContent className="p-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* search */}
             <div>
               <Label htmlFor="q" className="mb-1 block text-xs text-muted-foreground">
-                Search
+                {t('tours.search')}
               </Label>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -156,22 +151,21 @@ export default function ToursPage() {
                   id="q"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Title, description, tag…"
+                  placeholder={t('tours.searchPlaceholder')}
                   className="pl-8"
                 />
               </div>
             </div>
 
-            {/* tag filter */}
             <div>
-              <Label className="mb-1 block text-xs text-muted-foreground">Tag</Label>
+              <Label className="mb-1 block text-xs text-muted-foreground">{t('tours.tag')}</Label>
               <Select value={tag} onValueChange={setTag}>
                 <SelectTrigger className="w-full">
                   <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="All tags" />
+                  <SelectValue placeholder={t('tours.allTags')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All tags</SelectItem>
+                  <SelectItem value="all">{t('tours.allTags')}</SelectItem>
                   {allTags.map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}
@@ -181,24 +175,22 @@ export default function ToursPage() {
               </Select>
             </div>
 
-            {/* sort */}
             <div>
-              <Label className="mb-1 block text-xs text-muted-foreground">Sort by</Label>
+              <Label className="mb-1 block text-xs text-muted-foreground">{t('tours.sortBy')}</Label>
               <Select value={sortBy} onValueChange={(v: 'new' | 'stops') => setSortBy(v)}>
                 <SelectTrigger className="w-full">
                   <SlidersHorizontal className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Newest" />
+                  <SelectValue placeholder={t('tours.sortNewest')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="new">Newest</SelectItem>
-                  <SelectItem value="stops">Most stops</SelectItem>
+                  <SelectItem value="new">{t('tours.sortNewest')}</SelectItem>
+                  <SelectItem value="stops">{t('tours.sortMostStops')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* per page */}
             <div>
-              <Label className="mb-1 block text-xs text-muted-foreground">Per page</Label>
+              <Label className="mb-1 block text-xs text-muted-foreground">{t('tours.perPage')}</Label>
               <Select value={String(perPage)} onValueChange={(v) => setPerPage(Number(v))}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -218,9 +210,7 @@ export default function ToursPage() {
 
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div>
-              Showing <span className="font-semibold text-foreground">{pageItems.length}</span> of{' '}
-              <span className="font-semibold text-foreground">{total}</span> result
-              {total === 1 ? '' : 's'}
+              {t('tours.showingResults', { current: pageItems.length, total })}
             </div>
             <Button
               variant="ghost"
@@ -233,7 +223,7 @@ export default function ToursPage() {
                 setPerPage(6);
               }}
             >
-              Reset
+              {t('tours.reset')}
             </Button>
           </div>
         </CardContent>
@@ -242,12 +232,12 @@ export default function ToursPage() {
       {/* ===== Empty states ===== */}
       {hasTours && total === 0 && (
         <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
-          No tours match your filters.
+          {t('tours.noMatches')}
         </div>
       )}
       {!hasTours && (
         <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
-          No tours yet. Once tours are available, you’ll see them here.
+          {t('tours.noToursYet')}
         </div>
       )}
 
@@ -258,8 +248,7 @@ export default function ToursPage() {
             {pageItems.map((tour, idx) => {
               const isNew =
                 !!tour.createdAt &&
-                Date.now() - new Date(tour.createdAt).getTime() <
-                1000 * 60 * 60 * 24 * 14;
+                Date.now() - new Date(tour.createdAt).getTime() < 1000 * 60 * 60 * 24 * 14;
               const frames = [
                 "from-indigo-500 via-sky-500 to-emerald-500",
                 "from-fuchsia-500 via-violet-500 to-sky-500",
@@ -298,13 +287,13 @@ export default function ToursPage() {
 
                       <div className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-xs text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:bg-black/55 dark:text-white dark:ring-white/10">
                         <MapPin className="h-3.5 w-3.5" />
-                        {stops} {stops === 1 ? "stop" : "stops"}
+                        {stops} {stops === 1 ? t('tours.stop') : t('tours.stops')}
                       </div>
 
                       <div className="absolute left-2 top-2 flex gap-2">
                         {isNew && (
                           <span className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 shadow backdrop-blur dark:bg-black/70 dark:text-emerald-300">
-                            New
+                            {t('tours.new')}
                           </span>
                         )}
                       </div>
@@ -357,7 +346,7 @@ export default function ToursPage() {
                           />
                         </div>
                         <div className="mt-1 text-[11px] text-muted-foreground">
-                          Stops relative to this page&apos;s busiest tour
+                          {t('tours.stopsRelative')}
                         </div>
                       </div>
 
@@ -367,7 +356,9 @@ export default function ToursPage() {
                           variant="secondary"
                           className="rounded-full border border-white/40 backdrop-blur-sm dark:border-white/10"
                         >
-                          <Link href={`/tours/detail?id=${tour.id}`}>Details</Link>
+                          <Link href={`/tours/detail?id=${tour.id}`}>
+                            {t('tours.details')}
+                          </Link>
                         </Button>
                         <Button
                           asChild
@@ -377,7 +368,7 @@ export default function ToursPage() {
                             href={`/tours/detail/navigation?id=${tour.id}`}
                           >
                             <Navigation className="mr-1 h-4 w-4" />
-                            Navigate
+                            {t('tours.navigate')}
                           </Link>
                         </Button>
                       </div>
@@ -391,8 +382,7 @@ export default function ToursPage() {
           {/* pagination */}
           <div className="flex items-center justify-between gap-3 pt-2">
             <div className="text-xs text-muted-foreground">
-              Page <span className="text-foreground">{current}</span> of{" "}
-              <span className="text-foreground">{totalPages}</span>
+              {t('tours.pageOf', { current, total: totalPages })}
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -403,26 +393,19 @@ export default function ToursPage() {
                 disabled={current <= 1}
               >
                 <ChevronLeft className="mr-1 h-4 w-4" />
-                Prev
+                {t('tours.prev')}
               </Button>
               <div className="hidden sm:flex items-center gap-1">
                 {rangeAround(current, totalPages, 2).map((n, i) =>
                   n === "…" ? (
-                    <span
-                      key={`dots-${i}`}
-                      className="px-2 text-sm text-muted-foreground"
-                    >
-                      …
-                    </span>
+                    <span key={`dots-${i}`} className="px-2 text-sm text-muted-foreground">…</span>
                   ) : (
                     <button
                       key={n}
                       onClick={() => setPage(n)}
                       className={[
                         "h-8 min-w-8 rounded-md px-2 text-sm",
-                        n === current
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted",
+                        n === current ? "bg-primary text-primary-foreground" : "hover:bg-muted",
                       ].join(" ")}
                     >
                       {n}
@@ -437,7 +420,7 @@ export default function ToursPage() {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={current >= totalPages}
               >
-                Next
+                {t('tours.next')}
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </div>

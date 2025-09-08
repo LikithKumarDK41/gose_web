@@ -1,10 +1,12 @@
-// src/components/nav/FooterBar.tsx
 'use client';
 
 import Link from 'next/link';
 import { Compass, Github, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { useLocale } from '@/providers/LocaleProvider';
 
 export default function FooterBar() {
+  const { t } = useLocale();
+
   return (
     <footer className="relative border-t border-border bg-background/80 backdrop-blur">
       {/* top accent line */}
@@ -19,29 +21,29 @@ export default function FooterBar() {
                 <Compass className="h-5 w-5" />
               </span>
               <span className="text-base font-semibold tracking-tight">
-                Tourist
+                {t('footer.brand')}
                 <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  Guides • Maps • Live
+                  {t('footer.tagline')}
                 </span>
               </span>
             </Link>
 
             <p className="mt-2 max-w-md text-xs text-muted-foreground">
-              Explore curated routes, navigate in real-time, and keep your own library of places.
+              {t('footer.description')}
             </p>
           </div>
 
           {/* social links */}
           <div className="flex items-center gap-4">
-            <SocialLink href="https://github.com" icon={<Github className="h-5 w-5" />} label="GitHub" />
-            <SocialLink href="https://twitter.com" icon={<Twitter className="h-5 w-5" />} label="Twitter" />
-            <SocialLink href="https://instagram.com" icon={<Instagram className="h-5 w-5" />} label="Instagram" />
-            <SocialLink href="https://linkedin.com" icon={<Linkedin className="h-5 w-5" />} label="LinkedIn" />
+            <SocialLink href="https://github.com" icon={<Github className="h-5 w-5" />} label={t('footer.social.github')} />
+            <SocialLink href="https://twitter.com" icon={<Twitter className="h-5 w-5" />} label={t('footer.social.twitter')} />
+            <SocialLink href="https://instagram.com" icon={<Instagram className="h-5 w-5" />} label={t('footer.social.instagram')} />
+            <SocialLink href="https://linkedin.com" icon={<Linkedin className="h-5 w-5" />} label={t('footer.social.linkedin')} />
           </div>
         </div>
 
         <div className="mt-6 flex items-center justify-between border-t pt-4 text-xs text-muted-foreground">
-          <div>© {new Date().getFullYear()} Tourist. All rights reserved.</div>
+          <div>{t('footer.copyright', { year: new Date().getFullYear() })}</div>
         </div>
       </div>
     </footer>

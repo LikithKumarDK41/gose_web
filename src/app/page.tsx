@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useMemo } from 'react';
+import Link from "next/link";
+import { useMemo } from "react";
 import {
   ImageIcon,
   MapPinned,
@@ -14,29 +14,33 @@ import {
   Navigation2,
   Clock4,
   Sparkles,
-  MapPin, Navigation
-} from 'lucide-react';
+  MapPin,
+  Navigation,
+} from "lucide-react";
 
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-import { useAppSelector } from '@/lib/store/hook';
-import { selectTours, selectActiveTour } from '@/lib/store/slices/toursSlice';
-import { selectNav } from '@/lib/store/slices/navSlice';
-import { selectGeofenceChecked } from '@/lib/store/slices/geofenceSlice';
+import { useAppSelector } from "@/lib/store/hook";
+import { selectTours, selectActiveTour } from "@/lib/store/slices/toursSlice";
+import { selectNav } from "@/lib/store/slices/navSlice";
+import { selectGeofenceChecked } from "@/lib/store/slices/geofenceSlice";
+
+import { useLocale } from "@/providers/LocaleProvider";
 
 /* ---------- helpers ---------- */
 function prettyStats(s?: { distance: number; duration: number } | null) {
-  if (!s) return '—';
+  if (!s) return "—";
   const km = (s.distance / 1000).toFixed(2);
   const mins = Math.round(s.duration / 60);
   const hh = Math.floor(mins / 60);
   const mm = mins % 60;
-  return `${km} km • ${hh ? `${hh}h ` : ''}${mm}m`;
+  return `${km} km • ${hh ? `${hh}h ` : ""}${mm}m`;
 }
 
 export default function ToursDashboardPage() {
+  const { t } = useLocale();
+
   const tours = useAppSelector(selectTours);
   const activeTour = useAppSelector(selectActiveTour);
   const nav = useAppSelector(selectNav);
@@ -57,29 +61,29 @@ export default function ToursDashboardPage() {
     const topTags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([name, count]) => ({ name, count }));
 
     const recent = [...(tours ?? [])]
-      .sort((a, b) => (new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()))
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       .slice(0, 3);
 
     return { totalTours, totalStops, visited, pending, completion, avgStops, uniqueTags, topTags, recent };
   }, [tours, checkedMap]);
 
   const perTourProgress = useMemo(() => {
-    return (tours ?? []).map((t) => {
-      const v = t.places.filter((p) => checkedMap[p.id]).length;
-      const total = t.places.length || 1;
-      return { id: t.id, title: t.title, img: t.image, visited: v, total, pct: Math.round((v / total) * 100) };
-    }).sort((a, b) => b.pct - a.pct);
+    return (tours ?? [])
+      .map((t) => {
+        const v = t.places.filter((p) => checkedMap[p.id]).length;
+        const total = t.places.length || 1;
+        return { id: t.id, title: t.title, img: t.image, visited: v, total, pct: Math.round((v / total) * 100) };
+      })
+      .sort((a, b) => b.pct - a.pct);
   }, [tours, checkedMap]);
 
   const hasTours = (tours?.length ?? 0) > 0;
-
-  const maxStops = Math.max(1, ...(tours ?? []).map(t => t.places?.length ?? 0));
+  const maxStops = Math.max(1, ...(tours ?? []).map((t) => t.places?.length ?? 0));
 
   return (
     <div className="space-y-8">
       {/* ===== Hero (vivid) ===== */}
       <div className="relative overflow-hidden rounded-2xl border">
-        {/* gradient wash + floating blobs */}
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 opacity-90 dark:opacity-80" />
         <div className="pointer-events-none absolute -top-16 -right-20 h-64 w-64 rounded-full bg-white/25 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-12 -left-16 h-56 w-56 rounded-full bg-sky-300/20 blur-2xl dark:bg-sky-200/10" />
@@ -88,34 +92,35 @@ export default function ToursDashboardPage() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs text-white backdrop-blur">
               <Sparkles className="h-3.5 w-3.5" />
-              live tour tracking
+              {t("hero.liveTourTracking")}
             </div>
-            <h1 className="text-2xl font-semibold text-white drop-shadow-sm">Tours Dashboard</h1>
-            <p className="max-w-2xl text-sm text-white/90">
-              See navigation status, progress across all tours, and jump into a trip instantly.
-            </p>
+            <h1 className="text-2xl font-semibold text-white drop-shadow-sm">{t("dashboard.title")}</h1>
+            <p className="max-w-2xl text-sm text-white/90">{t("dashboard.description")}</p>
           </div>
 
           {/* Active pill */}
           <div className="flex items-center gap-3 rounded-xl bg-white/15 p-3 text-white backdrop-blur">
             <span
-              className={`grid h-9 w-9 place-items-center rounded-full shadow ${nav.status === 'running' ? 'bg-emerald-500' : nav.status === 'paused' ? 'bg-amber-500' : 'bg-slate-400'
-                }`}
+              className={`grid h-9 w-9 place-items-center rounded-full shadow ${
+                nav.status === "running" ? "bg-emerald-500" : nav.status === "paused" ? "bg-amber-500" : "bg-slate-400"
+              }`}
             >
-              {nav.status === 'running' ? <PlayCircle className="h-5 w-5" /> :
-                nav.status === 'paused' ? <PauseCircle className="h-5 w-5" /> :
-                  <Route className="h-5 w-5" />}
+              {nav.status === "running" ? (
+                <PlayCircle className="h-5 w-5" />
+              ) : nav.status === "paused" ? (
+                <PauseCircle className="h-5 w-5" />
+              ) : (
+                <Route className="h-5 w-5" />
+              )}
             </span>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold capitalize">{nav.status}</div>
-              <div className="text-xs/5 opacity-90">
-                {activeTour ? activeTour.title : 'No active tour'}
-              </div>
+              <div className="truncate text-sm font-semibold capitalize">{t(`nav.status.${nav.status}`)}</div>
+              <div className="text-xs/5 opacity-90">{activeTour ? activeTour.title : t("nav.noActiveTour")}</div>
             </div>
             {activeTour && (
               <Button asChild size="sm" className="ml-2 bg-white text-gray-900 hover:bg-white/90 dark:bg-black dark:text-white dark:hover:bg-black/80">
                 <Link href={`/tours/detail/navigation?id=${activeTour.id}`}>
-                  <Navigation2 className="mr-1.5 h-4 w-4" /> Resume
+                  <Navigation2 className="mr-1.5 h-4 w-4" /> {t("hero.resume")}
                 </Link>
               </Button>
             )}
@@ -125,10 +130,10 @@ export default function ToursDashboardPage() {
 
       {/* ===== Global KPIs ===== */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi icon={<Compass className="h-5 w-5" />} label="Total Tours" value={metrics.totalTours} gradient="from-indigo-500 to-blue-500" />
-        <Kpi icon={<MapPinned className="h-5 w-5" />} label="Total Stops" value={metrics.totalStops} gradient="from-emerald-500 to-lime-500" />
-        <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Avg Stops / Tour" value={metrics.avgStops} gradient="from-fuchsia-500 to-pink-500" />
-        <Kpi icon={<Tags className="h-5 w-5" />} label="Unique Tags" value={metrics.uniqueTags} gradient="from-amber-500 to-orange-500" />
+        <Kpi icon={<Compass className="h-5 w-5" />} label={t("kpi.totalTours")} value={metrics.totalTours} gradient="from-indigo-500 to-blue-500" />
+        <Kpi icon={<MapPinned className="h-5 w-5" />} label={t("kpi.totalStops")} value={metrics.totalStops} gradient="from-emerald-500 to-lime-500" />
+        <Kpi icon={<TrendingUp className="h-5 w-5" />} label={t("kpi.avgStops")} value={metrics.avgStops} gradient="from-fuchsia-500 to-pink-500" />
+        <Kpi icon={<Tags className="h-5 w-5" />} label={t("kpi.uniqueTags")} value={metrics.uniqueTags} gradient="from-amber-500 to-orange-500" />
       </div>
 
       {/* ===== Active navigation + Overview ===== */}
@@ -136,45 +141,48 @@ export default function ToursDashboardPage() {
         {/* Active navigation status */}
         <Card className="lg:col-span-2 overflow-hidden">
           <div className="border-b px-5 py-3">
-            <div className="text-sm font-semibold">Active Navigation</div>
-            <div className="text-xs text-muted-foreground">Live session pulled from Redux</div>
+            <div className="text-sm font-semibold">{t("active.title")}</div>
+            <div className="text-xs text-muted-foreground">{t("active.subtitle")}</div>
           </div>
           <CardContent className="p-5">
             <div className="grid gap-4 sm:grid-cols-3">
-              <GlassTile title="Status" subtitle="Current session">
+              <GlassTile title={t("active.tiles.status.title")} subtitle={t("active.tiles.status.subtitle")}>
                 <div className="flex items-center gap-2">
                   <span
-                    className={`h-2.5 w-2.5 rounded-full ${nav.status === 'running' ? 'bg-emerald-500' : nav.status === 'paused' ? 'bg-amber-500' : 'bg-slate-400'
-                      }`}
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      nav.status === "running" ? "bg-emerald-500" : nav.status === "paused" ? "bg-amber-500" : "bg-slate-400"
+                    }`}
                   />
-                  <span className="font-semibold capitalize">{nav.status}</span>
+                  <span className="font-semibold capitalize">{t(`nav.status.${nav.status}`)}</span>
                 </div>
-                <div className="text-xs text-muted-foreground">Profile: <span className="uppercase">{nav.profile}</span></div>
+                <div className="text-xs text-muted-foreground">
+                  {t("active.profile")}: <span className="uppercase">{nav.profile}</span>
+                </div>
               </GlassTile>
 
-              <GlassTile title="Route" subtitle="Distance • ETA">
+              <GlassTile title={t("active.tiles.route.title")} subtitle={t("active.tiles.route.subtitle")}>
                 <div className="flex items-center gap-2">
                   <Clock4 className="h-4 w-4 text-indigo-500" />
                   <span className="font-semibold">{prettyStats(nav.stats)}</span>
                 </div>
-                <div className="text-xs text-muted-foreground">{activeTour ? activeTour.title : '—'}</div>
+                <div className="text-xs text-muted-foreground">{activeTour ? activeTour.title : "—"}</div>
               </GlassTile>
 
-              <GlassTile title="Actions" subtitle="Quick access">
+              <GlassTile title={t("active.tiles.actions.title")} subtitle={t("active.tiles.actions.subtitle")}>
                 <div className="flex flex-wrap gap-2">
                   {activeTour ? (
                     <>
                       <Button asChild size="sm" className="gap-2">
                         <Link href={`/tours/detail/navigation?id=${activeTour.id}`}>
-                          <Navigation2 className="h-4 w-4" /> Map
+                          <Navigation2 className="h-4 w-4" /> {t("actions.map")}
                         </Link>
                       </Button>
                       <Button asChild size="sm" variant="secondary">
-                        <Link href={`/tours/detail?id=${activeTour.id}`}>Details</Link>
+                        <Link href={`/tours/detail?id=${activeTour.id}`}>{t("actions.details")}</Link>
                       </Button>
                     </>
                   ) : (
-                    <span className="text-xs text-muted-foreground">Choose a tour below to start.</span>
+                    <span className="text-xs text-muted-foreground">{t("actions.chooseTour")}</span>
                   )}
                 </div>
               </GlassTile>
@@ -185,8 +193,8 @@ export default function ToursDashboardPage() {
         {/* Overview with colorful radial completion */}
         <Card>
           <div className="border-b px-5 py-3">
-            <div className="text-sm font-semibold">Activity Overview</div>
-            <div className="text-xs text-muted-foreground">Check-ins across all tours</div>
+            <div className="text-sm font-semibold">{t("overview.title")}</div>
+            <div className="text-xs text-muted-foreground">{t("overview.subtitle")}</div>
           </div>
           <CardContent className="p-5">
             <div className="flex items-center gap-5">
@@ -201,13 +209,13 @@ export default function ToursDashboardPage() {
                 <div className="absolute inset-2 rounded-full bg-background" />
                 <div className="relative grid h-full w-full place-items-center text-center">
                   <div className="text-xl font-semibold">{metrics.completion}%</div>
-                  <div className="text-[10px] text-muted-foreground -mt-1">complete</div>
+                  <div className="text-[10px] text-muted-foreground -mt-1">{t("overview.complete")}</div>
                 </div>
               </div>
 
               <div className="flex-1 space-y-3">
-                <Bar label="Visited" value={metrics.visited} gradient="from-emerald-500 to-lime-500" />
-                <Bar label="Pending" value={metrics.pending} gradient="from-rose-500 to-orange-500" />
+                <Bar label={t("bars.visited")} value={metrics.visited} gradient="from-emerald-500 to-lime-500" />
+                <Bar label={t("bars.pending")} value={metrics.pending} gradient="from-rose-500 to-orange-500" />
               </div>
             </div>
           </CardContent>
@@ -218,18 +226,15 @@ export default function ToursDashboardPage() {
       {hasTours && (
         <>
           <div className="flex items-center justify-between" id="all-tours">
-            <h2 className="text-lg font-semibold">All Tours</h2>
+            <h2 className="text-lg font-semibold">{t("allTours.title")}</h2>
             <div className="text-xs text-muted-foreground">
-              {metrics.totalTours} total • {metrics.totalStops} stops
+              {metrics.totalTours} {t("allTours.totalLabel")} • {metrics.totalStops} {t("allTours.stopsLabel")}
             </div>
           </div>
 
           <div className="grid items-stretch gap-7 md:grid-cols-2 xl:grid-cols-3">
             {tours!.map((tour, idx) => {
-              const isNew =
-                !!tour.createdAt &&
-                Date.now() - new Date(tour.createdAt).getTime() <
-                1000 * 60 * 60 * 24 * 14;
+              const isNew = !!tour.createdAt && Date.now() - new Date(tour.createdAt).getTime() < 1000 * 60 * 60 * 24 * 14;
 
               const frames = [
                 "from-indigo-500 via-sky-500 to-emerald-500",
@@ -243,20 +248,12 @@ export default function ToursDashboardPage() {
               const stopsPct = Math.min(100, Math.round((stops / maxStops) * 100));
 
               return (
-                <div
-                  key={tour.id}
-                  className="group relative transition-transform hover:-translate-y-0.5"
-                >
-                  {/* Card body with shadow like MonumentCard */}
+                <div key={tour.id} className="group relative transition-transform hover:-translate-y-0.5">
                   <div className="relative overflow-hidden rounded-2xl border bg-card/80 shadow-sm ring-1 ring-black/5 backdrop-blur supports-[backdrop-filter]:bg-card/70 dark:ring-white/10">
                     {/* media */}
                     <div className="relative overflow-hidden rounded-t-2xl">
                       {tour.image ? (
-                        <img
-                          src={tour.image}
-                          alt={tour.title}
-                          className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                        />
+                        <img src={tour.image} alt={tour.title} className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
                       ) : (
                         <div className="grid h-48 w-full place-items-center bg-muted text-muted-foreground">
                           <ImageIcon className="h-8 w-8" />
@@ -266,14 +263,14 @@ export default function ToursDashboardPage() {
                       {/* glass info bar */}
                       <div className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-xs text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:bg-black/55 dark:text-white dark:ring-white/10">
                         <MapPin className="h-3.5 w-3.5" />
-                        {stops} {stops === 1 ? "stop" : "stops"}
+                        {stops} {t("stops", { count: stops })}
                       </div>
 
                       {/* corner ribbons */}
                       <div className="absolute left-2 top-2 flex gap-2">
                         {isNew && (
                           <span className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 shadow backdrop-blur dark:bg-black/70 dark:text-emerald-300">
-                            New
+                            {t("badge.new")}
                           </span>
                         )}
                       </div>
@@ -282,20 +279,11 @@ export default function ToursDashboardPage() {
                     {/* content */}
                     <div className="space-y-3 px-4 pb-4 pt-3">
                       <div className="flex items-start justify-between gap-3">
-                        <h3 className="line-clamp-1 text-base font-semibold">
-                          {tour.title}
-                        </h3>
-                        <Sparkles
-                          className="h-4 w-4 text-indigo-500 opacity-0 transition-opacity group-hover:opacity-100"
-                          aria-hidden
-                        />
+                        <h3 className="line-clamp-1 text-base font-semibold">{tour.title}</h3>
+                        <Sparkles className="h-4 w-4 text-indigo-500 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
                       </div>
 
-                      {tour.description && (
-                        <p className="line-clamp-3 text-sm text-muted-foreground">
-                          {tour.description}
-                        </p>
-                      )}
+                      {tour.description && <p className="line-clamp-3 text-sm text-muted-foreground">{tour.description}</p>}
 
                       {tour.tags?.length ? (
                         <div className="flex flex-wrap gap-1.5">
@@ -308,10 +296,7 @@ export default function ToursDashboardPage() {
                             ];
                             const palette = tagPalettes[i % tagPalettes.length];
                             return (
-                              <span
-                                key={tag}
-                                className={`rounded-full border border-white/30 bg-gradient-to-r ${palette} px-2 py-1 text-[11px] font-medium ring-1 ring-black/5 dark:border-white/10`}
-                              >
+                              <span key={tag} className={`rounded-full border border-white/30 bg-gradient-to-r ${palette} px-2 py-1 text-[11px] font-medium ring-1 ring-black/5 dark:border-white/10`}>
                                 {tag}
                               </span>
                             );
@@ -321,31 +306,19 @@ export default function ToursDashboardPage() {
 
                       <div className="mt-1">
                         <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={`h-full rounded-full bg-gradient-to-r ${frame}`}
-                            style={{ width: `${stopsPct}%` }}
-                          />
+                          <div className={`h-full rounded-full bg-gradient-to-r ${frame}`} style={{ width: `${stopsPct}%` }} />
                         </div>
-                        <div className="mt-1 text-[11px] text-muted-foreground">
-                          Stops relative to your busiest tour
-                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">{t("tours.stopsRelative")}</div>
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        <Button
-                          asChild
-                          variant="secondary"
-                          className="rounded-full border border-white/40 backdrop-blur-sm dark:border-white/10"
-                        >
-                          <Link href={`/tours/detail?id=${tour.id}`}>Details</Link>
+                        <Button asChild variant="secondary" className="rounded-full border border-white/40 backdrop-blur-sm dark:border-white/10">
+                          <Link href={`/tours/detail?id=${tour.id}`}>{t("buttons.details")}</Link>
                         </Button>
-                        <Button
-                          asChild
-                          className="rounded-full bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow hover:from-indigo-700 hover:to-sky-700"
-                        >
+                        <Button asChild className="rounded-full bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow hover:from-indigo-700 hover:to-sky-700">
                           <Link href={`/tours/detail/navigation?id=${tour.id}`}>
                             <Navigation className="mr-1 h-4 w-4" />
-                            Navigate
+                            {t("buttons.navigate")}
                           </Link>
                         </Button>
                       </div>
@@ -361,10 +334,10 @@ export default function ToursDashboardPage() {
       {!hasTours && (
         <div className="rounded-xl border p-10 text-center">
           <div className="mx-auto max-w-md space-y-3">
-            <div className="text-xl font-semibold">No tours available</div>
-            <p className="text-sm text-muted-foreground">Import or enable sample tours to get started.</p>
+            <div className="text-xl font-semibold">{t("empty.title")}</div>
+            <p className="text-sm text-muted-foreground">{t("empty.description")}</p>
             <Button asChild>
-              <Link href="/tours/detail?id=hoskeralli">Open Sample Tour</Link>
+              <Link href="/tours/detail?id=hoskeralli">{t("empty.openSample")}</Link>
             </Button>
           </div>
         </div>
@@ -374,24 +347,12 @@ export default function ToursDashboardPage() {
 }
 
 /* ---------- small UI atoms ---------- */
-function Kpi({
-  icon,
-  label,
-  value,
-  gradient,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  gradient: string; // "from-indigo-500 to-blue-500"
-}) {
+function Kpi({ icon, label, value, gradient }: { icon: React.ReactNode; label: string; value: string | number; gradient: string }) {
   return (
     <div className="relative overflow-hidden rounded-2xl border">
       <div className={`pointer-events-none absolute -inset-2 opacity-[0.18] blur-2xl bg-gradient-to-r ${gradient}`} />
       <div className="relative flex items-center gap-4 p-4">
-        <div className={`grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-sm`}>
-          {icon}
-        </div>
+        <div className={`grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-sm`}>{icon}</div>
         <div>
           <div className="text-xs text-muted-foreground">{label}</div>
           <div className="text-xl font-semibold">{value}</div>
@@ -412,7 +373,7 @@ function GlassTile({ title, subtitle, children }: { title: string; subtitle?: st
 }
 
 function Bar({ label, value, gradient }: { label: string; value: number | string; gradient: string }) {
-  const pct = typeof value === 'number' ? value : 0;
+  const pct = typeof value === "number" ? value : 0;
   return (
     <div>
       <div className="flex items-center justify-between text-xs">
@@ -420,7 +381,7 @@ function Bar({ label, value, gradient }: { label: string; value: number | string
         <span className="font-semibold">{value}</span>
       </div>
       <div className="mt-1 h-2 w-full overflow-hidden rounded bg-muted">
-        <div className={`h-full bg-gradient-to-r ${gradient}`} style={{ width: '100%' }} />
+        <div className={`h-full bg-gradient-to-r ${gradient}`} style={{ width: "100%" }} />
       </div>
     </div>
   );

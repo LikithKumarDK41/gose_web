@@ -232,7 +232,7 @@ export default function MapboxTourMapNavigation({
 
   /* ---- build the map (once per places/profile change) ---- */
   useEffect(() => {
-    let cleanup = () => {};
+    let cleanup = () => { };
     (async () => {
       const geoAll = (places ?? []).filter(hasCoords);
       if (geoAll.length < 2) { setError('Need at least one stop plus End'); return; }
@@ -245,7 +245,6 @@ export default function MapboxTourMapNavigation({
 
       // order by kind
       const { ordered, start, end } = orderByKind(geoAll);
-      const endLL: [number, number] | null = end ? [end.lng, end.lat] : null;
       const initialCenter: [number, number] = start ? [start.lng, start.lat] : [ordered[0].lng, ordered[0].lat];
 
       const map = new mapboxgl.Map({
@@ -287,54 +286,33 @@ export default function MapboxTourMapNavigation({
       const displayPts: DisplayPt[] = [];
       let seq = 1;
 
-      // START → "1"
-      if (start) {
-        displayPts.push({
-          baseLng: start.lng, baseLat: start.lat,
-          lng: start.lng, lat: start.lat,
-          label: String(seq++),
-          color: dynamicColor(0),
-          popupHTML: `
-            <div style="min-width:220px">
-              <div style="font-weight:600;margin-bottom:4px">Start – ${start.name}</div>
-              ${start.time ? `<div style="font-size:12px;color:#666">🕒 ${start.time}</div>` : ''}
-              ${start.blurb ? `<div style="font-size:13px;margin-top:6px">${start.blurb}</div>` : ''}
-              ${start.image ? `<img src="${start.image}" alt="${start.name}" style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover" />` : ''}
-            </div>
-          `,
-        });
-      }
+      // Popup HTML builder (latest UI: close button, time, blurb, image)
+      const makePopupHTML = (p: PlaceWithCoords, label: string) => `
+        <div style="min-width:250px; font-family:Arial, sans-serif;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:16px;">${label} – ${p.name}</strong>
+            <button onclick="(function(btn){ const pop = btn.closest('.mapboxgl-popup'); if(pop){ pop.remove(); }})(this)"
+                    style="background:#111827;color:#fff;border:none;padding:2px 6px;border-radius:4px;font-size:12px;cursor:pointer;">
+              ✕
+            </button>
+          </div>
+          ${p.time ? `<div style="font-size:12px;color:#666;margin-top:4px;">🕒 ${p.time}</div>` : ''}
+          ${p.blurb ? `<div style="font-size:13px;margin-top:6px;">${p.blurb}</div>` : ''}
+          ${p.image ? `<img src="${p.image}" alt="${p.name}" style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover" />` : ''}
+        </div>
+      `;
 
-      // middle places → 2..N
+      // START → labelled "1"
+      if (start) displayPts.push({ baseLng: start.lng, baseLat: start.lat, lng: start.lng, lat: start.lat, label: String(seq++), color: dynamicColor(0), popupHTML: makePopupHTML(start, 'Start') });
+
+      // middles
       ordered.forEach((p) => {
         if ((start && p.id === start.id) || (end && p.id === end.id)) return;
-        const idxForColor = seq - 1;
-        displayPts.push({
-          baseLng: p.lng, baseLat: p.lat,
-          lng: p.lng, lat: p.lat,
-          label: String(seq++),
-          color: dynamicColor(idxForColor),
-          popupHTML: `
-            <div style="min-width:220px">
-              <div style="font-weight:600;margin-bottom:4px">${p.name}</div>
-              ${p.time ? `<div style="font-size:12px;color:#666">🕒 ${p.time}</div>` : ''}
-              ${p.blurb ? `<div style="font-size:13px;margin-top:6px">${p.blurb}</div>` : ''}
-              ${p.image ? `<img src="${p.image}" alt="${p.name}" style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover" />` : ''}
-            </div>
-          `,
-        });
+        displayPts.push({ baseLng: p.lng, baseLat: p.lat, lng: p.lng, lat: p.lat, label: String(seq++), color: dynamicColor(seq), popupHTML: makePopupHTML(p, String(seq - 1)) });
       });
 
       // END → "E"
-      if (end) {
-        displayPts.push({
-          baseLng: end.lng, baseLat: end.lat,
-          lng: end.lng, lat: end.lat,
-          label: 'E',
-          color: '#111827',
-          popupHTML: `<div style="min-width:200px;font-weight:600">End – ${end.name}</div>`,
-        });
-      }
+      if (end) displayPts.push({ baseLng: end.lng, baseLat: end.lat, lng: end.lng, lat: end.lat, label: 'E', color: '#111827', popupHTML: makePopupHTML(end, 'End') });
 
       // group exact matches to spiderfy
       const keyOf = (lng: number, lat: number) => `${lng.toFixed(6)},${lat.toFixed(6)}`;
@@ -353,7 +331,7 @@ export default function MapboxTourMapNavigation({
           const [lng, lat] = offsets[i] ?? [pt.baseLng, pt.baseLat];
           pt.lng = lng; pt.lat = lat;
 
-          const popup = new mapboxgl.Popup({ offset: 28, maxWidth: '320px', className: 'tour-popup' })
+          const popup = new mapboxgl.Popup({ offset: 28, maxWidth: '320px', className: 'tour-popup', closeButton: false })
             .setHTML(pt.popupHTML);
 
           const marker = new mapboxgl.Marker({ element: makePinMarker(pt.label, pt.color, '#fff') })
@@ -461,13 +439,9 @@ export default function MapboxTourMapNavigation({
                   heading: pos.coords.heading ?? null,
                 },
               };
-              // manually feed one reading to our handler
-              const ctrl = geolocateRef.current as unknown as GeoCtrl | null;
-              // Our onGeo listens on Mapbox control, but we can nudge by calling trigger; this
-              // fallback just ensures at least one update comes quickly.
-              // (Mapbox will continue after first trigger)
+              // manually feed one reading to our handler (we rely on mapbox geolocate)
             },
-            () => {},
+            () => { },
             { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
           );
         }
