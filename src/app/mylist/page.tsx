@@ -178,7 +178,7 @@ export default function LibraryPage() {
               </h1>
               <p className="text-sm text-gray-700/85 dark:text-white/90">
                 {t(
-                  "Quickly jump back to saved spots or review places you’ve explored. Switch tabs to view Monuments or full Tours."
+                  "mylist-description"
                 ) ||
                   "Quickly jump back to saved spots or review places you’ve explored. Switch tabs to view Monuments or full Tours."}
               </p>

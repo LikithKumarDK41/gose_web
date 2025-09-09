@@ -155,7 +155,7 @@
     "Resume navigation": "ナビを再開",
     "Personal Library": "個人ライブラリ",
     "Bookmarks & Visited Places": "ブックマークと訪問済みの場所",
-    "Quickly jump back to saved spots or review places you’ve explored. Switch tabs to view Monuments or full Tours.": "保存したスポットに素早く戻ったり、訪れた場所を確認できます。タブを切り替えてモニュメントやツアー全体を表示してください。",
+    "mylist-description": "保存したスポットに素早く戻ったり、訪れた場所を確認できます。タブを切り替えてモニュメントやツアー全体を表示してください。",
     "Total": "合計",
     "Monuments": "モニュメント",
     "Tours": "ツアー",
