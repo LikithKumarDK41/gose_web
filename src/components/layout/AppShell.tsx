@@ -14,7 +14,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={150}>
       {/* ⬇️ Was: h-dvh overflow-hidden — this made only <main> scroll */}
-      <div className="flex min-h-dvh flex-col">
+      <div className="relative z-10 flex min-h-dvh flex-col">
         <div className="shrink-0">
           <HeaderBar onOpenSidebar={() => setMobileOpen(true)} />
         </div>

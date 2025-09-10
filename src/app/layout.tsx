@@ -1,3 +1,4 @@
+// src/app/layout.tsx or src/app/RootLayout.tsx
 import '@/app/globals.css';
 import type { Metadata, Viewport } from 'next';
 import StoreProvider from '@/providers/StoreProvider';
@@ -12,11 +13,43 @@ export const viewport: Viewport = { themeColor: '#0b0f14' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang='ja'>
+    <html lang="en" suppressHydrationWarning>
       <body className="bg-background text-foreground">
+        {/* Inject theme logic BEFORE any React hydration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                try {
+                  window.__theme = {
+                    get: function () {
+                      return localStorage.getItem('theme-mode') || 'system';
+                    },
+                    set: function (mode) {
+                      localStorage.setItem('theme-mode', mode);
+                      if (mode === 'dark') {
+                        document.documentElement.classList.add('dark');
+                      } else {
+                        document.documentElement.classList.remove('dark');
+                      }
+                    },
+                  };
+
+                  const current = window.__theme.get();
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  if (current === 'dark' || (current === 'system' && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         <StoreProvider>
           <LoaderProvider>
-            <LocaleProvider> {/* <- wrap children with LocaleProvider */}
+            <LocaleProvider>
               <AppShell>
                 {children}
               </AppShell>

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import MapboxTourMap from '@/components/map/MapboxTourMap';
 import NavLink from '@/components/nav/NavLink';
@@ -21,11 +20,21 @@ export default function TourDetailsClientPage() {
   const selector = useMemo(() => selectTourById(id), [id]);
   const tour = useAppSelector(selector);
 
-  // Client-only redirects
+  // Only redirect if there's no id at all (e.g. direct /tours/detail without ?id)
   useEffect(() => {
     if (!id) router.replace('/tours'); // list page
-    else if (!tour) router.replace('/404');
-  }, [id, tour, router]);
+  }, [id, router]);
+
+  // Smooth scroll to timeline without triggering a Next.js soft navigation
+  const onJumpTimeline = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const el = document.getElementById('timeline');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // update the hash without navigation/remount
+      history.replaceState(null, '', '#timeline');
+    }
+  };
 
   if (!id || !tour) {
     return (
@@ -51,18 +60,18 @@ export default function TourDetailsClientPage() {
         {/* mesh wash */}
         <div
           className="
-      absolute inset-0
-      [background:
-        radial-gradient(120%_80%_at_0%_0%,rgba(99,102,241,.20),transparent_60%),
-        radial-gradient(120%_80%_at_100%_0%,rgba(56,189,248,.18),transparent_60%),
-        radial-gradient(100%_120%_at_50%_100%,rgba(16,185,129,.16),transparent_55%)
-      ]
-      dark:[background:
-        radial-gradient(120%_80%_at_0%_0%,rgba(99,102,241,.40),transparent_60%),
-        radial-gradient(120%_80%_at_100%_0%,rgba(56,189,248,.36),transparent_60%),
-        radial-gradient(100%_120%_at_50%_100%,rgba(16,185,129,.30),transparent_55%)
-      ]
-    "
+            absolute inset-0
+            [background:
+              radial-gradient(120%_80%_at_0%_0%,rgba(99,102,241,.20),transparent_60%),
+              radial-gradient(120%_80%_at_100%_0%,rgba(56,189,248,.18),transparent_60%),
+              radial-gradient(100%_120%_at_50%_100%,rgba(16,185,129,.16),transparent_55%)
+            ]
+            dark:[background:
+              radial-gradient(120%_80%_at_0%_0%,rgba(99,102,241,.40),transparent_60%),
+              radial-gradient(120%_80%_at_100%_0%,rgba(56,189,248,.36),transparent_60%),
+              radial-gradient(100%_120%_at_50%_100%,rgba(16,185,129,.30),transparent_55%)
+            ]
+          "
         />
         <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/60 to-white/20 dark:from-transparent dark:via-transparent dark:to-transparent" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.05] bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_1px)] [background-size:12px_12px] dark:opacity-[0.08]" />
@@ -81,7 +90,7 @@ export default function TourDetailsClientPage() {
 
           {!!tour.tags?.length && (
             <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {tour.tags.map((tag) => (
+              {tour.tags.map((tag: string) => (
                 <span
                   key={tag}
                   className="rounded-full border border-white/30 bg-white/90 px-2 py-1 text-[11px] font-medium text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:border-white/10 dark:bg-black/60 dark:text-white/90"
@@ -133,7 +142,9 @@ export default function TourDetailsClientPage() {
               </NavLink>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <a href="#timeline">{t('tourDetails.jumpToTimeline')}</a>
+              <a href="#timeline" onClick={onJumpTimeline}>
+                {t('tourDetails.jumpToTimeline')}
+              </a>
             </Button>
           </div>
         </div>
