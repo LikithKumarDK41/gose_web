@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" preserveAspectRatio="xMidYMid slice">
+  <!-- Lightweight smooth wave lines for subtle motion feel -->
+  <rect width="1024" height="1024" fill="#000"/>
+  <g fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" opacity="0.96">
+    <path d="M-40 180 C 120 120, 240 240, 420 200 S 740 120, 1064 200"/>
+    <path d="M-40 360 C 140 300, 260 420, 460 380 S 780 300, 1064 380"/>
+    <path d="M-40 540 C 160 480, 300 600, 520 560 S 820 480, 1064 560"/>
+    <path d="M-40 720 C 180 660, 340 780, 600 740 S 860 660, 1064 740"/>
+    <path d="M-40 900 C 200 840, 380 960, 700 920 S 900 860, 1064 920"/>
+  </g>
+</svg>
+
+

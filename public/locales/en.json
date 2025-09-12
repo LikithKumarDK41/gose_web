@@ -1,0 +1,176 @@
+{
+    "hero": {
+        "liveTourTracking": "live tour tracking",
+        "resume": "Resume"
+    },
+    "dashboard": {
+        "title": "Tours Dashboard",
+        "description": "See navigation status, progress across all tours, and jump into a trip instantly."
+    },
+    "nav": {
+        "noActiveTour": "No active tour",
+        "status": {
+            "running": "running",
+            "paused": "paused",
+            "idle": "idle"
+        },
+        "home": "Home",
+        "tours": "Tour List",
+        "myList": "My List"
+    },
+    "kpi": {
+        "totalTours": "Total Tours",
+        "totalStops": "Total Stops",
+        "avgStops": "Avg Stops / Tour",
+        "uniqueTags": "Unique Tags"
+    },
+    "active": {
+        "title": "Active Navigation",
+        "subtitle": "Live session pulled from Redux",
+        "tiles": {
+            "status": {
+                "title": "Status",
+                "subtitle": "Current session"
+            },
+            "route": {
+                "title": "Route",
+                "subtitle": "Distance • ETA"
+            },
+            "actions": {
+                "title": "Actions",
+                "subtitle": "Quick access"
+            }
+        },
+        "profile": "Profile"
+    },
+    "actions": {
+        "map": "Map",
+        "details": "Details",
+        "chooseTour": "Choose a tour below to start."
+    },
+    "overview": {
+        "title": "Activity Overview",
+        "subtitle": "Check-ins across all tours",
+        "complete": "complete"
+    },
+    "bars": {
+        "visited": "Visited",
+        "pending": "Pending"
+    },
+    "allTours": {
+        "title": "All Tours",
+        "totalLabel": "total",
+        "stopsLabel": "stops"
+    },
+    "badge": {
+        "new": "New"
+    },
+    "stops": "{count, plural, one {# stop} other {# stops}}",
+    "buttons": {
+        "details": "Details",
+        "navigate": "Navigate"
+    },
+    "empty": {
+        "title": "No tours available",
+        "description": "Import or enable sample tours to get started.",
+        "openSample": "Open Sample Tour"
+    },
+    "footer": {
+        "brand": "Tourist",
+        "tagline": "Guides • Maps • Live",
+        "description": "Explore curated routes, navigate in real-time, and keep your own library of places.",
+        "social": {
+            "github": "GitHub",
+            "twitter": "Twitter",
+            "instagram": "Instagram",
+            "linkedin": "LinkedIn"
+        },
+        "copyright": "© {year} Tourist. All rights reserved."
+    },
+    "tours": {
+        "liveTours": "Live tours",
+        "exploreTours": "Explore & Navigate Curated Tours",
+        "bannerDescription": "Search, filter by tag, sort by newest or most stops, and jump into any tour’s details or navigation.",
+        "stats": {
+            "tours": "Tours",
+            "stops": "Stops",
+            "avgStops": "Avg Stops/Tour",
+            "tags": "Tags"
+        },
+        "search": "Search",
+        "tag": "Tag",
+        "sortBy": "Sort by",
+        "perPage": "Per page",
+        "showingResults": "Showing {{current}} of {{total}} results",
+        "reset": "Reset",
+        "noMatches": "No tours match your filters.",
+        "noToursYet": "No tours yet. Once tours are available, you’ll see them here.",
+        "stop": "stop",
+        "stops": "stops",
+        "new": "New",
+        "stopsRelative": "Stops relative to this page’s busiest tour",
+        "details": "Details",
+        "navigate": "Navigate",
+        "pageOf": "Page {{current}} of {{total}}",
+        "prev": "Prev",
+        "next": "Next"
+    },
+    "tourDetails": {
+        "stops": "Stops",
+        "suggestedPace": "Suggested Pace",
+        "tags": "Tags",
+        "startNavigation": "Start Navigation",
+        "jumpToTimeline": "Jump to Timeline",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "casual": "Casual",
+        "loading": "Loading…",
+        "map": "Map",
+        "timeline": "Timeline",
+        "viewDetails": "View details",
+        "time": "Time",
+        "minOnSite": "min on site",
+        "highlightsSingular": "highlight",
+        "highlightsPlural": "highlights",
+        "openPlace": "Open {{name}}",
+        "modes": {
+            "walk": "Walk",
+            "drive": "Drive",
+            "cycle": "Cycle",
+            "transit": "Transit",
+            "transfer": "Transfer"
+        },
+        "start": "Start",
+        "end": "End",
+        "route": "Route",
+        "loadingMap": "Loading map…",
+        "durationFormat": "{km} km • {hh}h {mm}m"
+    },
+    "Back": "Back",
+    "Start": "Start",
+    "Pause": "Pause",
+    "Resume": "Resume",
+    "Start navigation": "Start navigation",
+    "Pause navigation": "Pause navigation",
+    "Resume navigation": "Resume navigation",
+    "Personal Library": "Personal Library",
+    "Bookmarks & Visited Places": "Bookmarks & Visited Places",
+    "mylist-description": "Quickly jump back to saved spots or review places you’ve explored. Switch tabs to view Monuments or full Tours.",
+    "Total": "Total",
+    "Monuments": "Monuments",
+    "Tours": "Tours",
+    "Bookmarks": "Bookmarks",
+    "Visited": "Visited",
+    "No monuments here yet": "No monuments here yet",
+    "Save some places as bookmarks or mark them visited to see them here.": "Save some places as bookmarks or mark them visited to see them here.",
+    "No tours yet": "No tours yet",
+    "When you bookmark or complete tours, they’ll appear here.": "When you bookmark or complete tours, they'll appear here.",
+    "Monument": "Monument",
+    "From tour:": "From tour:",
+    "Details": "Details",
+    "Navigate": "Navigate",
+    "stop": "stop",
+    "mylist-stops": "stops",
+    "Stops relative to this page’s busiest tour": "Stops relative to this page’s busiest tour",
+    "Browse tours": "Browse tours"
+}

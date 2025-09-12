@@ -21,6 +21,12 @@ export default [
     files: [
       "src/components/map/NavigationOverlay.tsx",
       "src/components/map/MapboxTourMapNavigation.tsx",
+      "src/components/geo/GeoWatcher.tsx",
+      "src/components/theme/ThemeToggle.tsx",
+      "src/providers/LoaderProvider.tsx",
+      "src/providers/LocaleProvider.tsx",
+      "src/components/map/MapboxTourMap.tsx",
+      "src/components/tour/TimelineRight.tsx"
     ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",

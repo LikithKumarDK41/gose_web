@@ -1,289 +1,388 @@
-// src/app/page.tsx
+"use client";
+
 import Link from "next/link";
+import { useMemo } from "react";
+import {
+  ImageIcon,
+  MapPinned,
+  Compass,
+  Tags,
+  TrendingUp,
+  PlayCircle,
+  PauseCircle,
+  Route,
+  Navigation2,
+  Clock4,
+  Sparkles,
+  MapPin,
+  Navigation,
+} from "lucide-react";
+
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CalendarDays, MapPinned, Clock3, Star, Plane, ListChecks, ArrowRight } from "lucide-react";
 
-export default function Dashboard() {
+import { useAppSelector } from "@/lib/store/hook";
+import { selectTours, selectActiveTour } from "@/lib/store/slices/toursSlice";
+import { selectNav } from "@/lib/store/slices/navSlice";
+import { selectGeofenceChecked } from "@/lib/store/slices/geofenceSlice";
+
+import { useLocale } from "@/providers/LocaleProvider";
+
+/* ---------- helpers ---------- */
+function prettyStats(s?: { distance: number; duration: number } | null) {
+  if (!s) return "—";
+  const km = (s.distance / 1000).toFixed(2);
+  const mins = Math.round(s.duration / 60);
+  const hh = Math.floor(mins / 60);
+  const mm = mins % 60;
+  return `${km} km • ${hh ? `${hh}h ` : ""}${mm}m`;
+}
+
+export default function ToursDashboardPage() {
+  const { t } = useLocale();
+
+  const tours = useAppSelector(selectTours);
+  const activeTour = useAppSelector(selectActiveTour);
+  const nav = useAppSelector(selectNav);
+  const checkedMap = useAppSelector(selectGeofenceChecked);
+
+  const metrics = useMemo(() => {
+    const totalTours = tours?.length ?? 0;
+    const totalStops = (tours ?? []).reduce((sum, t) => sum + (t.places?.length ?? 0), 0);
+    let visited = 0;
+    for (const t of tours ?? []) for (const p of t.places) if (checkedMap[p.id]) visited++;
+    const pending = Math.max(0, totalStops - visited);
+    const completion = totalStops ? Math.round((visited / totalStops) * 100) : 0;
+    const avgStops = totalTours ? +(totalStops / totalTours).toFixed(1) : 0;
+
+    const tagCount = new Map<string, number>();
+    for (const t of tours ?? []) for (const tag of t.tags ?? []) tagCount.set(tag, (tagCount.get(tag) ?? 0) + 1);
+    const uniqueTags = tagCount.size;
+    const topTags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([name, count]) => ({ name, count }));
+
+    const recent = [...(tours ?? [])]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 3);
+
+    return { totalTours, totalStops, visited, pending, completion, avgStops, uniqueTags, topTags, recent };
+  }, [tours, checkedMap]);
+
+  const perTourProgress = useMemo(() => {
+    return (tours ?? [])
+      .map((t) => {
+        const v = t.places.filter((p) => checkedMap[p.id]).length;
+        const total = t.places.length || 1;
+        return { id: t.id, title: t.title, img: t.image, visited: v, total, pct: Math.round((v / total) * 100) };
+      })
+      .sort((a, b) => b.pct - a.pct);
+  }, [tours, checkedMap]);
+
+  const hasTours = (tours?.length ?? 0) > 0;
+  const maxStops = Math.max(1, ...(tours ?? []).map((t) => t.places?.length ?? 0));
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Welcome back 👋</h1>
-          <p className="text-muted-foreground">
-            Plan routes, manage trips, and keep your saved places organized.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/tour">
-              Create Itinerary
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/admin">Manage Areas</Link>
-          </Button>
+    <div className="space-y-8">
+      {/* ===== Hero (vivid) ===== */}
+      <div className="relative overflow-hidden rounded-2xl border">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 opacity-90 dark:opacity-80" />
+        <div className="pointer-events-none absolute -top-16 -right-20 h-64 w-64 rounded-full bg-white/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-12 -left-16 h-56 w-56 rounded-full bg-sky-300/20 blur-2xl dark:bg-sky-200/10" />
+
+        <div className="relative flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs text-white backdrop-blur">
+              <Sparkles className="h-3.5 w-3.5" />
+              {t("hero.liveTourTracking")}
+            </div>
+            <h1 className="text-2xl font-semibold text-white drop-shadow-sm">{t("dashboard.title")}</h1>
+            <p className="max-w-2xl text-sm text-white/90">{t("dashboard.description")}</p>
+          </div>
+
+          {/* Active pill */}
+          <div className="flex items-center gap-3 rounded-xl bg-white/15 p-3 text-white backdrop-blur">
+            <span
+              className={`grid h-9 w-9 place-items-center rounded-full shadow ${
+                nav.status === "running" ? "bg-emerald-500" : nav.status === "paused" ? "bg-amber-500" : "bg-slate-400"
+              }`}
+            >
+              {nav.status === "running" ? (
+                <PlayCircle className="h-5 w-5" />
+              ) : nav.status === "paused" ? (
+                <PauseCircle className="h-5 w-5" />
+              ) : (
+                <Route className="h-5 w-5" />
+              )}
+            </span>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold capitalize">{t(`nav.status.${nav.status}`)}</div>
+              <div className="text-xs/5 opacity-90">{activeTour ? activeTour.title : t("nav.noActiveTour")}</div>
+            </div>
+            {activeTour && (
+              <Button asChild size="sm" className="ml-2 bg-white text-gray-900 hover:bg-white/90 dark:bg-black dark:text-white dark:hover:bg-black/80">
+                <Link href={`/tours/detail/navigation?id=${activeTour.id}`}>
+                  <Navigation2 className="mr-1.5 h-4 w-4" /> {t("hero.resume")}
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* ===== Global KPIs ===== */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Upcoming Trips"
-          value="3"
-          hint="+1 this month"
-          icon={<CalendarDays className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Saved Places"
-          value="42"
-          hint="8 new"
-          icon={<MapPinned className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Hours Planned"
-          value="67h"
-          hint="across all trips"
-          icon={<Clock3 className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Favorites"
-          value="15"
-          hint="highly rated"
-          icon={<Star className="h-4 w-4" />}
-        />
+        <Kpi icon={<Compass className="h-5 w-5" />} label={t("kpi.totalTours")} value={metrics.totalTours} gradient="from-indigo-500 to-blue-500" />
+        <Kpi icon={<MapPinned className="h-5 w-5" />} label={t("kpi.totalStops")} value={metrics.totalStops} gradient="from-emerald-500 to-lime-500" />
+        <Kpi icon={<TrendingUp className="h-5 w-5" />} label={t("kpi.avgStops")} value={metrics.avgStops} gradient="from-fuchsia-500 to-pink-500" />
+        <Kpi icon={<Tags className="h-5 w-5" />} label={t("kpi.uniqueTags")} value={metrics.uniqueTags} gradient="from-amber-500 to-orange-500" />
       </div>
 
-      {/* Main two‑column content */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Left column */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-base">Your Itineraries</CardTitle>
-              <Tabs defaultValue="active" className="w-auto">
-                <TabsList>
-                  <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="drafts">Drafts</TabsTrigger>
-                </TabsList>
-                <TabsContent value="active" />
-                <TabsContent value="drafts" />
-              </Tabs>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <ItineraryRow
-                title="Katsuragi Kodo Road"
-                days="1 day"
-                stops={16}
-                progress={78}
-                badge="Japan"
-              />
-              <Separator />
-              <ItineraryRow
-                title="Nara Heritage Walk"
-                days="Half‑day"
-                stops={9}
-                progress={45}
-                badge="Japan"
-              />
-              <Separator />
-              <ItineraryRow
-                title="Kyoto Temples Circuit"
-                days="2 days"
-                stops={24}
-                progress={22}
-                badge="Japan"
-              />
-              <div className="pt-2">
-                <Button variant="ghost" className="gap-2" asChild>
-                  <Link href="/tour">
-                    View all itineraries <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
+      {/* ===== Active navigation + Overview ===== */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Active navigation status */}
+        <Card className="lg:col-span-2 overflow-hidden">
+          <div className="border-b px-5 py-3">
+            <div className="text-sm font-semibold">{t("active.title")}</div>
+            <div className="text-xs text-muted-foreground">{t("active.subtitle")}</div>
+          </div>
+          <CardContent className="p-5">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <GlassTile title={t("active.tiles.status.title")} subtitle={t("active.tiles.status.subtitle")}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      nav.status === "running" ? "bg-emerald-500" : nav.status === "paused" ? "bg-amber-500" : "bg-slate-400"
+                    }`}
+                  />
+                  <span className="font-semibold capitalize">{t(`nav.status.${nav.status}`)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {t("active.profile")}: <span className="uppercase">{nav.profile}</span>
+                </div>
+              </GlassTile>
+
+              <GlassTile title={t("active.tiles.route.title")} subtitle={t("active.tiles.route.subtitle")}>
+                <div className="flex items-center gap-2">
+                  <Clock4 className="h-4 w-4 text-indigo-500" />
+                  <span className="font-semibold">{prettyStats(nav.stats)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">{activeTour ? activeTour.title : "—"}</div>
+              </GlassTile>
+
+              <GlassTile title={t("active.tiles.actions.title")} subtitle={t("active.tiles.actions.subtitle")}>
+                <div className="flex flex-wrap gap-2">
+                  {activeTour ? (
+                    <>
+                      <Button asChild size="sm" className="gap-2">
+                        <Link href={`/tours/detail/navigation?id=${activeTour.id}`}>
+                          <Navigation2 className="h-4 w-4" /> {t("actions.map")}
+                        </Link>
+                      </Button>
+                      <Button asChild size="sm" variant="secondary">
+                        <Link href={`/tours/detail?id=${activeTour.id}`}>{t("actions.details")}</Link>
+                      </Button>
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">{t("actions.chooseTour")}</span>
+                  )}
+                </div>
+              </GlassTile>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Overview with colorful radial completion */}
+        <Card>
+          <div className="border-b px-5 py-3">
+            <div className="text-sm font-semibold">{t("overview.title")}</div>
+            <div className="text-xs text-muted-foreground">{t("overview.subtitle")}</div>
+          </div>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-5">
+              {/* Radial */}
+              <div className="relative h-28 w-28">
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: `conic-gradient(#22c55e ${metrics.completion * 3.6}deg, rgba(100,116,139,.25) 0deg)`,
+                  }}
+                />
+                <div className="absolute inset-2 rounded-full bg-background" />
+                <div className="relative grid h-full w-full place-items-center text-center">
+                  <div className="text-xl font-semibold">{metrics.completion}%</div>
+                  <div className="text-[10px] text-muted-foreground -mt-1">{t("overview.complete")}</div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-base">Recent Activity</CardTitle>
-              <p className="text-xs text-muted-foreground">Last 24 hours</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ActivityItem
-                title="Added 'Emperor Jinmu Shrine' to favorites"
-                time="2h ago"
-                who="N"
-              />
-              <ActivityItem
-                title="Created new area 'Kashihara Stations'"
-                time="5h ago"
-                who="N"
-              />
-              <ActivityItem
-                title="Reordered stops in 'Kodo Road'"
-                time="yesterday"
-                who="N"
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right column */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-base">Quick Actions</CardTitle>
-              <p className="text-xs text-muted-foreground">Jump back in</p>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              <Button variant="secondary" className="justify-start gap-2" asChild>
-                <Link href="/tour"><ListChecks className="h-4 w-4" /> Resume planning</Link>
-              </Button>
-              <Button variant="secondary" className="justify-start gap-2" asChild>
-                <Link href="/admin"><MapPinned className="h-4 w-4" /> Manage geofences</Link>
-              </Button>
-              <Button variant="secondary" className="justify-start gap-2" asChild>
-                <Link href="/"><Plane className="h-4 w-4" /> Import sample trip</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-base">Saved Places (nearby)</CardTitle>
-              <p className="text-xs text-muted-foreground">Based on your last position</p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <PlaceRow name="Emperor Jinmu Shrine" tag="Shrine" rating="4.7" />
-              <PlaceRow name="Hohoma Shrine" tag="Shrine" rating="4.5" />
-              <PlaceRow name="Kisshosoji Temple" tag="Temple" rating="4.6" />
-              <div className="pt-1">
-                <Button variant="ghost" className="gap-2" asChild>
-                  <Link href="/tour">See all places <ArrowRight className="h-4 w-4" /></Link>
-                </Button>
+              <div className="flex-1 space-y-3">
+                <Bar label={t("bars.visited")} value={metrics.visited} gradient="from-emerald-500 to-lime-500" />
+                <Bar label={t("bars.pending")} value={metrics.pending} gradient="from-rose-500 to-orange-500" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Announcements</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Announcement
-                title="New: Dark mode & language toggle"
-                blurb="Switch between light/dark and EN/JP from the header."
-              />
-              <Announcement
-                title="PWA install"
-                blurb="Add the app to your home screen for an offline‑friendly experience."
-              />
-            </CardContent>
-          </Card>
+      {/* ===== All tours grid ===== */}
+      {hasTours && (
+        <>
+          <div className="flex items-center justify-between" id="all-tours">
+            <h2 className="text-lg font-semibold">{t("allTours.title")}</h2>
+            <div className="text-xs text-muted-foreground">
+              {metrics.totalTours} {t("allTours.totalLabel")} • {metrics.totalStops} {t("allTours.stopsLabel")}
+            </div>
+          </div>
+
+          <div className="grid items-stretch gap-7 md:grid-cols-2 xl:grid-cols-3">
+            {tours!.map((tour, idx) => {
+              const isNew = !!tour.createdAt && Date.now() - new Date(tour.createdAt).getTime() < 1000 * 60 * 60 * 24 * 14;
+
+              const frames = [
+                "from-indigo-500 via-sky-500 to-emerald-500",
+                "from-fuchsia-500 via-violet-500 to-sky-500",
+                "from-amber-500 via-orange-500 to-rose-500",
+                "from-teal-500 via-emerald-500 to-lime-500",
+              ];
+              const frame = frames[idx % frames.length];
+
+              const stops = tour.places.length;
+              const stopsPct = Math.min(100, Math.round((stops / maxStops) * 100));
+
+              return (
+                <div key={tour.id} className="group relative transition-transform hover:-translate-y-0.5">
+                  <div className="relative overflow-hidden rounded-2xl border bg-card/80 shadow-sm ring-1 ring-black/5 backdrop-blur supports-[backdrop-filter]:bg-card/70 dark:ring-white/10">
+                    {/* media */}
+                    <div className="relative overflow-hidden rounded-t-2xl">
+                      {tour.image ? (
+                        <img src={tour.image} alt={tour.title} className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                      ) : (
+                        <div className="grid h-48 w-full place-items-center bg-muted text-muted-foreground">
+                          <ImageIcon className="h-8 w-8" />
+                        </div>
+                      )}
+
+                      {/* glass info bar */}
+                      <div className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-xs text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:bg-black/55 dark:text-white dark:ring-white/10">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {stops} {t("stops", { count: stops })}
+                      </div>
+
+                      {/* corner ribbons */}
+                      <div className="absolute left-2 top-2 flex gap-2">
+                        {isNew && (
+                          <span className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 shadow backdrop-blur dark:bg-black/70 dark:text-emerald-300">
+                            {t("badge.new")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* content */}
+                    <div className="space-y-3 px-4 pb-4 pt-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="line-clamp-1 text-base font-semibold">{tour.title}</h3>
+                        <Sparkles className="h-4 w-4 text-indigo-500 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
+                      </div>
+
+                      {tour.description && <p className="line-clamp-3 text-sm text-muted-foreground">{tour.description}</p>}
+
+                      {tour.tags?.length ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {tour.tags.map((tag, i) => {
+                            const tagPalettes = [
+                              "from-indigo-500/12 to-sky-500/12 text-indigo-700 dark:text-indigo-200",
+                              "from-rose-500/12 to-orange-500/12 text-rose-700 dark:text-rose-200",
+                              "from-emerald-500/12 to-teal-500/12 text-emerald-700 dark:text-emerald-200",
+                              "from-fuchsia-500/12 to-violet-500/12 text-fuchsia-700 dark:text-fuchsia-200",
+                            ];
+                            const palette = tagPalettes[i % tagPalettes.length];
+                            return (
+                              <span key={tag} className={`rounded-full border border-white/30 bg-gradient-to-r ${palette} px-2 py-1 text-[11px] font-medium ring-1 ring-black/5 dark:border-white/10`}>
+                                {tag}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+
+                      <div className="mt-1">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div className={`h-full rounded-full bg-gradient-to-r ${frame}`} style={{ width: `${stopsPct}%` }} />
+                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">{t("tours.stopsRelative")}</div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button asChild variant="secondary" className="rounded-full border border-white/40 backdrop-blur-sm dark:border-white/10">
+                          <Link href={`/tours/detail?id=${tour.id}`}>{t("buttons.details")}</Link>
+                        </Button>
+                        <Button asChild className="rounded-full bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow hover:from-indigo-700 hover:to-sky-700">
+                          <Link href={`/tours/detail/navigation?id=${tour.id}`}>
+                            <Navigation className="mr-1 h-4 w-4" />
+                            {t("buttons.navigate")}
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {!hasTours && (
+        <div className="rounded-xl border p-10 text-center">
+          <div className="mx-auto max-w-md space-y-3">
+            <div className="text-xl font-semibold">{t("empty.title")}</div>
+            <p className="text-sm text-muted-foreground">{t("empty.description")}</p>
+            <Button asChild>
+              <Link href="/tours/detail?id=hoskeralli">{t("empty.openSample")}</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- small UI atoms ---------- */
+function Kpi({ icon, label, value, gradient }: { icon: React.ReactNode; label: string; value: string | number; gradient: string }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border">
+      <div className={`pointer-events-none absolute -inset-2 opacity-[0.18] blur-2xl bg-gradient-to-r ${gradient}`} />
+      <div className="relative flex items-center gap-4 p-4">
+        <div className={`grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-sm`}>{icon}</div>
+        <div>
+          <div className="text-xs text-muted-foreground">{label}</div>
+          <div className="text-xl font-semibold">{value}</div>
         </div>
       </div>
     </div>
   );
 }
 
-/* ---------- small pieces ---------- */
-
-function StatCard({
-  title,
-  value,
-  hint,
-  icon,
-}: {
-  title: string;
-  value: string;
-  hint: string;
-  icon: React.ReactNode;
-}) {
+function GlassTile({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className="text-muted-foreground">{icon}</div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-semibold">{value}</div>
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ItineraryRow({
-  title,
-  days,
-  stops,
-  progress,
-  badge,
-}: {
-  title: string;
-  days: string;
-  stops: number;
-  progress: number;
-  badge: string;
-}) {
-  return (
-    <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium truncate">{title}</span>
-          <Badge variant="secondary" className="whitespace-nowrap">{badge}</Badge>
-        </div>
-        <p className="text-xs text-muted-foreground">{days} • {stops} stops</p>
-        <div className="mt-2">
-          <Progress value={progress} className="h-2" />
-        </div>
-      </div>
-      <Button variant="outline" size="sm" className="mt-2 sm:mt-0" asChild>
-        <Link href="/tour">Open</Link>
-      </Button>
+    <div className="rounded-xl border bg-gradient-to-b from-white/70 to-white/40 p-3 backdrop-blur dark:from-white/10 dark:to-white/5">
+      <div className="text-xs font-semibold">{title}</div>
+      {subtitle && <div className="text-[11px] text-muted-foreground">{subtitle}</div>}
+      <div className="mt-2 space-y-1">{children}</div>
     </div>
   );
 }
 
-function ActivityItem({ title, time, who }: { title: string; time: string; who: string }) {
+function Bar({ label, value, gradient }: { label: string; value: number | string; gradient: string }) {
+  const pct = typeof value === "number" ? value : 0;
   return (
-    <div className="flex items-center gap-3">
-      <Avatar className="h-8 w-8">
-        <AvatarImage alt="user" />
-        <AvatarFallback>{who}</AvatarFallback>
-      </Avatar>
-      <div className="min-w-0">
-        <p className="truncate text-sm">{title}</p>
-        <p className="text-xs text-muted-foreground">{time}</p>
+    <div>
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-semibold">{value}</span>
       </div>
-    </div>
-  );
-}
-
-function PlaceRow({ name, tag, rating }: { name: string; tag: string; rating: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <div>
-        <div className="font-medium">{name}</div>
-        <div className="text-xs text-muted-foreground">{tag}</div>
+      <div className="mt-1 h-2 w-full overflow-hidden rounded bg-muted">
+        <div className={`h-full bg-gradient-to-r ${gradient}`} style={{ width: "100%" }} />
       </div>
-      <Badge variant="outline">{rating}★</Badge>
-    </div>
-  );
-}
-
-function Announcement({ title, blurb }: { title: string; blurb: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-3">
-      <div className="font-medium">{title}</div>
-      <p className="text-sm text-muted-foreground">{blurb}</p>
     </div>
   );
 }
