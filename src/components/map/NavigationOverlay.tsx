@@ -3,38 +3,37 @@
 import { Button } from '@/components/ui/button';
 import { Play, Pause, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useGlobalLoader } from '@/components/system/LoaderProvider';
-import { useTourNav } from '@/providers/TourNavProvider';
-import type { Place } from '@/lib/data/tours';
+import { useGlobalLoader } from '@/providers/LoaderProvider';
+import { useAppDispatch, useAppSelector } from '@/lib/store/hook';
+import { selectNav, start as navStart, pause as navPause, resume as navResume, setProfile } from '@/lib/store/slices/navSlice';
+import { setActiveTour } from '@/lib/store/slices/toursSlice';
+import type { Place } from '@/lib/data/tourTypes';
+
+// use your app's locale provider
+import { useLocale } from '@/providers/LocaleProvider';
 
 type Props = {
   tourId?: string;
-  places?: Place[];
+  places?: Place[]; // kept for parity
   defaultProfile?: 'walking' | 'driving' | 'cycling';
 };
 
-export default function NavigationOverlay({ tourId, places, defaultProfile = 'walking' }: Props) {
+export default function NavigationOverlay({ tourId, defaultProfile = 'walking' }: Props) {
   const router = useRouter();
   const { show } = useGlobalLoader();
-  const nav = useTourNav();
+  const nav = useAppSelector(selectNav);
+  const dispatch = useAppDispatch();
+  const { locale, t } = useLocale(); // useLocale provides t() and locale
 
   const handleStart = () => {
-    if (nav.activeTour) {
-      nav.resume();
-      return;
-    }
-    // start with provided props (from the nav page)
-    if (tourId && places?.length) {
-      nav.start(tourId, places, defaultProfile);
-    } else {
-      // fallback: just resume if map is already ready
-      nav.resume();
-    }
+    if (tourId) dispatch(setActiveTour(tourId));
+    dispatch(setProfile(defaultProfile));
+    dispatch(navStart());
   };
 
   const handlePauseResume = () => {
-    if (nav.status === 'running') nav.pause();
-    else if (nav.status === 'paused') nav.resume();
+    if (nav.status === 'running') dispatch(navPause());
+    else if (nav.status === 'paused') dispatch(navResume());
   };
 
   const handleBack = () => {
@@ -44,30 +43,27 @@ export default function NavigationOverlay({ tourId, places, defaultProfile = 'wa
 
   return (
     <>
-      {/* Top-left Back button */}
       <div className="fixed left-3 top-3 z-[60]">
         <Button
           size="icon"
           className="rounded-full shadow"
           onClick={handleBack}
-          aria-label="Back"
-          title="Back"
+          aria-label={t('Back') || 'Back'}
+          title={t('Back') || 'Back'}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
       </div>
 
-      {/* Bottom-centered control (Start / Pause / Resume) */}
       <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center">
         {nav.status === 'idle' && (
           <Button
             size="lg"
             className="pointer-events-auto rounded-full px-6 shadow-lg"
             onClick={handleStart}
-            aria-label="Start navigation"
+            aria-label={t('Start navigation') || 'Start navigation'}
           >
-            <Play className="mr-2 h-5 w-5" />
-            Start
+            <Play className="mr-2 h-5 w-5" /> {t('Start') || 'Start'}
           </Button>
         )}
         {nav.status === 'running' && (
@@ -76,10 +72,9 @@ export default function NavigationOverlay({ tourId, places, defaultProfile = 'wa
             variant="outline"
             className="pointer-events-auto rounded-full px-6 shadow-lg"
             onClick={handlePauseResume}
-            aria-label="Pause navigation"
+            aria-label={t('Pause navigation') || 'Pause navigation'}
           >
-            <Pause className="mr-2 h-5 w-5" />
-            Pause
+            <Pause className="mr-2 h-5 w-5" /> {t('Pause') || 'Pause'}
           </Button>
         )}
         {nav.status === 'paused' && (
@@ -87,10 +82,9 @@ export default function NavigationOverlay({ tourId, places, defaultProfile = 'wa
             size="lg"
             className="pointer-events-auto rounded-full px-6 shadow-lg"
             onClick={handlePauseResume}
-            aria-label="Resume navigation"
+            aria-label={t('Resume navigation') || 'Resume navigation'}
           >
-            <Play className="mr-2 h-5 w-5" />
-            Resume
+            <Play className="mr-2 h-5 w-5" /> {t('Resume') || 'Resume'}
           </Button>
         )}
       </div>

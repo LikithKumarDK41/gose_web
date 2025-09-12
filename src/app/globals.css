@@ -118,8 +118,99 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground; /* make body fully transparent */
+    position: relative; /* enable layering */
+    isolation: isolate; /* create stacking context so ::before -1 sits above background */
+    overflow-x: hidden;
   }
 }
 
 #map { width: 100%; height: 100vh; }
+
+/* Masked tourism-themed background layer */
+html, body { height: 100%; }
+
+/* Background micro-shapes layer (dots/diamonds) with a different theme color */
+html::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1; /* deepest layer */
+  pointer-events: none;
+  /* rich, lightweight micro-shapes: colorful dots + subtle lines + conic splash */
+  background:
+    repeating-radial-gradient(circle at 20% 30%, color-mix(in oklab, var(--accent) 22%, transparent) 0 2px, transparent 2px 28px),
+    repeating-linear-gradient(45deg, color-mix(in oklab, var(--secondary) 14%, transparent) 0 2px, transparent 2px 26px),
+    conic-gradient(from 0deg at 82% 18%, color-mix(in oklab, var(--primary) 16%, transparent) 0 10%, transparent 10% 100%);
+  opacity: 0.26;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0; /* behind app content, above body background */
+  pointer-events: none;
+  /* Vivid multi-stop gradients to colorize the lines richly */
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--primary) 55%, oklch(0.78 0.2 260)) 0%,
+      color-mix(in oklab, var(--secondary) 45%, oklch(0.86 0.19 180)) 48%,
+      color-mix(in oklab, var(--accent) 50%, oklch(0.88 0.2 35)) 100%),
+    linear-gradient(215deg,
+      oklch(0.9 0.16 330) 0%,
+      transparent 60%),
+    linear-gradient(180deg, color-mix(in oklab, var(--color-background) 90%, transparent), var(--color-background));
+  -webkit-mask-image: url('/masks/wave-lines.svg');
+  mask-image: url('/masks/wave-lines.svg');
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  mask-mode: luminance;
+  opacity: 1;
+}
+
+.dark body::before {
+  opacity: 0.9;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--primary) 30%, transparent), color-mix(in oklab, var(--secondary) 24%, transparent)),
+    linear-gradient(215deg, color-mix(in oklab, var(--accent) 22%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in oklab, var(--color-background) 96%, transparent), var(--color-background));
+}
+
+/* Fallback if CSS masks are unsupported: show the color wash softly */
+@supports not ((mask-image: url('/masks/wave-lines.svg')) or (-webkit-mask-image: url('/masks/wave-lines.svg'))) {
+  body::before {
+    -webkit-mask-image: none;
+    mask-image: none;
+    mix-blend-mode: multiply;
+    opacity: 0.25; /* keep subtle so content remains readable */
+  }
+  .dark body::before {
+    opacity: 0.2;
+    mix-blend-mode: screen;
+  }
+}
+
+/* Frosted glass veil over the mask so foreground remains legible */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1; /* above ::before mask, below app content (z-10) */
+  pointer-events: none;
+  /* Solid theme background overlay that hides mask while keeping glass feel */
+  background: color-mix(in oklab, var(--color-background) 86%, transparent);
+  backdrop-filter: blur(8px) saturate(110%);
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 6%, transparent);
+  opacity: 0.78;
+}
+
+.dark body::after {
+  background: color-mix(in oklab, var(--color-background) 90%, transparent);
+  opacity: 0.76;
+}

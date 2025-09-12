@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" preserveAspectRatio="xMidYMid slice">
+  <!-- Organic blobby shapes to use as a CSS mask. Pure black = visible. -->
+  <defs>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="#000"/>
+  <g filter="url(#soft)">
+    <path fill="#000" d="M0 0h1024v1024H0z"/>
+    <!-- Cutouts are drawn in white and later inverted in CSS mask-mode: luminance. -->
+    <g fill="#fff" opacity="0.96">
+      <path d="M160 140c66-24 132 42 176 86s76 88 46 142-119 77-196 68S36 386 52 318s42-154 108-178Z"/>
+      <path d="M728 92c72-10 164 58 192 124s-2 148-64 188-156 24-214-28-80-138-40-194 54-80 126-90Z"/>
+      <path d="M214 628c54-58 150-70 216-40s96 104 84 168-80 112-160 122-176-18-198-92 4-100 58-158Z"/>
+      <path d="M700 602c50-44 128-50 186-22s94 92 82 150-74 100-144 114-166-6-194-66 20-132 70-176Z"/>
+      <path d="M430 230c32-40 112-46 166-28s92 70 84 118-72 84-128 88-136-20-156-68 2-70 34-110Z"/>
+    </g>
+  </g>
+</svg>
+
+

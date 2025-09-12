@@ -10,7 +10,7 @@ import {
     startTransition,
 } from "react";
 import { usePathname } from "next/navigation";
-import { FullScreenLoader } from "./FullScreenLoader";
+import { FullScreenLoader } from "../components/system/FullScreenLoader";
 
 type Ctx = { visible: boolean; show: () => void; hide: () => void };
 const LoaderCtx = createContext<Ctx | null>(null);

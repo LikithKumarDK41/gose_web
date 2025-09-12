@@ -1,13 +1,17 @@
-"use client";
-import { configureStore } from "@reduxjs/toolkit";
-import { Provider } from "react-redux";
-import plan from "@/lib/store/slices/planSlice";
-import positions from "@/lib/store/slices/positionSlice";
+// src/lib/store/index.ts
+import { configureStore } from '@reduxjs/toolkit';
+import toursReducer from './slices/toursSlice';
+import navReducer from './slices/navSlice';
+import geofenceReducer from './slices/geofenceSlice'; // ⬅️ add
 
-export const store = configureStore({ reducer: { plan, positions } });
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+export const store = configureStore({
+  reducer: {
+    tours: toursReducer,
+    nav: navReducer,
+    geofence: geofenceReducer, // ⬅️ add
+  },
+});
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
-  return <Provider store={store}>{children}</Provider>;
-}
+export type AppStore = typeof store;
+export type RootState = ReturnType<AppStore['getState']>;
+export type AppDispatch = AppStore['dispatch'];
