@@ -7,6 +7,7 @@ import LoaderProvider from '@/providers/LoaderProvider';
 import GeoWatcher from '@/components/geo/GeoWatcher';
 import GlobalCheckinToasts from '@/components/nav/GlobalCheckinToasts';
 import { LocaleProvider } from '@/providers/LocaleProvider';
+import AuthGuard from '@/components/system/AuthGuard';
 
 export const metadata: Metadata = { title: 'Tourist' };
 export const viewport: Viewport = { themeColor: '#0b0f14' };
@@ -51,7 +52,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <LoaderProvider>
             <LocaleProvider>
               <AppShell>
+                <AuthGuard>
                 {children}
+                </AuthGuard>
               </AppShell>
               <GeoWatcher />
               <GlobalCheckinToasts />
