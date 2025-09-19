@@ -5,11 +5,23 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { FullScreenLoader } from './FullScreenLoader';
 
-const PUBLIC_PATHS = ['/', '/tours', '/mylist'];
+const PUBLIC_PATHS = [
+  '/', 
+  '/tours', 
+  '/mylist', 
+  '/tours/detail', 
+  '/tours/detail/navigation', 
+  '/guide',
+];
+
+function normalizePath(path: string) {
+  if (path === '/') return '/';
+  return path.replace(/\/+$/, ''); // remove trailing slashes
+}
 
 function isPublic(pathname: string) {
-  if (pathname === '/') return true;
-  return PUBLIC_PATHS.some((p) => p !== '/' && pathname.startsWith(p));
+  const normalized = normalizePath(pathname);
+  return PUBLIC_PATHS.includes(normalizePath(normalized));
 }
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
