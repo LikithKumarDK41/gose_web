@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { FullScreenLoader } from './FullScreenLoader';
 
-const PUBLIC_PATHS = ['/', '/tours', 'mylist'];
+const PUBLIC_PATHS = ['/', '/tours', '/mylist'];
 
 function isPublic(pathname: string) {
   if (pathname === '/') return true;
