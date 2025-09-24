@@ -4,19 +4,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { FullScreenLoader } from './FullScreenLoader';
+import { useAppSelector } from '@/lib/store/hook';
 
-const PUBLIC_PATHS = [
-  '/', 
-  '/tours', 
-  '/mylist', 
-  '/tours/detail', 
-  '/tours/detail/navigation', 
-  '/guide',
-];
+const PUBLIC_PATHS = ['/signin']; // only signin is public
 
 function normalizePath(path: string) {
   if (path === '/') return '/';
-  return path.replace(/\/+$/, ''); // remove trailing slashes
+  return path.replace(/\/+$/, '');
 }
 
 function isPublic(pathname: string) {
@@ -29,8 +23,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [status, setStatus] = useState<'checking' | 'allowed'>('checking');
 
+  // ✅ Use Redux-auth value
+  const authData = useAppSelector((s) => s.auth.data);
+
   useEffect(() => {
-    // Always start in "checking" so nothing protected renders first
     setStatus('checking');
 
     if (isPublic(pathname)) {
@@ -38,24 +34,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Client-side token check (for localStorage workflows)
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-      if (token) {
-        setStatus('allowed');
-      } else {
-        // Use replace so there's no history entry to a protected page
-        router.replace('/');
-      }
-    } catch {
-      router.replace('/');
+    if (authData?.user) {
+      setStatus('allowed');
+    } else {
+      const next = encodeURIComponent(pathname || '/');
+      router.replace(`/signin?next=${next}`);
     }
-  }, [pathname, router]);
+  }, [pathname, router, authData]);
 
-  // While checking, show nothing or your loader (both avoid showing protected UI)
-  if (status === 'checking') {
-    return <FullScreenLoader />; // or `return null`
-  }
+  if (status === 'checking') return <FullScreenLoader />;
 
   return <>{children}</>;
 }

@@ -1,52 +1,52 @@
-// src/lib/api.ts
-import axios from 'axios';
+import axios, { InternalAxiosRequestConfig } from "axios";
 
-// Create an Axios instance
+// Use relative API base (Next.js proxy will forward)
+const API_BASE = "/api";   // ✅ not NEXT_PUBLIC_API_URL
+
+const LOCALE_STORAGE_KEY = "site_locale";
+const DEFAULT_LOCALE = "ja";
+
+function getLocale(): string {
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
+  return (
+    localStorage.getItem(LOCALE_STORAGE_KEY) ||
+    document.documentElement.getAttribute("lang") ||
+    DEFAULT_LOCALE
+  );
+}
+
 const api = axios.create({
-  // You can set a base URL for your API here
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: API_BASE,  // ✅ relative, avoids CORS
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor to add the token and language to headers
+// Request interceptor
 api.interceptors.request.use(
-  (config) => {
-    // Check if window is defined (i.e., we are on the client side)
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('user');
-      const language = localStorage.getItem('locale') || 'en'; // Or get it from your locale provider context
+  (config: InternalAxiosRequestConfig) => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("user");
+      const locale = getLocale();
+
+      (config.headers as Record<string, string>)["Accept-Language"] = locale;
+      (config.headers as Record<string, string>)["locale"] = locale;
 
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
       }
-      
-      config.headers['Accept-Language'] = language;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle 401 Unauthorized errors
+// Response interceptor
 api.interceptors.response.use(
-  (response) => {
-    // Any status code that lie within the range of 2xx cause this function to trigger
-    return response;
-  },
+  (response) => response,
   (error) => {
-    // Any status codes that falls outside the range of 2xx cause this function to trigger
-    if (typeof window !== 'undefined' && error.response && error.response.status === 401) {
-      // Handle 401 error
-      localStorage.removeItem('user');
-      // Redirect to login page
-      // You might want to show a toast message to the user before redirecting
-      window.location.href = '/login'; 
-      console.error('Unauthorized access - redirecting to login.');
+    if (typeof window !== "undefined" && error?.response?.status === 401) {
+      localStorage.removeItem("user");
+      window.location.href = "/signin";
     }
     return Promise.reject(error);
   }
