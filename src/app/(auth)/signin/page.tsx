@@ -4,17 +4,14 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Github, Mail, UserRound, Phone, Globe, User } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { useAppDispatch, useAppSelector } from '@/lib/store/hook';
 import {
@@ -36,6 +33,18 @@ type Step = 'identifier' | 'otp' | 'register';
 type OtpMode = 'email' | 'phone';
 type FieldErrors = Record<string, string>;
 
+/** Try to infer a country code (e.g., 'JP') from a +<dial> E.164 number */
+function inferCountryFromE164(e164: string, list: Country[]): string | null {
+  if (!e164?.startsWith('+')) return null;
+  const digits = e164.replace(/\D/g, '');
+  // longest dial_code wins (avoid +1 vs +1868)
+  const sorted = [...list].filter(c => c.dial_code).sort((a, b) => b.dial_code.length - a.dial_code.length);
+  for (const c of sorted) {
+    if (digits.startsWith(c.dial_code.replace(/\D/g, ''))) return c.code || null;
+  }
+  return null;
+}
+
 export default function SignInPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -44,7 +53,6 @@ export default function SignInPage() {
 
   const {
     loading,
-    error,
     otpMode,
     otpTarget,
     pendingAccount,
@@ -75,12 +83,10 @@ export default function SignInPage() {
   const [emailReg, setEmailReg] = React.useState('');
   const [phoneNumber, setPhoneNumber] = React.useState('');
 
-  // errors & messages
+  // validation-only errors
   const [idErrors, setIdErrors] = React.useState<FieldErrors>({});
   const [otpErrors, setOtpErrors] = React.useState<FieldErrors>({});
   const [regErrors, setRegErrors] = React.useState<FieldErrors>({});
-  const [message, setMessage] = React.useState<string | null>(null);
-  const [localError, setLocalError] = React.useState<string | null>(null);
 
   const effectiveEmail = pendingEmailid || email.trim();
 
@@ -93,7 +99,7 @@ export default function SignInPage() {
   function gotoRegisterPrefill() {
     if (pendingAccount) {
       setEmailReg(effectiveEmail || '');
-      setPhoneNumber('');
+      // keep name/phone if we already set them from social below
     } else {
       if ((otpMode || mode) === 'email') {
         setEmailReg(otpTarget || effectiveEmail || '');
@@ -149,8 +155,6 @@ export default function SignInPage() {
   /** ---------- Submit ---------- */
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLocalError(null);
-    setMessage(null);
 
     if (step === 'identifier') {
       if (!validateIdentifier()) return;
@@ -159,32 +163,32 @@ export default function SignInPage() {
         const val = email.trim();
         const signAction = await dispatch(signin({ email: val }));
         if (signin.fulfilled.match(signAction)) {
-          setMessage('Signed in successfully!');
+          toast.success('Signed in. Welcome back!');
           return router.replace(next);
         }
         if (signAction.payload === 'ERROR_INVALID_USER') {
           const otpAction = await dispatch(sendEmailOtp({ emailid: val }));
           if (sendEmailOtp.fulfilled.match(otpAction)) {
-            setMessage(`We sent a one-time code to ${val}`);
+            toast('Code sent', { description: `We sent a one-time code to ${val}` });
             setStep('otp');
             dispatch(setOtpMode('email'));
           } else {
-            setLocalError((otpAction.payload as string) || 'Failed to send Email OTP');
+            toast.error(String(otpAction.payload || 'Failed to send Email OTP'));
           }
           return;
         }
-        return setLocalError((signAction.payload as string) || 'Signin failed. Please try again.');
+        return toast.error(String(signAction.payload || 'Signin failed. Please try again.'));
       }
 
       // phone flow (digits only)
       const digits = phoneRaw.replace(/\D/g, '');
       const otpAction = await dispatch(sendPhoneOtp({ phonenumber: digits }));
       if (sendPhoneOtp.fulfilled.match(otpAction)) {
-        setMessage(`We sent a one-time code to your phone`);
+        toast('Code sent', { description: 'We sent a one-time code to your phone' });
         setStep('otp');
         dispatch(setOtpMode('phone'));
       } else {
-        setLocalError((otpAction.payload as string) || 'Failed to send Phone OTP');
+        toast.error(String(otpAction.payload || 'Failed to send Phone OTP'));
       }
       return;
     }
@@ -201,10 +205,10 @@ export default function SignInPage() {
         verifyOtp({ mode: (otpMode || mode) as OtpMode, target, otp: otp.trim() })
       );
       if (verifyOtp.fulfilled.match(action)) {
-        setMessage('OTP verified. Complete your registration.');
+        toast.success('OTP verified. Complete your registration.');
         gotoRegisterPrefill();
       } else {
-        setLocalError((action.payload as string) || 'Invalid verification code');
+        toast.error(String(action.payload || 'Invalid verification code'));
       }
       return;
     }
@@ -215,7 +219,7 @@ export default function SignInPage() {
       const phoneNumParsed = Number(phoneNumber.replace(/\D/g, '')) || 0;
 
       const payload = {
-        state: "active" as const,
+        state: 'active' as const,
         email: emailReg.trim(),
         account: accountLabel(),
         name: name.trim(),
@@ -223,21 +227,22 @@ export default function SignInPage() {
         agegroup: agegroup.trim(),
         country: country.trim(),
         nationality: nationality.trim(),
-        phoneNumber: phoneNumParsed,   // digits only, NO country code
-        firebaseUserId: pendingAccount ? pendingFirebaseUid : "",
+        phoneNumber: phoneNumParsed,
+        firebaseUserId: pendingAccount ? pendingFirebaseUid : '',
       };
 
       const regAction = await dispatch(registerNewUser(payload));
       if (registerNewUser.fulfilled.match(regAction)) {
-        setMessage('Registration completed and signed in successfully!');
+        toast.success('Account created. You are signed in!');
         router.replace(next);
       } else {
-        setLocalError((regAction.payload as string) || 'User registration failed');
+        toast.error(String(regAction.payload || 'User registration failed'));
       }
       return;
     }
   }
 
+  /** ---------- Social sign-in (check backend, then prefill) ---------- */
   async function handleSocial(provider: 'google' | 'facebook') {
     try {
       const account = provider === 'google' ? 'Google' : 'Facebook';
@@ -246,21 +251,55 @@ export default function SignInPage() {
       } else {
         await loginWithFacebook();
       }
+
       const user = auth.currentUser;
-      const email = user?.email || '';
+      const emailFromFb = user?.email || '';
       const uid = user?.uid || '';
+      const displayName = user?.displayName || '';
+      const phoneFromFb = user?.phoneNumber || ''; // E.164 like +819012345678
 
-      await dispatch(prepareSocialRegistration({
-        account: account as "Google" | "Facebook",
-        emailid: email,
-        firebaseUserId: uid,
-      }));
+      if (!emailFromFb) {
+        // Your API needs an email for both signin & register
+        toast.error(`${account} didn't return an email. Please use another method.`);
+        return;
+      }
 
-      setMessage(`${account} authenticated. Please complete registration.`);
-      setStep('register');
+      // 1) Try backend signin with the social email
+      const signAction = await dispatch(signin({ email: emailFromFb }));
+      if (signin.fulfilled.match(signAction)) {
+        toast.success('Signed in. Welcome back!');
+        router.replace(next);
+        return;
+      }
+
+      // 2) If the backend says user doesn't exist, go to register with prefilled fields
+      if (signAction.payload === 'ERROR_INVALID_USER') {
+        // Prefill form fields
+        if (displayName) setName(displayName);
+        setEmailReg(emailFromFb);
+        if (phoneFromFb) setPhoneNumber(phoneFromFb.replace(/\D/g, ''));
+        const inferred = phoneFromFb ? inferCountryFromE164(phoneFromFb, countries) : null;
+        if (inferred) setCountry(inferred);
+
+        // Bridge to redux for final payload pieces
+        await dispatch(
+          prepareSocialRegistration({
+            account: account as 'Google' | 'Facebook',
+            emailid: emailFromFb,
+            firebaseUserId: uid,
+          })
+        );
+
+        toast.success(`${account} authenticated. Please complete registration.`);
+        setStep('register');
+        return;
+      }
+
+      // 3) Any other error from signin
+      toast.error(String(signAction.payload || 'Social sign-in failed. Try again.'));
     } catch (err) {
       console.error(err);
-      setLocalError('Social sign-in failed. Try again.');
+      toast.error('Social sign-in failed. Try again.');
     }
   }
 
@@ -268,7 +307,6 @@ export default function SignInPage() {
 
   return (
     <main className="min-h-dvh bg-inherit text-inherit">
-      {/* page container provides vertical breathing room and scrolls naturally */}
       <div className="container mx-auto max-w-3xl px-4 py-10 md:py-14">
         <Card className="w-full border border-inherit bg-inherit rounded-2xl shadow-xl">
           <CardHeader className="space-y-2 text-center">
@@ -280,19 +318,17 @@ export default function SignInPage() {
                   : 'Sign in with your phone number — we’ll send an OTP')}
               {step === 'otp' &&
                 `Enter the verification code sent to ${otpTarget || (isEmailMode ? (pendingEmailid || email) : 'your phone')}`}
-              {step === 'register' &&
-                `Complete your registration (${accountLabel()})`}
+              {step === 'register' && `Complete your registration (${accountLabel()})`}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-8">
-            {/* Mode switch */}
             {step === 'identifier' && !pendingAccount && (
               <div className="flex gap-2 justify-center">
                 <Button
                   type="button"
                   variant={mode === 'email' ? 'default' : 'outline'}
-                  onClick={() => { setMode('email'); setStep('identifier'); setOtp(''); setMessage(null); setLocalError(null); setIdErrors({}); }}
+                  onClick={() => { setMode('email'); setStep('identifier'); setOtp(''); setIdErrors({}); }}
                   disabled={loading}
                 >
                   <Mail className="mr-2 size-4" />
@@ -301,7 +337,7 @@ export default function SignInPage() {
                 <Button
                   type="button"
                   variant={mode === 'phone' ? 'default' : 'outline'}
-                  onClick={() => { setMode('phone'); setStep('identifier'); setOtp(''); setMessage(null); setLocalError(null); setIdErrors({}); }}
+                  onClick={() => { setMode('phone'); setStep('identifier'); setOtp(''); setIdErrors({}); }}
                   disabled={loading}
                 >
                   <Phone className="mr-2 size-4" />
@@ -333,9 +369,7 @@ export default function SignInPage() {
                         aria-invalid={!!idErrors.email}
                         aria-describedby="email-error"
                       />
-                      {idErrors.email && (
-                        <p id="email-error" className="text-xs text-red-600">{idErrors.email}</p>
-                      )}
+                      {idErrors.email && <p id="email-error" className="text-xs text-red-600">{idErrors.email}</p>}
                     </div>
                   ) : (
                     <div className="grid gap-2">
@@ -360,9 +394,7 @@ export default function SignInPage() {
                         aria-invalid={!!idErrors.phone}
                         aria-describedby="phone-error"
                       />
-                      {idErrors.phone && (
-                        <p id="phone-error" className="text-xs text-red-600">{idErrors.phone}</p>
-                      )}
+                      {idErrors.phone && <p id="phone-error" className="text-xs text-red-600">{idErrors.phone}</p>}
                     </div>
                   )}
                 </>
@@ -388,31 +420,27 @@ export default function SignInPage() {
                     aria-invalid={!!otpErrors.otp}
                     aria-describedby="otp-error"
                   />
-                  {otpErrors.otp && (
-                    <p id="otp-error" className="text-xs text-red-600">{otpErrors.otp}</p>
-                  )}
+                  {otpErrors.otp && <p id="otp-error" className="text-xs text-red-600">{otpErrors.otp}</p>}
                   <p className="text-xs opacity-70">
                     Didn’t get the code?{' '}
                     <button
                       type="button"
                       className="underline text-sky-600 dark:text-sky-400"
                       onClick={async () => {
-                        setLocalError(null);
-                        setMessage(null);
                         if ((otpMode || mode) === 'email') {
                           const resend = await dispatch(sendEmailOtp({ emailid: (otpTarget || pendingEmailid || email).trim() }));
                           if (sendEmailOtp.fulfilled.match(resend)) {
-                            setMessage(`We re-sent the code to ${otpTarget || pendingEmailid || email}`);
+                            toast('Code re-sent', { description: `${otpTarget || pendingEmailid || email}` });
                           } else {
-                            setLocalError((resend.payload as string) || 'Failed to resend Email OTP');
+                            toast.error(String(resend.payload || 'Failed to resend Email OTP'));
                           }
                         } else {
                           const digits = (otpTarget || phoneRaw).replace(/\D/g, '');
                           const resend = await dispatch(sendPhoneOtp({ phonenumber: digits }));
                           if (sendPhoneOtp.fulfilled.match(resend)) {
-                            setMessage(`We re-sent the code to your phone`);
+                            toast('Code re-sent', { description: 'Sent to your phone' });
                           } else {
-                            setLocalError((resend.payload as string) || 'Failed to resend Phone OTP');
+                            toast.error(String(resend.payload || 'Failed to resend Phone OTP'));
                           }
                         }
                       }}
@@ -452,7 +480,6 @@ export default function SignInPage() {
                       <SelectTrigger className="w-full" aria-invalid={!!regErrors.gender}>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
-                      {/* Use popper so the menu isn't clipped by the card */}
                       <SelectContent position="popper" sideOffset={6}>
                         <SelectItem value="male">Male</SelectItem>
                         <SelectItem value="female">Female</SelectItem>
@@ -494,7 +521,7 @@ export default function SignInPage() {
                       disabled={loading || countriesLoading}
                     >
                       <SelectTrigger className="w-full" aria-invalid={!!regErrors.country}>
-                        <SelectValue placeholder={countriesLoading ? "Loading..." : "Select country"} />
+                        <SelectValue placeholder={countriesLoading ? 'Loading...' : 'Select country'} />
                       </SelectTrigger>
                       <SelectContent className="max-h-72" position="popper" sideOffset={6}>
                         {countries.map((c) => (
@@ -564,17 +591,6 @@ export default function SignInPage() {
                 </>
               )}
 
-              {(error || localError) && (
-                <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                  {localError || error}
-                </p>
-              )}
-              {message && (
-                <p className="text-sm text-green-600 dark:text-green-400" role="status">
-                  {message}
-                </p>
-              )}
-
               <Button type="submit" disabled={loading} className="w-full">
                 {loading
                   ? 'Please wait…'
@@ -592,8 +608,6 @@ export default function SignInPage() {
                   onClick={() => {
                     if (step === 'register') setStep('otp');
                     else setStep('identifier');
-                    setMessage(null);
-                    setLocalError(null);
                     setIdErrors({});
                     setOtpErrors({});
                     setRegErrors({});
@@ -610,9 +624,7 @@ export default function SignInPage() {
               <>
                 <div className="flex items-center gap-3">
                   <Separator className="flex-1" />
-                  <span className="text-sm uppercase tracking-wide opacity-70">
-                    or continue with
-                  </span>
+                  <span className="text-sm uppercase tracking-wide opacity-70">or continue with</span>
                   <Separator className="flex-1" />
                 </div>
 
@@ -644,10 +656,8 @@ export default function SignInPage() {
 
           <CardFooter className="flex flex-col gap-2 text-center text-xs opacity-70">
             <p>
-              By continuing, you agree to our{' '}
-              <Link href="/terms" className="underline">Terms</Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="underline">Privacy Policy</Link>
+              By continuing, you agree to our <Link href="/terms" className="underline">Terms</Link>{' '}
+              and <Link href="/privacy" className="underline">Privacy Policy</Link>
             </p>
           </CardFooter>
         </Card>
