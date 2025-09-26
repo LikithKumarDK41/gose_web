@@ -103,12 +103,13 @@ export default function ToursDashboardPage() {
           {/* Nav status pill */}
           <div className="flex items-center gap-3 rounded-xl bg-white/15 p-3 text-white backdrop-blur">
             <span
-              className={`grid h-9 w-9 place-items-center rounded-full shadow ${nav.status === "running"
-                ? "bg-emerald-500"
-                : nav.status === "paused"
+              className={`grid h-9 w-9 place-items-center rounded-full shadow ${
+                nav.status === "running"
+                  ? "bg-emerald-500"
+                  : nav.status === "paused"
                   ? "bg-amber-500"
                   : "bg-slate-400"
-                }`}
+              }`}
             >
               {nav.status === "running" ? (
                 <PlayCircle className="h-5 w-5" />
@@ -183,7 +184,21 @@ export default function ToursDashboardPage() {
                   </h3>
                   {tour.content?.brief && (
                     <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
-                      {tour.content.brief.replace(/<[^>]+>/g, "")}
+                      {(tour?.content?.brief || "")
+                        // remove styles/scripts/comments (optional but handy)
+                        .replace(/<style[\s\S]*?<\/style>/gi, "")
+                        .replace(/<script[\s\S]*?<\/script>/gi, "")
+                        .replace(/<!--[\s\S]*?-->/g, "")
+                        // strip all tags
+                        .replace(/<[^>]+>/g, "")
+                        // decode non-breaking spaces (&nbsp; / &#160; and the Unicode NBSP)
+                        .replace(/&nbsp;|&#160;/gi, " ")
+                        .replace(/\u00A0/g, " ")
+                        // drop zero-width junk
+                        .replace(/[\u200B-\u200D\uFEFF]/g, "")
+                        // collapse whitespace and trim
+                        .replace(/\s+/g, " ")
+                        .trim() || null}{" "}
                     </p>
                   )}
                 </div>
@@ -239,9 +254,7 @@ export default function ToursDashboardPage() {
                     </p>
                   )}
                   <Button asChild size="sm" className="mt-3">
-                    <Link href={`/tours/detail?id=${ft._id}`}>
-                      Explore Now
-                    </Link>
+                    <Link href={`/tours/detail?id=${ft._id}`}>Explore Now</Link>
                   </Button>
                 </div>
               </div>
