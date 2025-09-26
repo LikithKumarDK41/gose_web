@@ -4,6 +4,7 @@ import toursReducer from './slices/toursSlice';
 import navReducer from './slices/navSlice';
 import geofenceReducer from './slices/geofenceSlice'; // ⬅️ add
 import authReducer from "./slices/authSlice";
+import touristReducer from "./slices/touristSlice";
 
 export const store = configureStore({
   reducer: {
@@ -11,6 +12,7 @@ export const store = configureStore({
     nav: navReducer,
     geofence: geofenceReducer,
     auth: authReducer,
+    tourist: touristReducer,
   },
 });
 
