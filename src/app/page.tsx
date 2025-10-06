@@ -1,4 +1,4 @@
-// src/app/tours/page.tsx (or wherever you keep it)
+// src/app/tours/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -18,6 +18,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
 import { fetchTours, selectTours } from "@/lib/store/slices/touristSlice";
+import {
+  fetchShortcuts,
+  selectShortcuts,
+  selectGlobalLoading,
+} from "@/lib/store/slices/globalSlice";
 import { selectNav } from "@/lib/store/slices/navSlice";
 import { selectGeofenceChecked } from "@/lib/store/slices/geofenceSlice";
 import { useLocale } from "@/providers/LocaleProvider";
@@ -31,21 +36,20 @@ export default function ToursDashboardPage() {
   const tours = useAppSelector(selectTours);
   const nav = useAppSelector(selectNav);
   const checkedMap = useAppSelector(selectGeofenceChecked);
+  const shortcuts = useAppSelector(selectShortcuts);
+  const globalLoading = useAppSelector(selectGlobalLoading);
 
   useEffect(() => {
     let mounted = true;
-
     const fetchData = async () => {
       try {
-        show(); // loader visible immediately
-        await dispatch(fetchTours());
+        show();
+        await Promise.all([dispatch(fetchTours()), dispatch(fetchShortcuts())]);
       } finally {
-        if (mounted) hide(); // hide only after data is loaded
+        if (mounted) hide();
       }
     };
-
     fetchData();
-
     return () => {
       mounted = false;
     };
@@ -81,6 +85,43 @@ export default function ToursDashboardPage() {
 
   const hasTours = (tours?.length ?? 0) > 0;
 
+  // ✅ Priority placement
+  function placeByPriority(list: any[]) {
+    const ordered: any[] = [];
+    const nullZero: any[] = [];
+    const leftovers: any[] = [];
+
+    list.forEach((s) => {
+      const p = s.priority ?? 0; // null → 0
+      if (p === 0) {
+        nullZero.push(s); // collect 0/null first
+      } else if (Number.isInteger(p) && p > 0) {
+        ordered[p] = s; // place in slot = priority
+      } else {
+        leftovers.push(s);
+      }
+    });
+
+    // flatten: 0/null first → 1,2,3… in order → leftovers
+    return nullZero.concat(ordered.filter(Boolean)).concat(leftovers);
+  }
+
+  // Section 1: priority 0–3
+  const sectionOne = placeByPriority(
+    shortcuts.filter((s) => {
+      const p = s.priority ?? 0;
+      return p >= 0 && p <= 3;
+    })
+  );
+
+  // Section 2: priority 4–9
+  const sectionTwo = placeByPriority(
+    shortcuts.filter((s) => {
+      const p = s.priority ?? 0;
+      return p >= 4 && p <= 9;
+    })
+  );
+
   return (
     <div className="space-y-12">
       {/* ===== Hero ===== */}
@@ -103,13 +144,12 @@ export default function ToursDashboardPage() {
           {/* Nav status pill */}
           <div className="flex items-center gap-3 rounded-xl bg-white/15 p-3 text-white backdrop-blur">
             <span
-              className={`grid h-9 w-9 place-items-center rounded-full shadow ${
-                nav.status === "running"
-                  ? "bg-emerald-500"
-                  : nav.status === "paused"
+              className={`grid h-9 w-9 place-items-center rounded-full shadow ${nav.status === "running"
+                ? "bg-emerald-500"
+                : nav.status === "paused"
                   ? "bg-amber-500"
                   : "bg-slate-400"
-              }`}
+                }`}
             >
               {nav.status === "running" ? (
                 <PlayCircle className="h-5 w-5" />
@@ -153,6 +193,43 @@ export default function ToursDashboardPage() {
         />
       </div>
 
+      {/* ===== Shortcuts by Priority ===== */}
+      <div className="mt-16 space-y-10">
+        {globalLoading ? (
+          <div className="text-center text-sm text-muted-foreground">
+            Loading shortcuts...
+          </div>
+        ) : (
+          <>
+            {sectionOne.length > 0 && (
+              <section className="space-y-8">
+                <div className="flex items-center justify-center space-x-4">
+                  <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent dark:via-indigo-500" />
+                  <h2 className="bg-gradient-to-r from-indigo-500 to-sky-500 dark:from-indigo-300 dark:to-sky-400 bg-clip-text text-transparent text-2xl font-extrabold tracking-wide">
+                    Main Categories
+                  </h2>
+                  <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent dark:via-indigo-500" />
+                </div>
+                <ShortcutGrid shortcuts={sectionOne} />
+              </section>
+            )}
+
+            {sectionTwo.length > 0 && (
+              <section className="space-y-8">
+                <div className="flex items-center justify-center space-x-4">
+                  <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent dark:via-pink-500" />
+                  <h2 className="bg-gradient-to-r from-pink-500 to-fuchsia-500 dark:from-pink-300 dark:to-fuchsia-400 bg-clip-text text-transparent text-2xl font-extrabold tracking-wide">
+                    More Options
+                  </h2>
+                  <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent dark:via-pink-500" />
+                </div>
+                <ShortcutGrid shortcuts={sectionTwo} />
+              </section>
+            )}
+          </>
+        )}
+      </div>
+
       {/* ===== Tours grid ===== */}
       {hasTours && (
         <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
@@ -185,20 +262,15 @@ export default function ToursDashboardPage() {
                   {tour.content?.brief && (
                     <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
                       {(tour?.content?.brief || "")
-                        // remove styles/scripts/comments (optional but handy)
                         .replace(/<style[\s\S]*?<\/style>/gi, "")
                         .replace(/<script[\s\S]*?<\/script>/gi, "")
                         .replace(/<!--[\s\S]*?-->/g, "")
-                        // strip all tags
                         .replace(/<[^>]+>/g, "")
-                        // decode non-breaking spaces (&nbsp; / &#160; and the Unicode NBSP)
                         .replace(/&nbsp;|&#160;/gi, " ")
                         .replace(/\u00A0/g, " ")
-                        // drop zero-width junk
                         .replace(/[\u200B-\u200D\uFEFF]/g, "")
-                        // collapse whitespace and trim
                         .replace(/\s+/g, " ")
-                        .trim() || null}{" "}
+                        .trim() || null}
                     </p>
                   )}
                 </div>
@@ -268,6 +340,48 @@ export default function ToursDashboardPage() {
           <p className="text-sm text-muted-foreground">No Tours Available</p>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------- Reusable Shortcuts Grid ---------- */
+function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
+  const gradients = [
+    "from-indigo-400 to-sky-400",
+    "from-emerald-400 to-teal-400",
+    "from-pink-400 to-rose-400",
+    "from-amber-400 to-orange-400",
+    "from-fuchsia-400 to-violet-400",
+    "from-cyan-400 to-blue-400",
+  ];
+
+  return (
+    <div className="flex flex-wrap justify-center gap-8">
+      {shortcuts.map((item, idx) => {
+        const gradient = gradients[idx % gradients.length];
+        return (
+          <div key={item._id} className="flex flex-col items-center text-center">
+            <div
+              className={`h-20 w-20 rounded-full flex items-center justify-center 
+                          bg-gradient-to-br ${gradient} text-white shadow-md
+                          hover:scale-105 transition-transform`}
+            >
+              {item.icon?.secure_url ? (
+                <img
+                  src={item.icon.secure_url}
+                  alt={item.title}
+                  className="h-12 w-12 object-contain"
+                />
+              ) : (
+                <ImageIcon className="h-8 w-8" />
+              )}
+            </div>
+            <span className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+              {item.title}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
