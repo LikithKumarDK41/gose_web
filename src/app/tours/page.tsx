@@ -28,7 +28,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
-import { fetchTours, selectTours } from "@/lib/store/slices/touristSlice";
+import { fetchTourById, fetchTours, selectTours } from "@/lib/store/slices/touristSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 
@@ -301,7 +301,8 @@ export default function ToursPage() {
                     {/* buttons */}
                     <div className="grid grid-cols-2 gap-2">
                       <Button asChild variant="secondary">
-                        <Link href={`/tours/detail?id=${tour._id}`}>
+                        <Link href={`/tours/detail?id=${tour._id}`}
+                        onMouseEnter={() => dispatch(fetchTourById(tour._id))}>
                           Details
                         </Link>
                       </Button>

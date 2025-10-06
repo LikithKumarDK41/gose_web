@@ -1,55 +1,82 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import MapboxTourMap from '@/components/map/MapboxTourMap';
-import NavLink from '@/components/nav/NavLink';
-import { useAppSelector } from '@/lib/store/hook';
-import { selectTourById } from '@/lib/store/slices/toursSlice';
-import TimelineRight from '@/components/tour/TimelineRight';
-import { Compass, Footprints, Tags } from 'lucide-react';
-import { useLocale } from '@/providers/LocaleProvider';
+import React, { useEffect, useMemo, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import MapboxTourMap from "@/components/map/MapboxTourMap";
+import NavLink from "@/components/nav/NavLink";
+import TimelineRight from "@/components/tour/TimelineRight";
+import { Compass, Footprints, Tags } from "lucide-react";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
+import {
+  fetchTourById,
+  makeSelectTourPreferringDetail,
+} from "@/lib/store/slices/touristSlice";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
 
 export default function TourDetailsClientPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const router = useRouter();
   const sp = useSearchParams();
-  const id = sp.get('id') ?? '';
+  const id = sp.get("id") ?? "";
+  const userId = useAppSelector((s) => (s as any)?.auth_user?.user?._id); // TODO: replace with your real selector
+  const dispatch = useAppDispatch();
+  const { show, hide } = useGlobalLoader();
+  // Keep a single selector instance for this component's lifetime.
+  const selectById = useMemo(() => makeSelectTourPreferringDetail(), []);
+  const tour = useAppSelector((state) => selectById(state, id));
 
-  const selector = useMemo(() => selectTourById(id), [id]);
-  const tour = useAppSelector(selector);
-
-  // Only redirect if there's no id at all (e.g. direct /tours/detail without ?id)
+  // If no id, route back to the list.
   useEffect(() => {
-    if (!id) router.replace('/tours'); // list page
+    if (!id) router.replace("/tours");
   }, [id, router]);
 
-  // Smooth scroll to timeline without triggering a Next.js soft navigation
-  const onJumpTimeline = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    const el = document.getElementById('timeline');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      // update the hash without navigation/remount
-      history.replaceState(null, '', '#timeline');
-    }
-  };
+  // Fetch only when we don't already have the item.
+  useEffect(() => {
+    if (!id) return;
 
-  if (!id || !tour) {
+    show(); // Show loader globally (from LoaderProvider)
+
+    const thunk = dispatch(fetchTourById(id));
+
+    thunk
+      .unwrap()
+      .catch((err: any) => {
+        if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+        console.error("fetchTourById failed", err);
+      })
+      .finally(() => {
+        setTimeout(() => hide(), 500); // wait 2 seconds before hiding loader
+      });
+    return () => thunk.abort();
+  }, [id, locale, dispatch, show, hide]);
+
+  // Smooth scroll to timeline without soft navigation.
+  const onJumpTimeline = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      const el = document.getElementById("timeline");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        history.replaceState(null, "", "#timeline");
+      }
+    },
+    []
+  );
+
+  // Loading / missing states
+  if (!id || !tour?._id) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="text-sm text-muted-foreground">{t('tourDetails.loading')}</div>
+        <div className="text-sm text-muted-foreground">
+          {t("tourDetails.loading")}
+        </div>
       </div>
     );
   }
 
-  const tags = tour.tags ?? [];
-  const difficulty =
-    tags.includes(t('tourDetails.easy')) ? t('tourDetails.easy') :
-      tags.includes(t('tourDetails.moderate')) ? t('tourDetails.moderate') :
-        t('tourDetails.casual');
-
+  // ======= RENDER =======
   return (
     <div className="space-y-8">
       {/* ===== Details header + facts & actions ===== */}
@@ -82,23 +109,24 @@ export default function TourDetailsClientPage() {
             {tour.title}
           </h1>
 
-          {tour.description && (
+          {tour.content && tour.content.brief && (
             <p className="mt-1 text-sm text-gray-700/85 dark:text-white/90">
-              {tour.description}
+              {(tour?.content?.brief || "")
+                // remove styles/scripts/comments (optional but handy)
+                .replace(/<style[\s\S]*?<\/style>/gi, "")
+                .replace(/<script[\s\S]*?<\/script>/gi, "")
+                .replace(/<!--[\s\S]*?-->/g, "")
+                // strip all tags
+                .replace(/<[^>]+>/g, "")
+                // decode non-breaking spaces (&nbsp; / &#160; and the Unicode NBSP)
+                .replace(/&nbsp;|&#160;/gi, " ")
+                .replace(/\u00A0/g, " ")
+                // drop zero-width junk
+                .replace(/[\u200B-\u200D\uFEFF]/g, "")
+                // collapse whitespace and trim
+                .replace(/\s+/g, " ")
+                .trim() || null}{" "}
             </p>
-          )}
-
-          {!!tour.tags?.length && (
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {tour.tags.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-white/30 bg-white/90 px-2 py-1 text-[11px] font-medium text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:border-white/10 dark:bg-black/60 dark:text-white/90"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
           )}
 
           {/* quick facts */}
@@ -108,8 +136,10 @@ export default function TourDetailsClientPage() {
                 <Compass className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <div className="text-xs text-muted-foreground">{t('tourDetails.stops')}</div>
-                <div className="text-sm font-medium">{tour.places.length}</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("tourDetails.stops")}
+                </div>
+                {/* <div className="text-sm font-medium">{tour.places?.length ?? 0}</div> */}
               </div>
             </div>
 
@@ -118,8 +148,10 @@ export default function TourDetailsClientPage() {
                 <Footprints className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <div className="text-xs text-muted-foreground">{t('tourDetails.suggestedPace')}</div>
-                <div className="text-sm font-medium">{difficulty}</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("tourDetails.suggestedPace")}
+                </div>
+                {/* <div className="text-sm font-medium">{difficulty}</div> */}
               </div>
             </div>
 
@@ -128,8 +160,10 @@ export default function TourDetailsClientPage() {
                 <Tags className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <div className="text-xs text-muted-foreground">{t('tourDetails.tags')}</div>
-                <div className="text-sm font-medium">{tags.length || '—'}</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("tourDetails.tags")}
+                </div>
+                {/* <div className="text-sm font-medium">{tags.length || '—'}</div> */}
               </div>
             </div>
           </section>
@@ -137,13 +171,15 @@ export default function TourDetailsClientPage() {
           {/* actions */}
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Button size="lg" asChild>
-              <NavLink href={`/tours/detail/navigation?id=${encodeURIComponent(id)}`}>
-                {t('tourDetails.startNavigation')}
+              <NavLink
+                href={`/tours/detail/navigation?id=${encodeURIComponent(id)}`}
+              >
+                {t("tourDetails.startNavigation")}
               </NavLink>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <a href="#timeline" onClick={onJumpTimeline}>
-                {t('tourDetails.jumpToTimeline')}
+                {t("tourDetails.jumpToTimeline")}
               </a>
             </Button>
           </div>
@@ -152,14 +188,14 @@ export default function TourDetailsClientPage() {
 
       {/* ===== Map ===== */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">{t('tourDetails.map')}</h2>
-        <MapboxTourMap places={tour.places} profile="walking" />
+        <h2 className="text-lg font-semibold">{t("tourDetails.map")}</h2>
+        {/* <MapboxTourMap places={tour.places} profile="walking" /> */}
       </section>
 
       {/* ===== Timeline ===== */}
       <section id="timeline" className="space-y-4">
-        <h2 className="text-lg font-semibold">{t('tourDetails.timeline')}</h2>
-        <TimelineRight places={tour.places} />
+        <h2 className="text-lg font-semibold">{t("tourDetails.timeline")}</h2>
+        {/* <TimelineRight places={tour.places} /> */}
       </section>
     </div>
   );
