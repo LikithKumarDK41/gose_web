@@ -16,14 +16,13 @@ import {
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 
 export default function TourDetailsClientPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const router = useRouter();
   const sp = useSearchParams();
   const id = sp.get("id") ?? "";
   const userId = useAppSelector((s) => (s as any)?.auth_user?.user?._id); // TODO: replace with your real selector
   const dispatch = useAppDispatch();
   const { show, hide } = useGlobalLoader();
-
   // Keep a single selector instance for this component's lifetime.
   const selectById = useMemo(() => makeSelectTourPreferringDetail(), []);
   const tour = useAppSelector((state) => selectById(state, id));
@@ -35,24 +34,23 @@ export default function TourDetailsClientPage() {
 
   // Fetch only when we don't already have the item.
   useEffect(() => {
-    if (!id) return; // nothing to fetch yet
-    if (tour?._id === id) return; // already have the right tour
+    if (!id) return;
 
-    show();
-    const thunk = dispatch(fetchTourById(id)); // RTK thunk with .abort()
+    show(); // Show loader globally (from LoaderProvider)
+
+    const thunk = dispatch(fetchTourById(id));
 
     thunk
       .unwrap()
       .catch((err: any) => {
-        // Swallow intentional cancels from fetch/axios/RTK
         if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
         console.error("fetchTourById failed", err);
       })
-      .finally(() => hide());
-
-    // cancel in cleanup (unmount, id change, Strict Mode dev re-run)
+      .finally(() => {
+        setTimeout(() => hide(), 500); // wait 2 seconds before hiding loader
+      });
     return () => thunk.abort();
-  }, [id, tour?._id, dispatch, show, hide]);
+  }, [id, locale, dispatch, show, hide]);
 
   // Smooth scroll to timeline without soft navigation.
   const onJumpTimeline = useCallback(
@@ -157,7 +155,6 @@ export default function TourDetailsClientPage() {
               </div>
             </div>
 
-          
             <div className="flex items-center gap-3 rounded-lg bg-white/80 p-3 ring-1 ring-black/10 backdrop-blur dark:bg-black/40 dark:ring-white/10">
               <div className="grid h-9 w-9 place-items-center rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-300">
                 <Tags className="h-5 w-5" />

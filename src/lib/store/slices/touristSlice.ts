@@ -63,18 +63,30 @@ export const fetchTours = createAsyncThunk<
 });
 
 export const fetchTourById = createAsyncThunk<
-  Tour, // success payload
-  string, // arg (id)
-  { rejectValue: string } // rejected payload
+  Tour,
+  string,
+  { rejectValue: string }
 >("tourist/fetchTourById", async (id, { rejectWithValue, signal }) => {
   try {
-    // Make sure this is typed so `data.tour` is `Tour`
-    const { data } = await api.get<{ tour: Tour }>(`/v1/tours/${id}`, {
-      signal,
-    });
-    return data.tour; // <- returns Tour
+    const locale =
+      typeof window !== "undefined"
+        ? localStorage.getItem("site_locale") || "ja"
+        : "ja";
+
+    const { data } = await api.get<{ tour: Tour }>(
+      `/v1/tours/${id}?lang=${locale}`, // add locale to URL
+      {
+        signal,
+        headers: {
+          "Accept-Language": locale, // server will localize
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      }
+    );
+
+    return data.tour;
   } catch (err: any) {
-    // Type rejectWithValue so the union is known
     return rejectWithValue(
       err?.response?.data?.message ?? "Failed to load tour"
     );
