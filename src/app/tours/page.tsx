@@ -28,7 +28,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
-import { fetchTourById, fetchTours, selectTours } from "@/lib/store/slices/touristSlice";
+import {
+  fetchTourById,
+  fetchTours,
+  selectTours,
+} from "@/lib/store/slices/touristSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 
@@ -39,7 +43,6 @@ export default function ToursPage() {
   const hasTours = (tours?.length ?? 0) > 0;
 
   /* ---------- tags ---------- */
- 
 
   /* ---------- filters/sort/pagination ---------- */
   const [query, setQuery] = useState("");
@@ -147,9 +150,7 @@ export default function ToursPage() {
       <Card className="border bg-card/70 backdrop-blur">
         <CardContent className="p-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="hidden lg:block md:hidden sm:hidden">
-
-            </div>
+            <div className="hidden lg:block md:hidden sm:hidden"></div>
             <div>
               <Label
                 htmlFor="q"
@@ -168,7 +169,7 @@ export default function ToursPage() {
                 />
               </div>
             </div>
-            
+
             <div className="hidden lg:block md:hidden sm:hidden">
               <Label className="mb-1 block text-xs text-muted-foreground">
                 {t("tours.perPage")}
@@ -209,9 +210,8 @@ export default function ToursPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>            
+            </div>
           </div>
-
 
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div>
@@ -256,6 +256,12 @@ export default function ToursPage() {
                   key={idx}
                   className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm"
                 >
+                  {/* Featured */}
+                  {tour.featured && (
+                    <div className="absolute right-3 top-3 z-10 rounded-full bg-yellow-400/90 px-3 py-1 text-xs font-semibold text-yellow-900 backdrop-blur-sm shadow-md">
+                      Featured
+                    </div>
+                  )}
                   {/* media */}
                   <div className="relative h-48 w-full overflow-hidden">
                     {tour.image?.secure_url ? (
@@ -301,8 +307,10 @@ export default function ToursPage() {
                     {/* buttons */}
                     <div className="grid grid-cols-2 gap-2">
                       <Button asChild variant="secondary">
-                        <Link href={`/tours/detail?id=${tour._id}`}
-                        onMouseEnter={() => dispatch(fetchTourById(tour._id))}>
+                        <Link
+                          href={`/tours/detail?id=${tour._id}`}
+                          onMouseEnter={() => dispatch(fetchTourById(tour._id))}
+                        >
                           Details
                         </Link>
                       </Button>
