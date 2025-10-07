@@ -13,6 +13,7 @@ import {
   Compass,
   MapPinned,
   TrendingUp,
+  Star,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -144,12 +145,13 @@ export default function ToursDashboardPage() {
           {/* Nav status pill */}
           <div className="flex items-center gap-3 rounded-xl bg-white/15 p-3 text-white backdrop-blur">
             <span
-              className={`grid h-9 w-9 place-items-center rounded-full shadow ${nav.status === "running"
-                ? "bg-emerald-500"
-                : nav.status === "paused"
+              className={`grid h-9 w-9 place-items-center rounded-full shadow ${
+                nav.status === "running"
+                  ? "bg-emerald-500"
+                  : nav.status === "paused"
                   ? "bg-amber-500"
                   : "bg-slate-400"
-                }`}
+              }`}
             >
               {nav.status === "running" ? (
                 <PlayCircle className="h-5 w-5" />
@@ -238,14 +240,22 @@ export default function ToursDashboardPage() {
               key={tour._id}
               className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm"
             >
+              {/* Featured */}
+              {tour.featured && (
+                <div className="absolute right-3 top-3 z-10 rounded-full bg-yellow-400/90 px-3 py-1 text-xs font-semibold text-yellow-900 backdrop-blur-sm shadow-md">
+                  Featured
+                </div>
+              )}
               {/* media */}
               <div className="relative h-48 w-full overflow-hidden">
                 {tour.image?.secure_url ? (
-                  <img
-                    src={tour.image.secure_url}
-                    alt={tour.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
+                  <>
+                    <img
+                      src={tour.image.secure_url}
+                      alt={tour.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                  </>
                 ) : (
                   <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
                     <ImageIcon className="h-8 w-8" />
@@ -360,7 +370,10 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
       {shortcuts.map((item, idx) => {
         const gradient = gradients[idx % gradients.length];
         return (
-          <div key={item._id} className="flex flex-col items-center text-center">
+          <div
+            key={item._id}
+            className="flex flex-col items-center text-center"
+          >
             <div
               className={`h-20 w-20 rounded-full flex items-center justify-center 
                           bg-gradient-to-br ${gradient} text-white shadow-md
