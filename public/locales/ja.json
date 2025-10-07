@@ -16,7 +16,8 @@
     },
     "home": "ホーム",
     "tours": "ツアー一覧",
-    "myList": "マイリスト"
+    "myList": "マイリスト",
+    "logout": "ログアウト"
   },
   "kpi": {
     "totalTours": "ツアー合計",
@@ -46,7 +47,11 @@
   "actions": {
     "map": "マップ",
     "details": "詳細",
-    "chooseTour": "開始するツアーを下から選んでください。"
+    "chooseTour": "開始するツアーを下から選んでください。",
+    "navigate": "ナビゲート",
+    "show_more": "もっと見る",
+    "explore_now": "今すぐ探索",
+    "featured": "注目"
   },
   "overview": {
     "title": "アクティビティ概要",
@@ -173,5 +178,13 @@
   "stop": "スポット",
   "mylist-stops": "スポット",
   "Stops relative to this page’s busiest tour": "このページで最も停車数の多いツアーに対するスポット数",
-  "Browse tours": "ツアーを探す"
+  "Browse tours": "ツアーを探す",
+  "featured_highlight": "注目のハイライト",
+  "total_tours": "ツアー合計",
+  "total_stops": "停止合計",
+  "avg_stops": "平均停止数",
+  "main_categories": "主なカテゴリー",
+  "more_options": "その他のオプション",
+  "no_tours_available": "利用可能なツアーはありません",
+  "loading_shortcuts": "ショートカットを読み込み中..."
 }

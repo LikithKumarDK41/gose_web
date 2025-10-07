@@ -16,7 +16,8 @@
     },
     "home": "Home",
     "tours": "Tour List",
-    "myList": "My List"
+    "myList": "My List",
+    "logout": "Logout"
   },
   "kpi": {
     "totalTours": "Total Tours",
@@ -46,7 +47,11 @@
   "actions": {
     "map": "Map",
     "details": "Details",
-    "chooseTour": "Choose a tour below to start."
+    "chooseTour": "Choose a tour below to start.",
+    "navigate": "Navigate",
+    "show_more": "Show More",
+    "explore_now": "Explore Now",
+    "featured": "Featured"
   },
   "overview": {
     "title": "Activity Overview",
@@ -173,5 +178,13 @@
   "stop": "stop",
   "mylist-stops": "stops",
   "Stops relative to this page’s busiest tour": "Stops relative to this page’s busiest tour",
-  "Browse tours": "Browse tours"
+  "Browse tours": "Browse tours",
+  "featured_highlight": "Featured Highlight",
+  "total_tours": "Total Tours",
+  "total_stops": "Total Stops",
+  "avg_stops": "Avg Stops",
+  "main_categories": "Main Categories",
+  "more_options": "More Options",
+  "no_tours_available": "No tours available",
+  "loading_shortcuts": "Loading shortcuts..."
 }

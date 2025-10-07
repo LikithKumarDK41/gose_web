@@ -177,19 +177,19 @@ export default function ToursDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Kpi
           icon={<Compass className="h-5 w-5" />}
-          label="Total Tours"
+          label={t("total_tours")}
           value={metrics.totalTours}
           gradient="from-indigo-500 to-blue-500"
         />
         <Kpi
           icon={<MapPinned className="h-5 w-5" />}
-          label="Total Stops"
+          label={t("total_stops")}
           value={metrics.totalStops}
           gradient="from-emerald-500 to-lime-500"
         />
         <Kpi
           icon={<TrendingUp className="h-5 w-5" />}
-          label="Avg Stops"
+          label={t("avg_stops")}
           value={metrics.avgStops}
           gradient="from-fuchsia-500 to-pink-500"
         />
@@ -199,7 +199,7 @@ export default function ToursDashboardPage() {
       <div className="mt-16 space-y-10">
         {globalLoading ? (
           <div className="text-center text-sm text-muted-foreground">
-            Loading shortcuts...
+            {t("loading_shortcuts")}
           </div>
         ) : (
           <>
@@ -208,7 +208,7 @@ export default function ToursDashboardPage() {
                 <div className="flex items-center justify-center space-x-4">
                   <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent dark:via-indigo-500" />
                   <h2 className="bg-gradient-to-r from-indigo-500 to-sky-500 dark:from-indigo-300 dark:to-sky-400 bg-clip-text text-transparent text-2xl font-extrabold tracking-wide">
-                    Main Categories
+                    {t("main_categories")}
                   </h2>
                   <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent dark:via-indigo-500" />
                 </div>
@@ -221,7 +221,7 @@ export default function ToursDashboardPage() {
                 <div className="flex items-center justify-center space-x-4">
                   <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent dark:via-pink-500" />
                   <h2 className="bg-gradient-to-r from-pink-500 to-fuchsia-500 dark:from-pink-300 dark:to-fuchsia-400 bg-clip-text text-transparent text-2xl font-extrabold tracking-wide">
-                    More Options
+                  {t("more_options")}
                   </h2>
                   <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent dark:via-pink-500" />
                 </div>
@@ -243,7 +243,7 @@ export default function ToursDashboardPage() {
               {/* Featured */}
               {tour.featured && (
                 <div className="absolute right-3 top-3 z-10 rounded-full bg-yellow-400/90 px-3 py-1 text-xs font-semibold text-yellow-900 backdrop-blur-sm shadow-md">
-                  Featured
+                {t("actions.featured")}
                 </div>
               )}
               {/* media */}
@@ -288,7 +288,9 @@ export default function ToursDashboardPage() {
                 {/* buttons */}
                 <div className="grid grid-cols-2 gap-2">
                   <Button asChild variant="secondary">
-                    <Link href={`/tours/detail?id=${tour._id}`}>Details</Link>
+                    <Link href={`/tours/detail?id=${tour._id}`}>
+                      {t("actions.details")}
+                    </Link>
                   </Button>
                   <Button
                     asChild
@@ -296,7 +298,7 @@ export default function ToursDashboardPage() {
                   >
                     <Link href={`/tours/detail/navigation?id=${tour._id}`}>
                       <Navigation className="mr-1 h-4 w-4" />
-                      Navigate
+                        {t("actions.navigate")}
                     </Link>
                   </Button>
                 </div>
@@ -309,7 +311,7 @@ export default function ToursDashboardPage() {
       {tours.length > 6 && (
         <div className="mt-6 flex justify-center">
           <Button asChild className="rounded-full">
-            <Link href="/tours">Show More</Link>
+            <Link href="/tours">{t("actions.show_more")}</Link>
           </Button>
         </div>
       )}
@@ -317,7 +319,7 @@ export default function ToursDashboardPage() {
       {/* ===== Featured Highlight ===== */}
       {tours.find((t) => t.featured) && (
         <div className="rounded-2xl border bg-gradient-to-r from-sky-500/10 to-indigo-500/10 p-8 shadow-lg">
-          <h2 className="mb-4 text-xl font-semibold">Featured Highlight</h2>
+          <h2 className="mb-4 text-xl font-semibold">{t("featured_highlight")}</h2>
           {(() => {
             const ft = tours.find((t) => t.featured);
             if (!ft) return null;
@@ -336,7 +338,7 @@ export default function ToursDashboardPage() {
                     </p>
                   )}
                   <Button asChild size="sm" className="mt-3">
-                    <Link href={`/tours/detail?id=${ft._id}`}>Explore Now</Link>
+                    <Link href={`/tours/detail?id=${ft._id}`}>{t("actions.explore_now")}</Link>
                   </Button>
                 </div>
               </div>
@@ -347,7 +349,7 @@ export default function ToursDashboardPage() {
 
       {!hasTours && (
         <div className="rounded-xl border p-10 text-center">
-          <p className="text-sm text-muted-foreground">No Tours Available</p>
+          <p className="text-sm text-muted-foreground">{t("no_tours_available")}</p>
         </div>
       )}
     </div>

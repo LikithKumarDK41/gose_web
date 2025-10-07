@@ -220,7 +220,7 @@ export default function ToursPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7"
+              className="h-7 cursor-pointer"
               onClick={() => {
                 setQuery("");
                 setTag("all");
@@ -259,7 +259,7 @@ export default function ToursPage() {
                   {/* Featured */}
                   {tour.featured && (
                     <div className="absolute right-3 top-3 z-10 rounded-full bg-yellow-400/90 px-3 py-1 text-xs font-semibold text-yellow-900 backdrop-blur-sm shadow-md">
-                      Featured
+                      {t("actions.featured")}
                     </div>
                   )}
                   {/* media */}
@@ -311,7 +311,7 @@ export default function ToursPage() {
                           href={`/tours/detail?id=${tour._id}`}
                           onMouseEnter={() => dispatch(fetchTourById(tour._id))}
                         >
-                          Details
+                        {t("actions.details")}
                         </Link>
                       </Button>
                       <Button
@@ -320,7 +320,7 @@ export default function ToursPage() {
                       >
                         <Link href={`/tours/detail/navigation?id=${tour._id}`}>
                           <Navigation className="mr-1 h-4 w-4" />
-                          Navigate
+                          {t("actions.details")}
                         </Link>
                       </Button>
                     </div>
@@ -339,7 +339,7 @@ export default function ToursPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8"
+                className="h-8 cursor-pointer"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={current <= 1}
               >
@@ -360,7 +360,7 @@ export default function ToursPage() {
                       key={n}
                       onClick={() => setPage(n)}
                       className={[
-                        "h-8 min-w-8 rounded-md px-2 text-sm",
+                        "cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm",
                         n === current
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted",
@@ -374,7 +374,7 @@ export default function ToursPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8"
+                className="h-8 cursor-pointer"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={current >= totalPages}
               >
