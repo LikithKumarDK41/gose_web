@@ -111,7 +111,7 @@ export default function TourDetailsClientPage() {
 
           {tour.content && tour.content.brief && (
             <p className="mt-1 text-sm text-gray-700/85 dark:text-white/90">
-              {(tour?.content?.brief || "")
+              {(tour?.content?.extended ? tour.content.extended : tour?.content?.brief ? tour.content.brief : "")
                 // remove styles/scripts/comments (optional but handy)
                 .replace(/<style[\s\S]*?<\/style>/gi, "")
                 .replace(/<script[\s\S]*?<\/script>/gi, "")
