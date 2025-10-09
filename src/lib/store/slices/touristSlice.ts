@@ -5,6 +5,20 @@ import { RootState } from "../index";
 import { createSelector } from "@reduxjs/toolkit";
 
 /* === Types === */
+export interface TourPoint {
+  _id: string;
+  name?: string;
+  waypointtype?: "start" | "place" | "end";
+  traveltype?: { name?: string };
+  monument?: {
+    name?: string;
+    title?: string;
+    image?: { secure_url?: string };
+    content?: { brief?: string };
+    location?: any;
+  };
+}
+
 export interface Tour {
   _id: string;
   title: string;
@@ -28,6 +42,7 @@ export interface Tour {
   };
   places?: { id: string }[];
   featured?: boolean;
+  tourpoints?: TourPoint[];
 }
 
 interface TouristState {
@@ -93,6 +108,36 @@ export const fetchTourById = createAsyncThunk<
   }
 });
 
+export const fetchTourPoints = createAsyncThunk<
+  { tourId: string; points: TourPoint[] },
+  string,
+  { rejectValue: string }
+>("tourist/fetchTourPoints", async (tourId, { rejectWithValue }) => {
+  try {
+    const { data } = await api.get<{ tourpoints: { results: TourPoint[] } }>(
+      `/v1/tourpoints?filter=${encodeURIComponent(JSON.stringify({ tour: tourId }))}`
+    );
+
+    // Sort and normalize
+    const results = data.tourpoints?.results ?? [];
+    const order: Record<"start" | "place" | "end", number> = {
+      start: 1,
+      place: 2,
+      end: 3,
+    };
+
+    const sorted = results.sort((a, b) => {
+      const getOrder = (type?: "start" | "place" | "end"): number =>
+        type ? order[type] : 99; // fallback for undefined
+      return getOrder(a.waypointtype) - getOrder(b.waypointtype);
+    });
+
+    return { tourId, points: sorted };
+  } catch (err: any) {
+    return rejectWithValue(err?.response?.data?.message ?? "Failed to load tourpoints");
+  }
+});
+
 /* === Slice === */
 const touristSlice = createSlice({
   name: "tourist",
@@ -130,6 +175,29 @@ const touristSlice = createSlice({
     builder.addCase(fetchTourById.rejected, (s, { payload }) => {
       s.loading = false;
       s.error = payload || "Failed to load tour";
+    });
+    builder.addCase(fetchTourPoints.pending, (s) => {
+      s.loading = true;
+      s.error = null;
+    });
+
+    builder.addCase(fetchTourPoints.fulfilled, (s, { payload }) => {
+      s.loading = false;
+      const { tourId, points } = payload;
+
+      // Update detail if it's the same tour
+      if (s.detail && s.detail._id === tourId) {
+        s.detail.tourpoints = points;
+      }
+
+      // Also update the cached list version
+      const i = s.list.findIndex((t) => t._id === tourId);
+      if (i !== -1) s.list[i].tourpoints = points;
+    });
+
+    builder.addCase(fetchTourPoints.rejected, (s, { payload }) => {
+      s.loading = false;
+      s.error = payload || "Failed to load tourpoints";
     });
   },
 });
