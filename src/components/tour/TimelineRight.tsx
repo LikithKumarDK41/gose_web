@@ -26,15 +26,16 @@ import {
 } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
 
-type Mode = "walk" | "drive" | "cycle" | "transit" | "other";
+export type TravelMode = "walk" | "drive" | "cycle" | "transit" | "other";
 type PlaceCompat = Place & {
+  name?: string; 
   tags?: string[];
   address?: string;
   visitDurationMin?: number;
   highlights?: string[];
   tips?: string;
   travelFromPrev?: {
-    mode?: Mode;
+    mode?: TravelMode;
     distanceMeters?: number;
     durationMin?: number;
   };
@@ -55,7 +56,7 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
       <ul className="space-y-12 md:space-y-14">
         {places.map((p, idx) => {
           const label = labelFor(places, idx);
-          const accent = dynamicColor(idx);
+          const accent = dynamicColor(idx, p.kind);
           const tags = p.tags ?? [];
           const leg = p.travelFromPrev;
 
@@ -251,16 +252,23 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
 }
 
 /* ------------------------ helpers ------------------------ */
-
-function dynamicColor(i: number) {
-  const hue = (i * 137.508) % 360;
-  return `hsl(${hue} 70% 46%)`;
+function dynamicColor(i: number, kind?: "start" | "place" | "end") {
+  if (kind === "start") return "hsl(150 70% 40%)";  // 🟢 green
+  if (kind === "end") return "hsl(0 75% 50%)";     // 🔴 red
+  return "hsl(30 90% 50%)";                        // 🟠 orange for middle steps
 }
 
 function labelFor(places: PlaceCompat[], idx: number) {
   const p = places[idx];
-  const isEnd = p.kind === "end" || idx === places.length - 1;
-  return isEnd ? "E" : String(idx + 1);
+  if (!p) return "";
+
+  // Explicit start/end markers: no number
+  if (p.kind === "start") return "";
+  if (p.kind === "end") return "";
+
+  // Otherwise, number *excluding* start point from count
+  const visibleIndex = places.slice(0, idx).filter(x => x.kind !== "start").length;
+  return String(visibleIndex+1);
 }
 
 function fmtMeters(m?: number) {
@@ -277,7 +285,7 @@ function fmtMinutes(min?: number) {
   return mm ? `${h}h ${mm}m` : `${h}h`;
 }
 
-function modeStyles(mode?: Mode) {
+function modeStyles(mode?: TravelMode) {
   switch (mode) {
     case "drive":
       return {
@@ -323,7 +331,7 @@ function modeStyles(mode?: Mode) {
   }
 }
 
-function ModeChip({ mode, t }: { mode?: Mode; t: any }) {
+function ModeChip({ mode, t }: { mode?: TravelMode; t: any }) {
   const s = modeStyles(mode);
   const label = t(`tourDetails.modes.${s.label.toLowerCase()}`, { defaultValue: s.label });
   return (

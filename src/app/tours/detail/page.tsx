@@ -5,13 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import MapboxTourMap from "@/components/map/MapboxTourMap";
 import NavLink from "@/components/nav/NavLink";
-import TimelineRight from "@/components/tour/TimelineRight";
+import TimelineRight, { TravelMode } from "@/components/tour/TimelineRight";
 import { Compass, Footprints, Tags } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
 import {
   fetchTourById,
   makeSelectTourPreferringDetail,
+  fetchTourPoints,
 } from "@/lib/store/slices/touristSlice";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 
@@ -51,6 +52,19 @@ export default function TourDetailsClientPage() {
       });
     return () => thunk.abort();
   }, [id, locale, dispatch, show, hide]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    // Only fetch points if not already loaded
+    if (tour && !tour.tourpoints?.length) {
+      dispatch(fetchTourPoints(id))
+        .unwrap()
+        .catch((err) => {
+          console.error("fetchTourPoints failed:", err);
+        });
+    }
+  }, [id, tour, dispatch]);
 
   // Smooth scroll to timeline without soft navigation.
   const onJumpTimeline = useCallback(
@@ -111,7 +125,12 @@ export default function TourDetailsClientPage() {
 
           {tour.content && tour.content.brief && (
             <p className="mt-1 text-sm text-gray-700/85 dark:text-white/90">
-              {(tour?.content?.extended ? tour.content.extended : tour?.content?.brief ? tour.content.brief : "")
+              {(tour?.content?.extended
+                ? tour.content.extended
+                : tour?.content?.brief
+                ? tour.content.brief
+                : ""
+              )
                 // remove styles/scripts/comments (optional but handy)
                 .replace(/<style[\s\S]*?<\/style>/gi, "")
                 .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -195,7 +214,58 @@ export default function TourDetailsClientPage() {
       {/* ===== Timeline ===== */}
       <section id="timeline" className="space-y-4">
         <h2 className="text-lg font-semibold">{t("tourDetails.timeline")}</h2>
-        {/* <TimelineRight places={tour.places} /> */}
+        {tour?.tourpoints?.length ? (
+          <TimelineRight
+            places={tour.tourpoints.map((p) => {
+              // Import TravelMode from the correct location
+              // import { TravelMode } from "@/components/tour/TimelineRight";
+              // If TravelMode is an enum, map string to enum value
+              let travelMode: TravelMode = "walk";
+              if (
+                p.traveltype?.name &&
+                typeof p.traveltype?.name === "string"
+              ) {
+                // If TravelMode is an enum, use TravelMode[p.traveltype.name] or a mapping function
+                travelMode = p.traveltype.name as TravelMode;
+              }
+              return {
+                id: p._id,
+                name: p.monument?.name ?? p.name ?? "", // ✅ always string
+                address: p.monument?.title ?? "",
+                image: p.monument?.image?.secure_url ?? "",
+                blurb:
+                  p.monument?.content?.brief
+                    ?.replace(/<[^>]+>/g, "")
+                    ?.replace(/<style[\s\S]*?<\/style>/gi, "")
+                    ?.replace(/<script[\s\S]*?<\/script>/gi, "")
+                    ?.replace(/<!--[\s\S]*?-->/g, "")
+                    ?.replace(/<[^>]+>/g, "")
+                    ?.replace(/&nbsp;|&#160;/gi, " ")
+                    ?.replace(/\u00A0/g, " ")
+                    ?.replace(/[\u200B-\u200D\uFEFF]/g, "")
+                    ?.replace(/\s+/g, " ")
+                    ?.trim() ?? "",
+                location: p.monument?.location ?? null,
+                lat:
+                  p.monument?.location?.lat ??
+                  p.monument?.location?.latitude ??
+                  null,
+                lng:
+                  p.monument?.location?.lng ??
+                  p.monument?.location?.longitude ??
+                  null,
+                kind: p.waypointtype ?? "place",
+                travelFromPrev: {
+                  mode: travelMode,
+                },
+              };
+            })}
+          />
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            {t("tourDetails.noTourPoints")}
+          </div>
+        )}
       </section>
     </div>
   );
