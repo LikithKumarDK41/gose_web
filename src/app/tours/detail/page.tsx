@@ -33,12 +33,12 @@ export default function TourDetailsClientPage() {
     if (!id) router.replace("/tours");
   }, [id, router]);
 
-  // Fetch only when we don't already have the item.
   useEffect(() => {
     if (!id) return;
 
     show(); // Show loader globally (from LoaderProvider)
 
+    // Fetch tour data only if not already loaded
     const thunk = dispatch(fetchTourById(id));
 
     thunk
@@ -48,10 +48,11 @@ export default function TourDetailsClientPage() {
         console.error("fetchTourById failed", err);
       })
       .finally(() => {
-        setTimeout(() => hide(), 500); // wait 2 seconds before hiding loader
+        setTimeout(() => hide(), 500); // wait 500ms before hiding loader
       });
+
     return () => thunk.abort();
-  }, [id, locale, dispatch, show, hide]);
+  }, [id, locale, dispatch, show, hide]);  // Adding `locale` ensures the effect is triggered when locale changes
 
   useEffect(() => {
     if (!id) return;
@@ -128,8 +129,8 @@ export default function TourDetailsClientPage() {
               {(tour?.content?.extended
                 ? tour.content.extended
                 : tour?.content?.brief
-                ? tour.content.brief
-                : ""
+                  ? tour.content.brief
+                  : ""
               )
                 // remove styles/scripts/comments (optional but handy)
                 .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -149,7 +150,7 @@ export default function TourDetailsClientPage() {
           )}
 
           {/* quick facts */}
-          <section className="mx-auto mt-5 grid max-w-3xl gap-3 sm:grid-cols-3">
+          <section className="flex items-center justify-center gap-4 pt-5 sm:gap-6">
             <div className="flex items-center gap-3 rounded-lg bg-white/80 p-3 ring-1 ring-black/10 backdrop-blur dark:bg-black/40 dark:ring-white/10">
               <div className="grid h-9 w-9 place-items-center rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">
                 <Compass className="h-5 w-5" />
@@ -158,11 +159,11 @@ export default function TourDetailsClientPage() {
                 <div className="text-xs text-muted-foreground">
                   {t("tourDetails.stops")}
                 </div>
-                {/* <div className="text-sm font-medium">{tour.places?.length ?? 0}</div> */}
+                <div className="text-sm font-medium">{tour.tourpoints?.length ?? 0}</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-lg bg-white/80 p-3 ring-1 ring-black/10 backdrop-blur dark:bg-black/40 dark:ring-white/10">
+            {/* <div className="flex items-center gap-3 rounded-lg bg-white/80 p-3 ring-1 ring-black/10 backdrop-blur dark:bg-black/40 dark:ring-white/10">
               <div className="grid h-9 w-9 place-items-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
                 <Footprints className="h-5 w-5" />
               </div>
@@ -170,11 +171,11 @@ export default function TourDetailsClientPage() {
                 <div className="text-xs text-muted-foreground">
                   {t("tourDetails.suggestedPace")}
                 </div>
-                {/* <div className="text-sm font-medium">{difficulty}</div> */}
+                <div className="text-sm font-medium">{difficulty}</div>
               </div>
-            </div>
+            </div> */}
 
-            <div className="flex items-center gap-3 rounded-lg bg-white/80 p-3 ring-1 ring-black/10 backdrop-blur dark:bg-black/40 dark:ring-white/10">
+            {/* <div className="flex items-center gap-3 rounded-lg bg-white/80 p-3 ring-1 ring-black/10 backdrop-blur dark:bg-black/40 dark:ring-white/10">
               <div className="grid h-9 w-9 place-items-center rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-300">
                 <Tags className="h-5 w-5" />
               </div>
@@ -182,9 +183,9 @@ export default function TourDetailsClientPage() {
                 <div className="text-xs text-muted-foreground">
                   {t("tourDetails.tags")}
                 </div>
-                {/* <div className="text-sm font-medium">{tags.length || '—'}</div> */}
+                <div className="text-sm font-medium">{tags.length || '—'}</div>
               </div>
-            </div>
+            </div> */}
           </section>
 
           {/* actions */}

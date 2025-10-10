@@ -144,7 +144,8 @@
       "drive": "車",
       "cycle": "自転車",
       "transit": "公共交通",
-      "transfer": "移動"
+      "transfer": "移動",
+      "train": "列車"
     },
     "start": "開始",
     "end": "終了",

@@ -144,7 +144,8 @@
       "drive": "Drive",
       "cycle": "Cycle",
       "transit": "Transit",
-      "transfer": "Transfer"
+      "transfer": "Transfer",
+      "train": "Train"
     },
     "start": "Start",
     "end": "End",

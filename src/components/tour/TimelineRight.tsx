@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
 
-export type TravelMode = "walk" | "drive" | "cycle" | "transit" | "other";
+export type TravelMode = "walk" | "drive" | "cycle" | "transit"| "train" | "other" ;
 type PlaceCompat = Place & {
   name?: string; 
   tags?: string[];
@@ -318,6 +318,14 @@ function modeStyles(mode?: TravelMode) {
         text: "text-slate-700 dark:text-slate-300",
         icon: <Train className="h-3.5 w-3.5" />,
         label: "Transfer",
+      };
+    case "train":
+      return {
+        bg: "bg-slate-500/10",
+        ring: "ring-slate-500/30",
+        text: "text-slate-700 dark:text-slate-300",
+        icon: <Train className="h-3.5 w-3.5" />,
+        label: "Train",
       };
     case "walk":
     default:
