@@ -8,7 +8,6 @@ import { FullScreenLoader } from './FullScreenLoader';
 
 const PUBLIC_PATHS = new Set<string>([
   '/signin',         // auth page
-  '/',               // if your landing is public, keep; otherwise remove
 ]);
 
 function isPublicRoute(pathname: string) {

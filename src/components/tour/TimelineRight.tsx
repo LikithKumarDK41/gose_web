@@ -1,7 +1,9 @@
-// src/components/tour/TimelineRight.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch } from "@/lib/store"; // Import AppDispatch type
+import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice"; // Import the new thunk for fetching monument details
 import Image from "next/image";
 import type { Place } from "@/lib/data/tourTypes";
 import { Button } from "@/components/ui/button";
@@ -25,10 +27,82 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
 
-export type TravelMode = "walk" | "drive" | "cycle" | "transit"| "train" | "other" ;
-type PlaceCompat = Place & {
-  name?: string; 
+export type TravelMode =
+  | "walk"
+  | "drive"
+  | "cycle"
+  | "transit"
+  | "train"
+  | "other";
+  
+export interface Monument {
+  _id: string;
+  name: string;
+  title?: string;
+  description?: string;
+  image?: {
+    secure_url?: string;
+    url?: string;
+    resource_type?: string;
+    format?: string;
+    height?: number;
+    width?: number;
+    signature?: string;
+    version?: number;
+    public_id?: string;
+  };
+  gallery?: Array<{
+    public_id?: string;
+    version?: number;
+    signature?: string;
+    width?: number;
+    height?: number;
+    format?: string;
+    resource_type?: string;
+    url?: string;
+    secure_url?: string;
+    _id?: string;
+  }>;
+  location?: { lat?: number; lng?: number } | [number, number];
+  region?: {
+    _id?: string;
+    slug?: string;
+    name?: string;
+    title?: string;
+    location?: [number, number];
+    featuredmonument?: string[];
+    content?: {
+      brief?: string;
+      extended?: string;
+    };
+    state?: string;
+  };
+  popularity?: number;
+  imagecredit?: { en?: string; ja?: string };
+  nearbyservices?: any[];
+  nearbymonuments?: any[];
+  subtheme?: any[];
+  theme?: any[];
+  artemplates?: any[];
+  arenabled?: boolean;
+  avenabled?: boolean;
+  rare?: boolean;
+  featured?: boolean;
+  era?: string;
+  year?: string;
+  size?: string;
+  mtype?: string;
+  access?: string;
+  content?: { brief?: string; extended?: string };
+  state?: string;
+  tourpoint?: boolean;
+  georadius?: number;
+}
+// PlaceCompat type definition with the monument field as Partial<Monument>
+export type PlaceCompat = Place & {
+  name?: string;
   tags?: string[];
   address?: string;
   visitDurationMin?: number;
@@ -39,16 +113,56 @@ type PlaceCompat = Place & {
     distanceMeters?: number;
     durationMin?: number;
   };
+  monument?: Partial<Monument>; // Monument is optional and partially filled
 };
 
 export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
+  const dispatch = useDispatch<AppDispatch>();
   const [openId, setOpenId] = useState<string | null>(null);
-  const active = useMemo(() => places.find((p) => p.id === openId) ?? null, [
-    openId,
-    places,
-  ]);
+  const { show, hide } = useGlobalLoader();
+  const loading = useSelector((state: any) => state.tourist.loading);
+  const active = useMemo(
+    () => places.find((p) => p.id === openId) ?? null,
+    [openId, places]
+  );
   const { t } = useLocale();
 
+  const monumentDetail = useSelector(
+    (state: any) => state.tourist.monumentDetail
+  );
+
+  // Effect to fetch monument details if the place has a monument with tourpoint: true
+ useEffect(() => {
+  // Check if active and the monument _id exist
+  if (!active?.monument?._id) return;
+
+
+  // Fetch monument details only if not already loaded or if the loaded details are different
+  if (!monumentDetail || monumentDetail._id !== active.monument._id) {
+    const thunk = dispatch(fetchMonumentDetails(active.monument._id));
+
+    // Handle any errors that may occur during the fetch
+    thunk
+      .unwrap()
+      .catch((err: any) => {
+        if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+        console.error("fetchMonumentDetails failed", err);
+      })
+
+  }
+
+  return () => {
+    // Abort the fetch if the component unmounts or active monument changes
+  };
+}, [active, dispatch, monumentDetail]);
+
+  const handlePlaceClick = (placeId: string) => {
+    setOpenId(placeId);
+  };
+
+  const isLoading = loading; // Is the monument being loaded
+  const activeMonument = active?.monument;
+  const detailsToShow = monumentDetail || activeMonument;
   return (
     <div className="relative mx-auto w-full max-w-6xl">
       <div className="pointer-events-none absolute left-8 top-0 bottom-0 w-px bg-border/70" />
@@ -61,7 +175,10 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
           const leg = p.travelFromPrev;
 
           return (
-            <li key={p.id} className="grid grid-cols-[64px_1fr] items-start gap-4 sm:gap-6">
+            <li
+              key={p.id}
+              className="grid grid-cols-[64px_1fr] items-start gap-4 sm:gap-6"
+            >
               {idx > 0 && (
                 <div className="col-span-2 -mb-6 -mt-6 pl-[80px] md:-mb-7 md:-mt-7">
                   <LegPill accent={accent} leg={leg} t={t} />
@@ -90,8 +207,8 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                 />
 
                 <button
-                  aria-label={t('tourDetails.openPlace', { name: p.name })}
-                  onClick={() => setOpenId(p.id)}
+                  aria-label={t("tourDetails.openPlace", { name: p.name })}
+                  onClick={() => handlePlaceClick(p.id)} // Update the openId when the button is clicked
                   className="relative h-64 w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border"
                 >
                   {p.image ? (
@@ -115,7 +232,7 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                     <h3
                       className="truncate text-lg font-semibold"
                       title={p.name}
-                      onClick={() => setOpenId(p.id)}
+                      onClick={() => handlePlaceClick(p.id)} // Update the openId when the place is clicked
                       role="button"
                     >
                       {p.name}
@@ -126,7 +243,7 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                       {p.time && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="h-3.5 w-3.5" />
-                          {t('tourDetails.time')}: {p.time}
+                          {t("tourDetails.time")}: {p.time}
                         </div>
                       )}
                     </div>
@@ -140,21 +257,25 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                   )}
 
                   {p.blurb && (
-                    <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{p.blurb}</p>
+                    <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                      {p.blurb}
+                    </p>
                   )}
 
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
                     {p.visitDurationMin != null && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
                         <Clock className="h-3.5 w-3.5" />
-                        {p.visitDurationMin} {t('tourDetails.minOnSite')}
+                        {p.visitDurationMin} {t("tourDetails.minOnSite")}
                       </span>
                     )}
                     {!!p.highlights?.length && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
                         <Sparkles className="h-3.5 w-3.5" />
                         {p.highlights.length}{" "}
-                        {p.highlights.length > 1 ? t('tourDetails.highlightsPlural') : t('tourDetails.highlightsSingular')}
+                        {p.highlights.length > 1
+                          ? t("tourDetails.highlightsPlural")
+                          : t("tourDetails.highlightsSingular")}
                       </span>
                     )}
                   </div>
@@ -178,8 +299,12 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                   )}
 
                   <div className="mt-4">
-                    <Button size="sm" className="rounded-full" onClick={() => setOpenId(p.id)}>
-                      {t('tourDetails.viewDetails')}
+                    <Button
+                      size="sm"
+                      className="rounded-full"
+                      onClick={() => handlePlaceClick(p.id)}
+                    >
+                      {t("tourDetails.viewDetails")}
                     </Button>
                   </div>
                 </div>
@@ -193,21 +318,21 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
       <Dialog open={!!active} onOpenChange={(o) => !o && setOpenId(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{active?.name}</DialogTitle>
+            <DialogTitle>{!isLoading && (detailsToShow?.name ?? active?.name)}</DialogTitle>
             {!!active?.time && (
               <DialogDescription>
-                {t('tourDetails.time')}: {active.time}
+                {t("tourDetails.time")}: {active.time}
               </DialogDescription>
             )}
           </DialogHeader>
 
-          {!!active && (
+          {detailsToShow && !isLoading && (
             <div className="space-y-4">
               <div className="relative h-56 w-full overflow-hidden rounded-md bg-muted">
-                {active.image ? (
+                {detailsToShow.image?.secure_url ? (
                   <Image
-                    src={active.image}
-                    alt={active.name}
+                    src={detailsToShow.image.secure_url}
+                    alt={detailsToShow.name ?? active?.name ?? ''}
                     fill
                     sizes="(max-width: 768px) 100vw, 560px"
                     className="object-cover"
@@ -219,18 +344,40 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                 )}
               </div>
 
-              {active.address && (
+              {active?.address && (
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4" />
                   <span>{active.address}</span>
                 </div>
               )}
 
-              {active.blurb && (
-                <p className="text-sm text-muted-foreground">{active.blurb}</p>
+              {detailsToShow.content?.brief && !isLoading && (
+                <p className="text-sm text-muted-foreground">
+                  {(detailsToShow.content.brief || "")
+                    // remove styles/scripts/comments (optional but handy)
+                    .replace(/<style[\s\S]*?<\/style>/gi, "")
+                    .replace(/<script[\s\S]*?<\/script>/gi, "")
+                    .replace(/<!--[\s\S]*?-->/g, "")
+                    // strip all tags
+                    .replace(/<[^>]+>/g, "")
+                    // decode non-breaking spaces (&nbsp; / &#160; and the Unicode NBSP)
+                    .replace(/&nbsp;|&#160;/gi, " ")
+                    .replace(/\u00A0/g, " ")
+                    // drop zero-width junk
+                    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+                    // collapse whitespace and trim
+                    .replace(/\s+/g, " ")
+                    .trim() || null}{" "}
+                </p>
               )}
 
-              {!!active.highlights?.length && (
+              {active?.blurb && (
+                <p className="text-sm text-muted-foreground">
+                  {active.blurb}
+                </p>
+              )}
+
+              {!!active?.highlights?.length && (
                 <ul className="list-disc pl-5 text-sm text-muted-foreground">
                   {active.highlights.map((h) => (
                     <li key={h}>{h}</li>
@@ -238,11 +385,17 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
                 </ul>
               )}
 
-              {active.tips && (
+              {active?.tips && (
                 <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
                   {active.tips}
                 </div>
               )}
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="flex justify-center items-center p-4">
+              <span>Loading...</span>
             </div>
           )}
         </DialogContent>
@@ -250,12 +403,11 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
     </div>
   );
 }
-
 /* ------------------------ helpers ------------------------ */
 function dynamicColor(i: number, kind?: "start" | "place" | "end") {
-  if (kind === "start") return "hsl(150 70% 40%)";  // 🟢 green
-  if (kind === "end") return "hsl(0 75% 50%)";     // 🔴 red
-  return "hsl(30 90% 50%)";                        // 🟠 orange for middle steps
+  if (kind === "start") return "hsl(150 70% 40%)"; // 🟢 green
+  if (kind === "end") return "hsl(0 75% 50%)"; // 🔴 red
+  return "hsl(30 90% 50%)"; // 🟠 orange for middle steps
 }
 
 function labelFor(places: PlaceCompat[], idx: number) {
@@ -267,8 +419,10 @@ function labelFor(places: PlaceCompat[], idx: number) {
   if (p.kind === "end") return "";
 
   // Otherwise, number *excluding* start point from count
-  const visibleIndex = places.slice(0, idx).filter(x => x.kind !== "start").length;
-  return String(visibleIndex+1);
+  const visibleIndex = places
+    .slice(0, idx)
+    .filter((x) => x.kind !== "start").length;
+  return String(visibleIndex + 1);
 }
 
 function fmtMeters(m?: number) {
@@ -341,7 +495,9 @@ function modeStyles(mode?: TravelMode) {
 
 function ModeChip({ mode, t }: { mode?: TravelMode; t: any }) {
   const s = modeStyles(mode);
-  const label = t(`tourDetails.modes.${s.label.toLowerCase()}`, { defaultValue: s.label });
+  const label = t(`tourDetails.modes.${s.label.toLowerCase()}`, {
+    defaultValue: s.label,
+  });
   return (
     <span
       className={[
@@ -359,13 +515,29 @@ function ModeChip({ mode, t }: { mode?: TravelMode; t: any }) {
   );
 }
 
-function LegPill({ accent, leg, t }: { accent: string; leg?: PlaceCompat["travelFromPrev"]; t: any }) {
+function LegPill({
+  accent,
+  leg,
+  t,
+}: {
+  accent: string;
+  leg?: PlaceCompat["travelFromPrev"];
+  t: any;
+}) {
   const s = modeStyles(leg?.mode);
-  const label = t(`tourDetails.modes.${s.label.toLowerCase()}`, { defaultValue: s.label });
+  const label = t(`tourDetails.modes.${s.label.toLowerCase()}`, {
+    defaultValue: s.label,
+  });
   return (
     <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] shadow bg-card/95 ring-1 ring-border">
       <span
-        className={["inline-flex items-center justify-center rounded-full p-1", s.bg, s.text, s.ring, "ring-1"].join(" ")}
+        className={[
+          "inline-flex items-center justify-center rounded-full p-1",
+          s.bg,
+          s.text,
+          s.ring,
+          "ring-1",
+        ].join(" ")}
         style={{ boxShadow: `0 0 0 2px ${accent}22 inset` }}
         aria-hidden
       >
