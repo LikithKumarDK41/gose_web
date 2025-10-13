@@ -3,7 +3,10 @@
 import { useMemo, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/lib/store"; // Import AppDispatch type
-import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice"; // Import the new thunk for fetching monument details
+import {
+  clearMonumentDetail,
+  fetchMonumentDetails,
+} from "@/lib/store/slices/touristSlice"; // Import the new thunk for fetching monument details
 import Image from "next/image";
 import type { Place } from "@/lib/data/tourTypes";
 import { Button } from "@/components/ui/button";
@@ -36,7 +39,7 @@ export type TravelMode =
   | "transit"
   | "train"
   | "other";
-  
+
 export interface Monument {
   _id: string;
   name: string;
@@ -132,37 +135,58 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
   );
 
   // Effect to fetch monument details if the place has a monument with tourpoint: true
- useEffect(() => {
-  // Check if active and the monument _id exist
-  if (!active?.monument?._id) return;
+  useEffect(() => {
+    // Check if active and the monument _id exist
+    if (!active?.monument?._id) return;
 
+    // Fetch monument details only if not already loaded or if the loaded details are different
+    if (!monumentDetail || monumentDetail._id !== active.monument._id) {
+      const thunk = dispatch(fetchMonumentDetails(active.monument._id));
 
-  // Fetch monument details only if not already loaded or if the loaded details are different
-  if (!monumentDetail || monumentDetail._id !== active.monument._id) {
-    const thunk = dispatch(fetchMonumentDetails(active.monument._id));
-
-    // Handle any errors that may occur during the fetch
-    thunk
-      .unwrap()
-      .catch((err: any) => {
+      // Handle any errors that may occur during the fetch
+      thunk.unwrap().catch((err: any) => {
         if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
         console.error("fetchMonumentDetails failed", err);
-      })
+      });
+    }
 
-  }
+    return () => {
+      // Abort the fetch if the component unmounts or active monument changes
+    };
+  }, [active, dispatch, monumentDetail]);
 
-  return () => {
-    // Abort the fetch if the component unmounts or active monument changes
-  };
-}, [active, dispatch, monumentDetail]);
+  useEffect(() => {
+    if (!active) return;
+
+    if (!active.monument?._id) {
+      // 🧹 Clear old monument detail if switching to a start/end point
+      dispatch(clearMonumentDetail());
+      return;
+    }
+
+    // Fetch monument detail only if needed
+    if (!monumentDetail || monumentDetail._id !== active.monument._id) {
+      const thunk = dispatch(fetchMonumentDetails(active.monument._id));
+      thunk.unwrap().catch((err: any) => {
+        if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+        console.error("fetchMonumentDetails failed", err);
+      });
+    }
+  }, [active, dispatch, monumentDetail]);
 
   const handlePlaceClick = (placeId: string) => {
     setOpenId(placeId);
   };
 
   const isLoading = loading; // Is the monument being loaded
-  const activeMonument = active?.monument;
-  const detailsToShow = monumentDetail || activeMonument;
+  const activeMonumentId = active?.monument?._id;
+
+  // ✅ Only use monumentDetail if it matches the active monument
+  const detailsToShow =
+    activeMonumentId && monumentDetail?._id === activeMonumentId
+      ? monumentDetail
+      : active?.monument || active;
+
   return (
     <div className="relative mx-auto w-full max-w-6xl">
       <div className="pointer-events-none absolute left-8 top-0 bottom-0 w-px bg-border/70" />
@@ -258,7 +282,16 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
 
                   {p.blurb && (
                     <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                      {p.blurb}
+                      {(p.blurb || "")
+                        .replace(/<style[\s\S]*?<\/style>/gi, "")
+                        .replace(/<script[\s\S]*?<\/script>/gi, "")
+                        .replace(/<!--[\s\S]*?-->/g, "")
+                        .replace(/<[^>]+>/g, "")
+                        .replace(/&nbsp;|&#160;/gi, " ")
+                        .replace(/\u00A0/g, " ")
+                        .replace(/[\u200B-\u200D\uFEFF]/g, "")
+                        .replace(/\s+/g, " ")
+                        .trim() || null}
                     </p>
                   )}
 
@@ -316,9 +349,25 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
 
       {/* details dialog */}
       <Dialog open={!!active} onOpenChange={(o) => !o && setOpenId(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent
+          className="
+      max-w-2xl w-full 
+      max-h-[90vh] overflow-y-auto 
+      rounded-xl p-0 sm:p-4 
+      scrollbar-hide 
+      [scrollbar-width:none] 
+      [-ms-overflow-style:none]
+    "
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
           <DialogHeader>
-            <DialogTitle>{!isLoading && (detailsToShow?.name ?? active?.name)}</DialogTitle>
+            <DialogTitle>
+              {!isLoading &&
+                (active?.name ? active?.name : detailsToShow?.name)}
+            </DialogTitle>
             {!!active?.time && (
               <DialogDescription>
                 {t("tourDetails.time")}: {active.time}
@@ -326,13 +375,18 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
             )}
           </DialogHeader>
 
+          {/* Monument Details */}
           {detailsToShow && !isLoading && (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-4">
               <div className="relative h-56 w-full overflow-hidden rounded-md bg-muted">
-                {detailsToShow.image?.secure_url ? (
+                {active?.image || detailsToShow.image?.secure_url ? (
                   <Image
-                    src={detailsToShow.image.secure_url}
-                    alt={detailsToShow.name ?? active?.name ?? ''}
+                    src={
+                      active?.image ||
+                      detailsToShow.image?.secure_url ||
+                      "/placeholder.png"
+                    }
+                    alt={detailsToShow.name ?? active?.name ?? ""}
                     fill
                     sizes="(max-width: 768px) 100vw, 560px"
                     className="object-cover"
@@ -352,33 +406,37 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
               )}
 
               {detailsToShow.content?.brief && !isLoading && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {(detailsToShow.content.brief || "")
-                    // remove styles/scripts/comments (optional but handy)
                     .replace(/<style[\s\S]*?<\/style>/gi, "")
                     .replace(/<script[\s\S]*?<\/script>/gi, "")
                     .replace(/<!--[\s\S]*?-->/g, "")
-                    // strip all tags
                     .replace(/<[^>]+>/g, "")
-                    // decode non-breaking spaces (&nbsp; / &#160; and the Unicode NBSP)
                     .replace(/&nbsp;|&#160;/gi, " ")
                     .replace(/\u00A0/g, " ")
-                    // drop zero-width junk
                     .replace(/[\u200B-\u200D\uFEFF]/g, "")
-                    // collapse whitespace and trim
                     .replace(/\s+/g, " ")
-                    .trim() || null}{" "}
+                    .trim() || null}
                 </p>
               )}
 
               {active?.blurb && (
                 <p className="text-sm text-muted-foreground">
-                  {active.blurb}
+                  {(active.blurb || "")
+                    .replace(/<style[\s\S]*?<\/style>/gi, "")
+                    .replace(/<script[\s\S]*?<\/script>/gi, "")
+                    .replace(/<!--[\s\S]*?-->/g, "")
+                    .replace(/<[^>]+>/g, "")
+                    .replace(/&nbsp;|&#160;/gi, " ")
+                    .replace(/\u00A0/g, " ")
+                    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+                    .replace(/\s+/g, " ")
+                    .trim() || null}
                 </p>
               )}
 
               {!!active?.highlights?.length && (
-                <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                   {active.highlights.map((h) => (
                     <li key={h}>{h}</li>
                   ))}
@@ -388,6 +446,71 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
               {active?.tips && (
                 <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
                   {active.tips}
+                </div>
+              )}
+
+              {/* 🔗 Related Tours Section */}
+              {!!detailsToShow.relatedtours?.length && (
+                <div className="pt-4 border-t border-border">
+                  <h4 className="text-base font-semibold mb-3">
+                    Related Tours
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {detailsToShow.relatedtours.map((tour: any) => (
+                      <div
+                        key={tour._id}
+                        className="group rounded-lg overflow-hidden border bg-card/60 ring-1 ring-border hover:ring-primary/40 hover:shadow-md transition-all"
+                      >
+                        <div className="relative h-36 w-full">
+                          {tour.image?.secure_url ? (
+                            <Image
+                              src={tour.image.secure_url}
+                              alt={tour.title}
+                              fill
+                              sizes="(max-width: 640px) 100vw, 300px"
+                              className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                            />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
+                              <ImageIcon className="h-5 w-5" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="p-3 space-y-1">
+                          <h5 className="text-sm font-medium truncate">
+                            {tour.title}
+                          </h5>
+
+                          {tour.content?.brief && (
+                            <p className="text-xs text-muted-foreground line-clamp-3">
+                              {tour.content.brief
+                                .replace(/<[^>]+>/g, "")
+                                .replace(/&nbsp;|&#160;/gi, " ")
+                                .trim()}
+                            </p>
+                          )}
+
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="mt-2 w-full"
+                            onClick={() => {
+                              if (tour._id) {
+                                window.open(
+                                  `/tours/detail?id=${tour._id}`,
+                                  "_self"
+                                );
+                              }
+                            }}
+                          >
+                            View Tour
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
