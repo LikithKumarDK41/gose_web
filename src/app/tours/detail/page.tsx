@@ -52,7 +52,7 @@ export default function TourDetailsClientPage() {
       });
 
     return () => thunk.abort();
-  }, [id, locale, dispatch, show, hide]);  // Adding `locale` ensures the effect is triggered when locale changes
+  }, [id, locale, dispatch, show, hide]); // Adding `locale` ensures the effect is triggered when locale changes
 
   useEffect(() => {
     if (!id) return;
@@ -129,8 +129,8 @@ export default function TourDetailsClientPage() {
               {(tour?.content?.extended
                 ? tour.content.extended
                 : tour?.content?.brief
-                  ? tour.content.brief
-                  : ""
+                ? tour.content.brief
+                : ""
               )
                 // remove styles/scripts/comments (optional but handy)
                 .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -159,7 +159,9 @@ export default function TourDetailsClientPage() {
                 <div className="text-xs text-muted-foreground">
                   {t("tourDetails.stops")}
                 </div>
-                <div className="text-sm font-medium">{tour.tourpoints?.length ?? 0}</div>
+                <div className="text-sm font-medium">
+                  {tour.tourpoints?.length ?? 0}
+                </div>
               </div>
             </div>
 
@@ -229,35 +231,57 @@ export default function TourDetailsClientPage() {
                 // If TravelMode is an enum, use TravelMode[p.traveltype.name] or a mapping function
                 travelMode = p.traveltype.name as TravelMode;
               }
+              // --- Handle location safely ---
+              const loc = p.monument?.location;
+              const lat = Array.isArray(loc) ? loc[1] ?? 0 : loc?.lat ?? 0;
+              const lng = Array.isArray(loc) ? loc[0] ?? 0 : loc?.lng ?? 0;
               return {
                 id: p._id,
-                name: p.monument?.name ?? p.name ?? "", // ✅ always string
+                name: p.monument?.name ?? p.name ?? "",
                 address: p.monument?.title ?? "",
                 image: p.monument?.image?.secure_url ?? "",
-                blurb:
-                  p.monument?.content?.brief
-                    ?.replace(/<[^>]+>/g, "")
-                    ?.replace(/<style[\s\S]*?<\/style>/gi, "")
-                    ?.replace(/<script[\s\S]*?<\/script>/gi, "")
-                    ?.replace(/<!--[\s\S]*?-->/g, "")
-                    ?.replace(/<[^>]+>/g, "")
-                    ?.replace(/&nbsp;|&#160;/gi, " ")
-                    ?.replace(/\u00A0/g, " ")
-                    ?.replace(/[\u200B-\u200D\uFEFF]/g, "")
-                    ?.replace(/\s+/g, " ")
-                    ?.trim() ?? "",
-                location: p.monument?.location ?? null,
-                lat:
-                  p.monument?.location?.lat ??
-                  p.monument?.location?.latitude ??
-                  null,
-                lng:
-                  p.monument?.location?.lng ??
-                  p.monument?.location?.longitude ??
-                  null,
+                blurb: p.monument?.content?.brief ?? "",
+                location: loc ?? null,
+                lat,
+                lng,
                 kind: p.waypointtype ?? "place",
                 travelFromPrev: {
                   mode: travelMode,
+                },
+                monument: {
+                  _id: p.monument?._id ?? "",
+                  name: p.monument?.name ?? "",
+                  image: p.monument?.image ?? { secure_url: "" },
+                  content: p.monument?.content ?? { brief: "", extended: "" },
+                  era: p.monument?.era ?? "",
+                  size: p.monument?.size ?? "",
+                  year: p.monument?.year ?? "",
+                  gallery: p.monument?.gallery ?? [],
+                  // ✅ normalize location type
+                  location: Array.isArray(p.monument?.location)
+                    ? (p.monument?.location as [number, number])
+                    : [
+                        p.monument?.location?.lng ?? 0,
+                        p.monument?.location?.lat ?? 0,
+                      ],
+                  region: p.monument?.region ?? undefined,
+                  popularity: p.monument?.popularity ?? 0,
+                  imagecredit: p.monument?.imagecredit ?? { en: "", ja: "" },
+                  nearbyservices: p.monument?.nearbyservices ?? [],
+                  nearbymonuments: p.monument?.nearbymonuments ?? [],
+                  subtheme: p.monument?.subtheme ?? [],
+                  theme: p.monument?.theme ?? [],
+                  artemplates: p.monument?.artemplates ?? [],
+                  arenabled: p.monument?.arenabled ?? false,
+                  avenabled: p.monument?.avenabled ?? false,
+                  rare: p.monument?.rare ?? false,
+                  featured: p.monument?.featured ?? false,
+                  mtype: p.monument?.mtype ?? "",
+                  access: p.monument?.access ?? "",
+                  state: p.monument?.state ?? "",
+                  title: p.monument?.title ?? "",
+                  // ✅ simpler & type-safe
+                  georadius: p.monument?.georadius ?? 0,
                 },
               };
             })}

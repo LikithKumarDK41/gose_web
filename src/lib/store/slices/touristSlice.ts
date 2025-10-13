@@ -3,6 +3,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api from "@/lib/api";
 import { RootState } from "../index";
 import { createSelector } from "@reduxjs/toolkit";
+import { Monument } from "@/components/tour/TimelineRight";
 
 /* === Types === */
 export interface TourPoint {
@@ -10,13 +11,7 @@ export interface TourPoint {
   name?: string;
   waypointtype?: "start" | "place" | "end";
   traveltype?: { name?: string };
-  monument?: {
-    name?: string;
-    title?: string;
-    image?: { secure_url?: string };
-    content?: { brief?: string };
-    location?: any;
-  };
+ monument?: Partial<Monument>;
 }
 
 export interface Tour {
@@ -48,6 +43,7 @@ export interface Tour {
 interface TouristState {
   list: Tour[];
   detail: Tour | null;
+  monumentDetail: Monument | null;
   loading: boolean;
   error: string | null;
 }
@@ -55,6 +51,7 @@ interface TouristState {
 const initialState: TouristState = {
   list: [],
   detail: null,
+  monumentDetail: null,
   loading: false,
   error: null,
 };
@@ -138,6 +135,28 @@ export const fetchTourPoints = createAsyncThunk<
   }
 });
 
+export const fetchMonumentDetails = createAsyncThunk<
+  Monument,
+  string, // payload is the monumentId
+  { rejectValue: string }
+>(
+  "tourist/fetchMonumentDetails",
+  async (monument, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<{ monument: Monument }>(
+        "/v2/monument",  // Adjust endpoint to accept POST requests
+        { monument }    // Send the monumentId as the payload
+      );
+      return data.monument; // Return the monument data
+    } catch (err: any) {
+      // Return the error message in case of failure
+      return rejectWithValue(
+        err?.response?.data?.message ?? "Failed to load monument details"
+      );
+    }
+  }
+);
+
 /* === Slice === */
 const touristSlice = createSlice({
   name: "tourist",
@@ -199,6 +218,21 @@ const touristSlice = createSlice({
       s.loading = false;
       s.error = payload || "Failed to load tourpoints";
     });
+
+    // Monument Details
+    builder.addCase(fetchMonumentDetails.pending, (s) => {
+      s.loading = true;
+      s.error = null;
+    });
+
+    builder.addCase(fetchMonumentDetails.rejected, (s, { payload }) => {
+      s.loading = false;
+      s.error = payload || "Failed to load monument details";
+    });
+    builder.addCase(fetchMonumentDetails.fulfilled, (s, { payload }) => {
+      s.loading = false;
+      s.monumentDetail = payload;
+    });
   },
 });
 
@@ -208,6 +242,7 @@ export const { clearTourDetail } = touristSlice.actions;
 export const selectTours = (state: RootState) => state.tourist.list;
 export const selectTourDetail = (state: RootState) => state.tourist.detail;
 export const selectTouristLoading = (state: RootState) => state.tourist.loading;
+export const selectMonumentDetail = (state: RootState) => state.tourist.monumentDetail;
 export const selectTouristError = (state: RootState) => state.tourist.error;
 export const selectTourById = (id: string) => (state: RootState) =>
   state.tourist.list.find((t) => t._id === id) ||
