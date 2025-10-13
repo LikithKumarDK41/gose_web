@@ -122,6 +122,10 @@ export type PlaceCompat = Place & {
 export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
   const dispatch = useDispatch<AppDispatch>();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [activeMonumentData, setActiveMonumentData] = useState<any | null>(
+    null
+  );
+  const [modalLoading, setModalLoading] = useState(false);
   const { show, hide } = useGlobalLoader();
   const loading = useSelector((state: any) => state.tourist.loading);
   const active = useMemo(
@@ -129,10 +133,36 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
     [openId, places]
   );
   const { t } = useLocale();
+  const [modalStack, setModalStack] = useState<
+    { id: string; data?: any; loading: boolean }[]
+  >([]);
 
   const monumentDetail = useSelector(
     (state: any) => state.tourist.monumentDetail
   );
+
+  const handleOpenMonumentModal = async (id: string) => {
+    // Push placeholder (loading)
+    setModalStack((prev) => [...prev, { id, loading: true }]);
+
+    try {
+      const thunk = dispatch(fetchMonumentDetails(id));
+      const data = await thunk.unwrap();
+      setModalStack((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { id, data, loading: false };
+        return updated;
+      });
+    } catch (err) {
+      console.error("Failed to fetch monument", err);
+      setModalStack((prev) => prev.slice(0, -1)); // pop failed
+    }
+  };
+
+  // Close the top-most modal
+  const handleCloseTopModal = () => {
+    setModalStack((prev) => prev.slice(0, -1));
+  };
 
   // Effect to fetch monument details if the place has a monument with tourpoint: true
   useEffect(() => {
@@ -174,10 +204,22 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
     }
   }, [active, dispatch, monumentDetail]);
 
-  const handlePlaceClick = (placeId: string) => {
+  const handlePlaceClick = async (placeId: string) => {
     setOpenId(placeId);
-  };
+    const selected = places.find((p) => p.id === placeId);
+    if (!selected?.monument?._id) return;
 
+    setModalLoading(true);
+    try {
+      const thunk = dispatch(fetchMonumentDetails(selected.monument._id));
+      const data = await thunk.unwrap();
+      setActiveMonumentData(data);
+    } catch (err) {
+      console.error("Failed to fetch monument", err);
+    } finally {
+      setModalLoading(false);
+    }
+  };
   const isLoading = loading; // Is the monument being loaded
   const activeMonumentId = active?.monument?._id;
 
@@ -348,173 +390,235 @@ export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
       </ul>
 
       {/* details dialog */}
-      <Dialog open={!!active} onOpenChange={(o) => !o && setOpenId(null)}>
+      <Dialog
+        open={!!active}
+        onOpenChange={(o) => {
+          if (!o) {
+            setOpenId(null);
+            setActiveMonumentData(null);
+          }
+        }}
+      >
         <DialogContent
           className="
-      max-w-2xl w-full 
-      max-h-[90vh] overflow-y-auto 
-      rounded-xl p-0 sm:p-4 
-      scrollbar-hide 
-      [scrollbar-width:none] 
-      [-ms-overflow-style:none]
-    "
+    w-full max-w--[90vw] lg:max-w-[60vw] 
+    max-h-[90vh] overflow-y-auto
+    rounded-xl p-4 sm:p-4
+    scrollbar-hide
+    [scrollbar-width:none]
+    [-ms-overflow-style:none]
+  "
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
           }}
         >
           <DialogHeader>
-            <DialogTitle>
-              {!isLoading &&
-                (active?.name ? active?.name : detailsToShow?.name)}
-            </DialogTitle>
-            {!!active?.time && (
-              <DialogDescription>
-                {t("tourDetails.time")}: {active.time}
-              </DialogDescription>
-            )}
-          </DialogHeader>
+  <DialogTitle>
+    {modalLoading
+      ? "Loading..."
+      : activeMonumentData?.title ||
+        activeMonumentData?.name ||
+        active?.name ||
+        t("tourDetails.noDetails")}
+  </DialogTitle>
+  {!!active?.time && (
+    <DialogDescription>
+      {t("tourDetails.time")}: {active.time}
+    </DialogDescription>
+  )}
+</DialogHeader>
 
-          {/* Monument Details */}
-          {detailsToShow && !isLoading && (
-            <div className="space-y-4 pb-4">
-              <div className="relative h-56 w-full overflow-hidden rounded-md bg-muted">
-                {active?.image || detailsToShow.image?.secure_url ? (
+         {/* Monument or Place Details */}
+{modalLoading ? (
+  <div className="flex justify-center items-center p-6 text-muted-foreground">
+    
+  </div>
+) : activeMonumentData ? (
+  /* ✅ Show fetched monument data */
+  <div className="space-y-4 mb-2">
+    <div className="relative h-56 w-full overflow-hidden rounded-md bg-muted">
+      {activeMonumentData.image?.secure_url ? (
+        <Image
+          src={activeMonumentData.image.secure_url}
+          alt={activeMonumentData.name || ""}
+          fill
+          sizes="(max-width: 768px) 100vw, 560px"
+          className="object-cover"
+        />
+      ) : (
+        <div className="grid h-full w-full place-items-center text-muted-foreground">
+          <ImageIcon className="h-6 w-6" />
+        </div>
+      )}
+    </div>
+
+    {activeMonumentData.content?.brief && (
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {(activeMonumentData.content.brief || "")
+          .replace(/<[^>]+>/g, "")
+          .replace(/&nbsp;|&#160;/gi, " ")
+          .trim()}
+      </p>
+    )}
+
+    {!!activeMonumentData.relatedtours?.length && (
+  <div className="pt-6 border-t border-border">
+    <h4 className="text-base font-semibold mb-3">Related Tours</h4>
+
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {activeMonumentData.relatedtours.map((tour: any) => (
+        <div
+          key={tour._id}
+          className="group rounded-lg overflow-hidden border bg-card/60 ring-1 ring-border hover:ring-primary/40 hover:shadow-md transition-all"
+        >
+          <div className="relative h-36 w-full">
+            {tour.image?.secure_url ? (
+              <Image
+                src={tour.image.secure_url}
+                alt={tour.title}
+                fill
+                sizes="(max-width: 640px) 100vw, 300px"
+                className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+              />
+            ) : (
+              <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
+                <ImageIcon className="h-5 w-5" />
+              </div>
+            )}
+          </div>
+
+          <div className="p-3 space-y-1">
+            <h5 className="text-sm font-medium truncate">{tour.title}</h5>
+
+            {tour.content?.brief && (
+              <p className="text-xs text-muted-foreground line-clamp-3">
+                {tour.content.brief
+                  .replace(/<[^>]+>/g, "")
+                  .replace(/&nbsp;|&#160;/gi, " ")
+                  .trim()}
+              </p>
+            )}
+
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-2 w-full"
+              onClick={() => {
+                if (tour._id) {
+                  window.open(`/tours/detail?id=${tour._id}`, "_self");
+                }
+              }}
+            >
+              View Tour
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+    {/* Nearby Monuments */}
+    {!!activeMonumentData.nearbymonuments?.length && (
+      <div className="pt-6 border-t border-border">
+        <h4 className="text-base font-semibold mb-3">
+          Nearby Monuments
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {activeMonumentData.nearbymonuments.map((monument: any) => (
+            <div
+              key={monument._id}
+              className="group rounded-lg overflow-hidden border bg-card/60 ring-1 ring-border hover:ring-primary/40 hover:shadow-md transition-all"
+            >
+              <div className="relative h-36 w-full">
+                {monument.image?.secure_url ? (
                   <Image
-                    src={
-                      active?.image ||
-                      detailsToShow.image?.secure_url ||
-                      "/placeholder.png"
-                    }
-                    alt={detailsToShow.name ?? active?.name ?? ""}
+                    src={monument.image.secure_url}
+                    alt={monument.title}
                     fill
-                    sizes="(max-width: 768px) 100vw, 560px"
-                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, 300px"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                   />
                 ) : (
-                  <div className="grid h-full w-full place-items-center text-muted-foreground">
-                    <ImageIcon className="h-6 w-6" />
+                  <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
+                    <ImageIcon className="h-5 w-5" />
                   </div>
                 )}
               </div>
 
-              {active?.address && (
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  <span>{active.address}</span>
-                </div>
-              )}
+              <div className="p-3 space-y-1">
+                <h5 className="text-sm font-medium truncate">
+                  {monument.title}
+                </h5>
 
-              {detailsToShow.content?.brief && !isLoading && (
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {(detailsToShow.content.brief || "")
-                    .replace(/<style[\s\S]*?<\/style>/gi, "")
-                    .replace(/<script[\s\S]*?<\/script>/gi, "")
-                    .replace(/<!--[\s\S]*?-->/g, "")
-                    .replace(/<[^>]+>/g, "")
-                    .replace(/&nbsp;|&#160;/gi, " ")
-                    .replace(/\u00A0/g, " ")
-                    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-                    .replace(/\s+/g, " ")
-                    .trim() || null}
-                </p>
-              )}
+                {monument.content?.brief && (
+                  <p className="text-xs text-muted-foreground line-clamp-3">
+                    {monument.content.brief
+                      .replace(/<[^>]+>/g, "")
+                      .replace(/&nbsp;|&#160;/gi, " ")
+                      .trim()}
+                  </p>
+                )}
 
-              {active?.blurb && (
-                <p className="text-sm text-muted-foreground">
-                  {(active.blurb || "")
-                    .replace(/<style[\s\S]*?<\/style>/gi, "")
-                    .replace(/<script[\s\S]*?<\/script>/gi, "")
-                    .replace(/<!--[\s\S]*?-->/g, "")
-                    .replace(/<[^>]+>/g, "")
-                    .replace(/&nbsp;|&#160;/gi, " ")
-                    .replace(/\u00A0/g, " ")
-                    .replace(/[\u200B-\u200D\uFEFF]/g, "")
-                    .replace(/\s+/g, " ")
-                    .trim() || null}
-                </p>
-              )}
-
-              {!!active?.highlights?.length && (
-                <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                  {active.highlights.map((h) => (
-                    <li key={h}>{h}</li>
-                  ))}
-                </ul>
-              )}
-
-              {active?.tips && (
-                <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                  {active.tips}
-                </div>
-              )}
-
-              {/* 🔗 Related Tours Section */}
-              {!!detailsToShow.relatedtours?.length && (
-                <div className="pt-4 border-t border-border">
-                  <h4 className="text-base font-semibold mb-3">
-                    Related Tours
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {detailsToShow.relatedtours.map((tour: any) => (
-                      <div
-                        key={tour._id}
-                        className="group rounded-lg overflow-hidden border bg-card/60 ring-1 ring-border hover:ring-primary/40 hover:shadow-md transition-all"
-                      >
-                        <div className="relative h-36 w-full">
-                          {tour.image?.secure_url ? (
-                            <Image
-                              src={tour.image.secure_url}
-                              alt={tour.title}
-                              fill
-                              sizes="(max-width: 640px) 100vw, 300px"
-                              className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
-                            />
-                          ) : (
-                            <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
-                              <ImageIcon className="h-5 w-5" />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="p-3 space-y-1">
-                          <h5 className="text-sm font-medium truncate">
-                            {tour.title}
-                          </h5>
-
-                          {tour.content?.brief && (
-                            <p className="text-xs text-muted-foreground line-clamp-3">
-                              {tour.content.brief
-                                .replace(/<[^>]+>/g, "")
-                                .replace(/&nbsp;|&#160;/gi, " ")
-                                .trim()}
-                            </p>
-                          )}
-
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="mt-2 w-full"
-                            onClick={() => {
-                              if (tour._id) {
-                                window.open(
-                                  `/tours/detail?id=${tour._id}`,
-                                  "_self"
-                                );
-                              }
-                            }}
-                          >
-                            View Tour
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={async () => {
+                    if (!monument._id) return;
+                    setModalLoading(true);
+                    try {
+                      const thunk = dispatch(
+                        fetchMonumentDetails(monument._id)
+                      );
+                      const data = await thunk.unwrap();
+                      setActiveMonumentData(data);
+                    } catch (err) {
+                      console.error("Failed to fetch monument", err);
+                    } finally {
+                      setModalLoading(false);
+                    }
+                  }}
+                >
+                  View Monument
+                </Button>
+              </div>
             </div>
-          )}
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+) : (
+  /* ✅ Fallback when there’s no monument (show place details) */
+  <div className="space-y-4 mb-2">
+    <div className="relative h-56 w-full overflow-hidden rounded-md bg-muted">
+      {active?.image ? (
+        <Image
+          src={active.image}
+          alt={active.name || ""}
+          fill
+          sizes="(max-width: 768px) 100vw, 560px"
+          className="object-cover"
+        />
+      ) : (
+        <div className="grid h-full w-full place-items-center text-muted-foreground">
+          <ImageIcon className="h-6 w-6" />
+        </div>
+      )}
+    </div>
+
+    {active?.blurb && (
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {(active.blurb || "")
+          .replace(/<[^>]+>/g, "")
+          .replace(/&nbsp;|&#160;/gi, " ")
+          .trim()}
+      </p>
+    )}
+  </div>
+)}
 
           {isLoading && (
             <div className="flex justify-center items-center p-4">
