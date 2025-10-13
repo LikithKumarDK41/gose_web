@@ -211,8 +211,32 @@ export default function TourDetailsClientPage() {
       {/* ===== Map ===== */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">{t("tourDetails.map")}</h2>
+
         {tour.tourpoints?.length ? (
-          <MapboxTourMap tour={tour} profile="walking" />
+          <React.Suspense
+            fallback={
+              <div className="relative w-full h-[420px] rounded-lg border overflow-hidden bg-gray-100 dark:bg-gray-800 animate-pulse">
+                {/* skeleton gradient shimmer */}
+                <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 animate-[shimmer_1.5s_infinite]" />
+                <style jsx>{`
+            @keyframes shimmer {
+              0% {
+                background-position: -1000px 0;
+              }
+              100% {
+                background-position: 1000px 0;
+              }
+            }
+          `}</style>
+                <div className="absolute bottom-3 left-3 flex gap-3">
+                  <div className="h-5 w-20 rounded bg-gray-300/60 dark:bg-gray-600/50" />
+                  <div className="h-5 w-28 rounded bg-gray-300/60 dark:bg-gray-600/50" />
+                </div>
+              </div>
+            }
+          >
+            <MapboxTourMap tour={tour} profile="walking" />
+          </React.Suspense>
         ) : (
           <p className="text-sm text-gray-500">{t("tourDetails.noTourPoints")}</p>
         )}

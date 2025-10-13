@@ -65,23 +65,23 @@ function makeNumberedFlag(label: string, color = "#f97316") {
   wrapper.style.width = "48px";
   wrapper.style.height = "60px";
   wrapper.innerHTML = `
-    <svg viewBox="0 0 48 60" xmlns="http://www.w3.org/2000/svg">
-      <!-- Pole -->
-      <path d="M10 6v48" stroke="${color}" stroke-width="4.5" stroke-linecap="round"/>
-      <!-- Flag -->
-      <path d="M10 6h26l-6.5 10 6.5 10H10z" fill="${color}" stroke="white" stroke-width="1.5"/>
-      <!-- Number circle -->
-      <circle cx="31" cy="11" r="8.5" fill="white" stroke="${color}" stroke-width="2.5"/>
-      <text 
-        x="31" 
-        y="12" 
-        text-anchor="middle" 
-        font-size="12" 
-        font-weight="800" 
-        fill="${color}" 
-        dominant-baseline="middle"
-      >${label}</text>
-    </svg>`;
+      <svg viewBox="0 0 48 60" xmlns="http://www.w3.org/2000/svg">
+        <!-- Pole -->
+        <path d="M10 6v48" stroke="${color}" stroke-width="4.5" stroke-linecap="round"/>
+        <!-- Flag -->
+        <path d="M10 6h26l-6.5 10 6.5 10H10z" fill="${color}" stroke="white" stroke-width="1.5"/>
+        <!-- Number circle -->
+        <circle cx="31" cy="11" r="8.5" fill="white" stroke="${color}" stroke-width="2.5"/>
+        <text 
+          x="31" 
+          y="12" 
+          text-anchor="middle" 
+          font-size="12" 
+          font-weight="800" 
+          fill="${color}" 
+          dominant-baseline="middle"
+        >${label}</text>
+      </svg>`;
   return wrapper;
 }
 
@@ -99,8 +99,9 @@ export default function MapboxTourMap({
   const [error, setError] = useState<string | null>(null);
   const [showImage, setShowImage] = useState(false);
 
+  /* -------------------- Initialize Map -------------------- */
   useEffect(() => {
-    let cleanup = () => {};
+    let cleanup = () => { };
 
     (async () => {
       const mapboxglMod = await import("mapbox-gl");
@@ -158,10 +159,26 @@ export default function MapboxTourMap({
       mapRef.current = map;
 
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
+
+      // Force labels on initial load
       map.on("style.load", () => {
-        const lang = new MapboxLanguage({ defaultLanguage: locale });
+        const lang = new MapboxLanguage({
+          defaultLanguage: locale === "ja" ? "ja" : "en",
+        });
         map.addControl(lang);
+
+        const layers = map.getStyle().layers;
+        layers?.forEach((layer) => {
+          if (layer.type === "symbol" && layer.layout && "text-field" in layer.layout) {
+            map.setLayoutProperty(
+              layer.id,
+              "text-field",
+              ["get", locale === "ja" ? "name_ja" : "name_en"]
+            );
+          }
+        });
       });
+
       map.on("load", () => {
         setLoading(false);
         setTimeout(() => map.resize(), 500);
@@ -179,33 +196,29 @@ export default function MapboxTourMap({
             ?.slice(0, 250) ?? "";
 
         const popupHTML = `
-          <div style="min-width:260px; max-width:340px; font-family:Arial, sans-serif; color:#222; line-height:1.5;">
-            <div style="font-size:17px; font-weight:700; margin-bottom:2px; color:${color};">
-              ${p.name || "Unnamed Stop"}
-            </div>
-            ${
-              p.time
-                ? `<div style="font-size:13px; color:#555; margin-top:4px;">🕒 <b>${p.time}</b></div>`
-                : ""
-            }
-            ${
-              p.blurb
-                ? `<div style="font-size:13px; margin-top:6px;">${p.blurb}</div>`
-                : ""
-            }
-            ${
-              extendedClean
-                ? `<div style="font-size:12px; margin-top:6px; color:#555;">${extendedClean}...</div>`
-                : ""
-            }
-            ${
-              p.image
-                ? `<img src="${p.image}" alt="${p.name}" 
-                     style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover;
-                            box-shadow:0 2px 6px rgba(0,0,0,0.15);" />`
-                : ""
-            }
-          </div>`;
+            <div style="min-width:260px; max-width:340px; font-family:Arial, sans-serif; color:#222; line-height:1.5;">
+              <div style="font-size:17px; font-weight:700; margin-bottom:2px; color:${color};">
+                ${p.name || "Unnamed Stop"}
+              </div>
+              ${p.time
+            ? `<div style="font-size:13px; color:#555; margin-top:4px;">🕒 <b>${p.time}</b></div>`
+            : ""
+          }
+              ${p.blurb
+            ? `<div style="font-size:13px; margin-top:6px;">${p.blurb}</div>`
+            : ""
+          }
+              ${extendedClean
+            ? `<div style="font-size:12px; margin-top:6px; color:#555;">${extendedClean}...</div>`
+            : ""
+          }
+              ${p.image
+            ? `<img src="${p.image}" alt="${p.name}" 
+                      style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover;
+                              box-shadow:0 2px 6px rgba(0,0,0,0.15);" />`
+            : ""
+          }
+            </div>`;
 
         const popup = new mapboxgl.Popup({
           offset: 28,
@@ -281,8 +294,26 @@ export default function MapboxTourMap({
     })().catch((e) => setError(String(e)));
 
     return () => cleanup();
-  }, [tour, profile, locale]);
+  }, [tour, profile]); // <-- locale removed here
 
+  /* -------------------- React to locale change dynamically -------------------- */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const layers = map.getStyle().layers;
+    layers?.forEach((layer) => {
+      if (layer.type === "symbol" && layer.layout && "text-field" in layer.layout) {
+        map.setLayoutProperty(
+          layer.id,
+          "text-field",
+          ["get", locale === "ja" ? "name_ja" : "name_en"]
+        );
+      }
+    });
+  }, [locale]);
+
+  /* -------------------- Render -------------------- */
   return (
     <div
       className="relative w-full overflow-hidden rounded-lg border bg-gray-50 dark:bg-gray-900"
