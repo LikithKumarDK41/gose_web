@@ -126,7 +126,7 @@ export default function ToursDashboardPage() {
   return (
     <div className="space-y-12">
       {/* ===== Hero ===== */}
-      <div className="relative overflow-hidden rounded-2xl border">
+      {/* <div className="relative overflow-hidden rounded-2xl border">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 opacity-90 dark:opacity-80" />
         <div className="relative flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
@@ -142,7 +142,6 @@ export default function ToursDashboardPage() {
             </p>
           </div>
 
-          {/* Nav status pill */}
           <div className="flex items-center gap-3 rounded-xl bg-white/15 p-3 text-white backdrop-blur">
             <span
               className={`grid h-9 w-9 place-items-center rounded-full shadow ${
@@ -171,10 +170,10 @@ export default function ToursDashboardPage() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* ===== Global KPIs ===== */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Kpi
           icon={<Compass className="h-5 w-5" />}
           label={t("total_tours")}
@@ -193,10 +192,10 @@ export default function ToursDashboardPage() {
           value={metrics.avgStops}
           gradient="from-fuchsia-500 to-pink-500"
         />
-      </div>
+      </div> */}
 
       {/* ===== Shortcuts by Priority ===== */}
-      <div className="mt-16 space-y-10">
+      <div className="space-y-10">
         {globalLoading ? (
           <div className="text-center text-sm text-muted-foreground">
             {t("loading_shortcuts")}

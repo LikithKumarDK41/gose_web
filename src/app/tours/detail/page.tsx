@@ -129,8 +129,8 @@ export default function TourDetailsClientPage() {
               {(tour?.content?.extended
                 ? tour.content.extended
                 : tour?.content?.brief
-                ? tour.content.brief
-                : ""
+                  ? tour.content.brief
+                  : ""
               )
                 // remove styles/scripts/comments (optional but handy)
                 .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -211,7 +211,11 @@ export default function TourDetailsClientPage() {
       {/* ===== Map ===== */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">{t("tourDetails.map")}</h2>
-        {/* <MapboxTourMap places={tour.places} profile="walking" /> */}
+        {tour.tourpoints?.length ? (
+          <MapboxTourMap tour={tour} profile="walking" />
+        ) : (
+          <p className="text-sm text-gray-500">{t("tourDetails.noTourPoints")}</p>
+        )}
       </section>
 
       {/* ===== Timeline ===== */}
@@ -261,9 +265,9 @@ export default function TourDetailsClientPage() {
                   location: Array.isArray(p.monument?.location)
                     ? (p.monument?.location as [number, number])
                     : [
-                        p.monument?.location?.lng ?? 0,
-                        p.monument?.location?.lat ?? 0,
-                      ],
+                      p.monument?.location?.lng ?? 0,
+                      p.monument?.location?.lat ?? 0,
+                    ],
                   region: p.monument?.region ?? undefined,
                   popularity: p.monument?.popularity ?? 0,
                   imagecredit: p.monument?.imagecredit ?? { en: "", ja: "" },
