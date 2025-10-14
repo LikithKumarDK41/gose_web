@@ -165,6 +165,9 @@ const touristSlice = createSlice({
     clearTourDetail(state) {
       state.detail = null;
     },
+    clearMonumentDetail(state) {
+    state.monumentDetail = null;
+  },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchTours.pending, (s) => {
@@ -236,7 +239,7 @@ const touristSlice = createSlice({
   },
 });
 
-export const { clearTourDetail } = touristSlice.actions;
+export const { clearTourDetail, clearMonumentDetail } = touristSlice.actions;
 
 /* === Selectors === */
 export const selectTours = (state: RootState) => state.tourist.list;
