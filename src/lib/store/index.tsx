@@ -16,6 +16,11 @@ export const store = configureStore({
     tourist: touristReducer,
     global: globalReducer,
   },
+  // (optional) enable Redux DevTools and serializable checks
+  middleware: (getDefault) =>
+    getDefault({
+      serializableCheck: false,
+    }),
 });
 
 export type AppStore = typeof store;

@@ -1,5 +1,6 @@
+// src/lib/store/slices/geofenceSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { RootState } from '..';
+import type { RootState, AppDispatch } from '..';
 
 export type Checkin = {
     id: string;
@@ -14,36 +15,36 @@ export type Checkin = {
 };
 
 type GeofenceState = {
-    /** placeId -> checked once already */
+    /** placeId -> already checked once */
     checked: Record<string, boolean>;
-    /** pending popups—toasts read from here */
+    /** pending check-in popups */
     queue: Checkin[];
 };
 
-const initial: GeofenceState = {
+const initialState: GeofenceState = {
     checked: {},
     queue: [],
 };
 
 const geofenceSlice = createSlice({
     name: 'geofence',
-    initialState: initial,
+    initialState,
     reducers: {
         markChecked(state, action: PayloadAction<string>) {
             state.checked[action.payload] = true;
         },
         enqueue(state, action: PayloadAction<Checkin>) {
-            // avoid duplicates
-            if (!state.queue.some(q => q.id === action.payload.id)) {
+            const exists = state.queue.some((q) => q.id === action.payload.id);
+            if (!exists && !state.checked[action.payload.id]) {
                 state.queue.push(action.payload);
             }
         },
         dismiss(state, action: PayloadAction<string>) {
-            state.queue = state.queue.filter(q => q.id !== action.payload);
+            state.queue = state.queue.filter((q) => q.id !== action.payload);
         },
         confirm(state, action: PayloadAction<string>) {
-            // app can handle confirmation side-effects elsewhere if needed
-            state.queue = state.queue.filter(q => q.id !== action.payload);
+            state.queue = state.queue.filter((q) => q.id !== action.payload);
+            state.checked[action.payload] = true;
         },
         resetAll(state) {
             state.checked = {};
@@ -52,9 +53,20 @@ const geofenceSlice = createSlice({
     },
 });
 
-export const { markChecked, enqueue, dismiss, confirm, resetAll } = geofenceSlice.actions;
+export const { markChecked, enqueue, dismiss, confirm, resetAll } =
+    geofenceSlice.actions;
 export default geofenceSlice.reducer;
 
-// selectors
+// ---------- Selectors ----------
 export const selectGeofenceQueue = (s: RootState) => s.geofence.queue;
 export const selectGeofenceChecked = (s: RootState) => s.geofence.checked;
+
+// ---------- Helper Thunk ----------
+export const enqueueGeofenceIfNew =
+    (checkin: Checkin) => (dispatch: AppDispatch, getState: () => RootState) => {
+        const checked = selectGeofenceChecked(getState());
+        const queue = selectGeofenceQueue(getState());
+        if (!checked[checkin.id] && !queue.some((q) => q.id === checkin.id)) {
+            dispatch(enqueue(checkin));
+        }
+    };
