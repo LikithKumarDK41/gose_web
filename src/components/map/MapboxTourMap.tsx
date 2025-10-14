@@ -54,34 +54,30 @@ type Props = {
 
 /* -------------------- helpers -------------------- */
 function dynamicColor(kind?: "start" | "place" | "end") {
-  if (kind === "start") return "hsl(150 70% 40%)"; // 🟢 green
-  if (kind === "end") return "hsl(0 75% 50%)"; // 🔴 red
-  return "hsl(30 90% 50%)"; // 🟠 orange for middle
+  if (kind === "start") return "hsl(150 70% 40%)"; // green
+  if (kind === "end") return "hsl(0 75% 50%)"; // red
+  return "hsl(30 90% 50%)"; // orange
 }
 
-/** 🏁 Flag marker with large number */
 function makeNumberedFlag(label: string, color = "#f97316") {
   const wrapper = document.createElement("div");
   wrapper.style.width = "48px";
   wrapper.style.height = "60px";
   wrapper.innerHTML = `
-      <svg viewBox="0 0 48 60" xmlns="http://www.w3.org/2000/svg">
-        <!-- Pole -->
-        <path d="M10 6v48" stroke="${color}" stroke-width="4.5" stroke-linecap="round"/>
-        <!-- Flag -->
-        <path d="M10 6h26l-6.5 10 6.5 10H10z" fill="${color}" stroke="white" stroke-width="1.5"/>
-        <!-- Number circle -->
-        <circle cx="31" cy="11" r="8.5" fill="white" stroke="${color}" stroke-width="2.5"/>
-        <text 
-          x="31" 
-          y="12" 
-          text-anchor="middle" 
-          font-size="12" 
-          font-weight="800" 
-          fill="${color}" 
-          dominant-baseline="middle"
-        >${label}</text>
-      </svg>`;
+    <svg viewBox="0 0 48 60" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 6v48" stroke="${color}" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M10 6h26l-6.5 10 6.5 10H10z" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <circle cx="31" cy="11" r="8.5" fill="white" stroke="${color}" stroke-width="2.5"/>
+      <text 
+        x="31" 
+        y="12" 
+        text-anchor="middle" 
+        font-size="12" 
+        font-weight="800" 
+        fill="${color}" 
+        dominant-baseline="middle"
+      >${label}</text>
+    </svg>`;
   return wrapper;
 }
 
@@ -99,9 +95,8 @@ export default function MapboxTourMap({
   const [error, setError] = useState<string | null>(null);
   const [showImage, setShowImage] = useState(false);
 
-  /* -------------------- Initialize Map -------------------- */
   useEffect(() => {
-    let cleanup = () => { };
+    let cleanup = () => {};
 
     (async () => {
       const mapboxglMod = await import("mapbox-gl");
@@ -152,7 +147,7 @@ export default function MapboxTourMap({
       const map = new mapboxgl.Map({
         container: mapDivRef.current!,
         style: "mapbox://styles/mapbox/streets-v11",
-        center: center as [number, number],
+        center: center,
         zoom: 13,
         antialias: true,
       });
@@ -160,23 +155,11 @@ export default function MapboxTourMap({
 
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
-      // Force labels on initial load
       map.on("style.load", () => {
         const lang = new MapboxLanguage({
           defaultLanguage: locale === "ja" ? "ja" : "en",
         });
         map.addControl(lang);
-
-        const layers = map.getStyle().layers;
-        layers?.forEach((layer) => {
-          if (layer.type === "symbol" && layer.layout && "text-field" in layer.layout) {
-            map.setLayoutProperty(
-              layer.id,
-              "text-field",
-              ["get", locale === "ja" ? "name_ja" : "name_en"]
-            );
-          }
-        });
       });
 
       map.on("load", () => {
@@ -184,68 +167,14 @@ export default function MapboxTourMap({
         setTimeout(() => map.resize(), 500);
       });
 
-      /* -------------------- Flag Markers -------------------- */
-      const markers: mapboxgl.Marker[] = [];
-      normalized.forEach((p, idx) => {
-        const color = dynamicColor(p.kind as "start" | "place" | "end");
-        const extendedClean =
-          p.extended
-            ?.replace(/<[^>]+>/g, "")
-            ?.replace(/\s+/g, " ")
-            ?.trim()
-            ?.slice(0, 250) ?? "";
-
-        const popupHTML = `
-            <div style="min-width:260px; max-width:340px; font-family:Arial, sans-serif; color:#222; line-height:1.5;">
-              <div style="font-size:17px; font-weight:700; margin-bottom:2px; color:${color};">
-                ${p.name || "Unnamed Stop"}
-              </div>
-              ${p.time
-            ? `<div style="font-size:13px; color:#555; margin-top:4px;">🕒 <b>${p.time}</b></div>`
-            : ""
-          }
-              ${p.blurb
-            ? `<div style="font-size:13px; margin-top:6px;">${p.blurb}</div>`
-            : ""
-          }
-              ${extendedClean
-            ? `<div style="font-size:12px; margin-top:6px; color:#555;">${extendedClean}...</div>`
-            : ""
-          }
-              ${p.image
-            ? `<img src="${p.image}" alt="${p.name}" 
-                      style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover;
-                              box-shadow:0 2px 6px rgba(0,0,0,0.15);" />`
-            : ""
-          }
-            </div>`;
-
-        const popup = new mapboxgl.Popup({
-          offset: 28,
-          maxWidth: "320px",
-          closeButton: false,
-        }).setHTML(popupHTML);
-
-        const marker = new mapboxgl.Marker({
-          element: makeNumberedFlag(String(idx + 1), color),
-        })
-          .setLngLat([p.lng, p.lat])
-          .setPopup(popup)
-          .addTo(map);
-        markers.push(marker);
-      });
-
-      /* -------------------- Draw route line -------------------- */
+      /* -------------------- Route + Markers -------------------- */
       if (tour.routeJson) {
         try {
           const parsed = JSON.parse(tour.routeJson);
           if (parsed && parsed.type === "FeatureCollection") {
             map.on("load", () => {
               if (!map.getSource("custom-route")) {
-                map.addSource("custom-route", {
-                  type: "geojson",
-                  data: parsed,
-                });
+                map.addSource("custom-route", { type: "geojson", data: parsed });
                 map.addLayer({
                   id: "custom-route-outline",
                   type: "line",
@@ -267,15 +196,105 @@ export default function MapboxTourMap({
                   },
                 });
               }
-              const coords: [number, number][] = [];
+
+              const allCoords: [number, number][] = [];
               parsed.features.forEach((f: any) => {
                 if (f.geometry?.coordinates?.length)
-                  coords.push(...f.geometry.coordinates);
+                  allCoords.push(...f.geometry.coordinates);
               });
-              if (coords.length) {
-                const bounds = coords.reduce(
+
+              if (allCoords.length) {
+                const startCoord = allCoords[0];
+                const endCoord = allCoords[allCoords.length - 1];
+
+                /* 🟢🟥 Show Start & End flags (side by side if same) */
+                const [startLng, startLat] = startCoord;
+                const [endLng, endLat] = endCoord;
+                const overlap =
+                  Math.abs(startLng - endLng) < 0.00005 &&
+                  Math.abs(startLat - endLat) < 0.00005;
+
+                if (overlap) {
+                  const offsetMeters = 0.0001; // ~11m
+                  const startOffset: [number, number] = [
+                    startLng - offsetMeters,
+                    startLat,
+                  ];
+                  const endOffset: [number, number] = [
+                    endLng + offsetMeters,
+                    endLat,
+                  ];
+
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag("S", "green"),
+                  })
+                    .setLngLat(startOffset)
+                    .setPopup(
+                      new mapboxgl.Popup({ offset: 25 }).setHTML("<b>Start Point</b>")
+                    )
+                    .addTo(map);
+
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag("E", "red"),
+                  })
+                    .setLngLat(endOffset)
+                    .setPopup(
+                      new mapboxgl.Popup({ offset: 25 }).setHTML("<b>End Point</b>")
+                    )
+                    .addTo(map);
+                } else {
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag("S", "green"),
+                  })
+                    .setLngLat(startCoord)
+                    .setPopup(
+                      new mapboxgl.Popup({ offset: 25 }).setHTML("<b>Start Point</b>")
+                    )
+                    .addTo(map);
+
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag("E", "red"),
+                  })
+                    .setLngLat(endCoord)
+                    .setPopup(
+                      new mapboxgl.Popup({ offset: 25 }).setHTML("<b>End Point</b>")
+                    )
+                    .addTo(map);
+                }
+
+                /* 🟠 Intermediate waypoints */
+                (tour.tourpoints || []).forEach((tp, idx) => {
+                  const loc = tp.monument?.location;
+                  if (!loc) return;
+                  const lat = Array.isArray(loc)
+                    ? loc[1]
+                    : typeof loc === "object"
+                    ? loc.lat
+                    : null;
+                  const lng = Array.isArray(loc)
+                    ? loc[0]
+                    : typeof loc === "object"
+                    ? loc.lng
+                    : null;
+                  if (lat == null || lng == null) return;
+
+                  const color = dynamicColor(tp.waypointtype as any);
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag(String(idx + 1), color),
+                  })
+                    .setLngLat([lng, lat])
+                    .setPopup(
+                      new mapboxgl.Popup({ offset: 25 }).setHTML(
+                        `<b>${tp.name}</b><br>${tp.monument?.content?.brief || ""}`
+                      )
+                    )
+                    .addTo(map);
+                });
+
+                /* Fit bounds */
+                const bounds = allCoords.reduce(
                   (b, [lng, lat]) => b.extend([lng, lat]),
-                  new mapboxgl.LngLatBounds(coords[0], coords[0])
+                  new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
                 );
                 map.fitBounds(bounds, { padding: 50, duration: 800 });
               }
@@ -287,20 +306,18 @@ export default function MapboxTourMap({
       }
 
       cleanup = () => {
-        markers.forEach((m) => m.remove());
         map.remove();
         mapRef.current = null;
       };
     })().catch((e) => setError(String(e)));
 
     return () => cleanup();
-  }, [tour, profile]); // <-- locale removed here
+  }, [tour, profile]);
 
-  /* -------------------- React to locale change dynamically -------------------- */
+  /* -------------------- Locale change -------------------- */
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-
     const layers = map.getStyle().layers;
     layers?.forEach((layer) => {
       if (layer.type === "symbol" && layer.layout && "text-field" in layer.layout) {
@@ -319,7 +336,6 @@ export default function MapboxTourMap({
       className="relative w-full overflow-hidden rounded-lg border bg-gray-50 dark:bg-gray-900"
       style={{ height }}
     >
-      {/* Map container */}
       <div ref={mapDivRef} className="h-full w-full" />
 
       {/* Loader */}
@@ -351,7 +367,7 @@ export default function MapboxTourMap({
         </div>
       )}
 
-      {/* Fullscreen route image modal */}
+      {/* Fullscreen Image */}
       {showImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"

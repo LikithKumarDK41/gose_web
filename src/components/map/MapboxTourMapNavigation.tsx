@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import "mapbox-gl/dist/mapbox-gl.css";
-import type mapboxgl from "mapbox-gl";
-import MapboxLanguage from "@mapbox/mapbox-gl-language";
 import { useLocale } from "@/providers/LocaleProvider";
+import { useAppSelector } from "@/lib/store/hook";
+import { selectNav } from "@/lib/store/slices/navSlice";
 
 /* -------------------- types -------------------- */
 type Tourpoint = {
@@ -54,58 +54,58 @@ type Props = {
 
 /* -------------------- helpers -------------------- */
 function dynamicColor(kind?: "start" | "place" | "end") {
-  if (kind === "start") return "hsl(150 70% 40%)"; // 🟢 green
-  if (kind === "end") return "hsl(0 75% 50%)"; // 🔴 red
-  return "hsl(30 90% 50%)"; // 🟠 orange for middle
+  if (kind === "start") return "hsl(150 70% 40%)"; // green
+  if (kind === "end") return "hsl(0 75% 50%)"; // red
+  return "hsl(30 90% 50%)"; // orange
 }
 
-/** 🏁 Flag marker with large number */
 function makeNumberedFlag(label: string, color = "#f97316") {
   const wrapper = document.createElement("div");
   wrapper.style.width = "48px";
   wrapper.style.height = "60px";
   wrapper.innerHTML = `
-      <svg viewBox="0 0 48 60" xmlns="http://www.w3.org/2000/svg">
-        <!-- Pole -->
-        <path d="M10 6v48" stroke="${color}" stroke-width="4.5" stroke-linecap="round"/>
-        <!-- Flag -->
-        <path d="M10 6h26l-6.5 10 6.5 10H10z" fill="${color}" stroke="white" stroke-width="1.5"/>
-        <!-- Number circle -->
-        <circle cx="31" cy="11" r="8.5" fill="white" stroke="${color}" stroke-width="2.5"/>
-        <text 
-          x="31" 
-          y="12" 
-          text-anchor="middle" 
-          font-size="12" 
-          font-weight="800" 
-          fill="${color}" 
-          dominant-baseline="middle"
-        >${label}</text>
-      </svg>`;
+    <svg viewBox="0 0 48 60" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 6v48" stroke="${color}" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M10 6h26l-6.5 10 6.5 10H10z" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <circle cx="31" cy="11" r="8.5" fill="white" stroke="${color}" stroke-width="2.5"/>
+      <text 
+        x="31" 
+        y="12" 
+        text-anchor="middle" 
+        font-size="12" 
+        font-weight="800" 
+        fill="${color}" 
+        dominant-baseline="middle"
+      >${label}</text>
+    </svg>`;
   return wrapper;
 }
 
 /* -------------------- component -------------------- */
-export default function MapboxTourMap({
+export default function MapboxTourMapNavigation({
   tour,
   height = 420,
   profile = "walking",
 }: Props) {
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<any>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
+  const userMarkerRef = useRef<any>(null);
   const { locale, t } = useLocale();
+  const nav = useAppSelector(selectNav);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showImage, setShowImage] = useState(false);
 
-  /* -------------------- Initialize Map -------------------- */
+  /* -------------------- Initialize map -------------------- */
   useEffect(() => {
+    if (typeof window === "undefined") return; // ✅ ensure client-side
     let cleanup = () => { };
 
     (async () => {
       const mapboxglMod = await import("mapbox-gl");
-      const mapboxgl = mapboxglMod.default as typeof import("mapbox-gl").default;
+      const mapboxgl = mapboxglMod.default;
+      const { default: MapboxLanguage } = await import("@mapbox/mapbox-gl-language");
 
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
       if (!token) {
@@ -152,7 +152,7 @@ export default function MapboxTourMap({
       const map = new mapboxgl.Map({
         container: mapDivRef.current!,
         style: "mapbox://styles/mapbox/streets-v11",
-        center: center as [number, number],
+        center,
         zoom: 13,
         antialias: true,
       });
@@ -160,23 +160,11 @@ export default function MapboxTourMap({
 
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
-      // Force labels on initial load
       map.on("style.load", () => {
         const lang = new MapboxLanguage({
           defaultLanguage: locale === "ja" ? "ja" : "en",
         });
         map.addControl(lang);
-
-        const layers = map.getStyle().layers;
-        layers?.forEach((layer) => {
-          if (layer.type === "symbol" && layer.layout && "text-field" in layer.layout) {
-            map.setLayoutProperty(
-              layer.id,
-              "text-field",
-              ["get", locale === "ja" ? "name_ja" : "name_en"]
-            );
-          }
-        });
       });
 
       map.on("load", () => {
@@ -184,68 +172,14 @@ export default function MapboxTourMap({
         setTimeout(() => map.resize(), 500);
       });
 
-      /* -------------------- Flag Markers -------------------- */
-      const markers: mapboxgl.Marker[] = [];
-      normalized.forEach((p, idx) => {
-        const color = dynamicColor(p.kind as "start" | "place" | "end");
-        const extendedClean =
-          p.extended
-            ?.replace(/<[^>]+>/g, "")
-            ?.replace(/\s+/g, " ")
-            ?.trim()
-            ?.slice(0, 250) ?? "";
-
-        const popupHTML = `
-            <div style="min-width:260px; max-width:340px; font-family:Arial, sans-serif; color:#222; line-height:1.5;">
-              <div style="font-size:17px; font-weight:700; margin-bottom:2px; color:${color};">
-                ${p.name || "Unnamed Stop"}
-              </div>
-              ${p.time
-            ? `<div style="font-size:13px; color:#555; margin-top:4px;">🕒 <b>${p.time}</b></div>`
-            : ""
-          }
-              ${p.blurb
-            ? `<div style="font-size:13px; margin-top:6px;">${p.blurb}</div>`
-            : ""
-          }
-              ${extendedClean
-            ? `<div style="font-size:12px; margin-top:6px; color:#555;">${extendedClean}...</div>`
-            : ""
-          }
-              ${p.image
-            ? `<img src="${p.image}" alt="${p.name}" 
-                      style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover;
-                              box-shadow:0 2px 6px rgba(0,0,0,0.15);" />`
-            : ""
-          }
-            </div>`;
-
-        const popup = new mapboxgl.Popup({
-          offset: 28,
-          maxWidth: "320px",
-          closeButton: false,
-        }).setHTML(popupHTML);
-
-        const marker = new mapboxgl.Marker({
-          element: makeNumberedFlag(String(idx + 1), color),
-        })
-          .setLngLat([p.lng, p.lat])
-          .setPopup(popup)
-          .addTo(map);
-        markers.push(marker);
-      });
-
-      /* -------------------- Draw route line -------------------- */
+      /* -------------------- Draw Route + Markers -------------------- */
       if (tour.routeJson) {
         try {
           const parsed = JSON.parse(tour.routeJson);
           if (parsed && parsed.type === "FeatureCollection") {
             map.on("load", () => {
               if (!map.getSource("custom-route")) {
-                map.addSource("custom-route", {
-                  type: "geojson",
-                  data: parsed,
-                });
+                map.addSource("custom-route", { type: "geojson", data: parsed });
                 map.addLayer({
                   id: "custom-route-outline",
                   type: "line",
@@ -267,15 +201,82 @@ export default function MapboxTourMap({
                   },
                 });
               }
-              const coords: [number, number][] = [];
+
+              const allCoords: [number, number][] = [];
               parsed.features.forEach((f: any) => {
                 if (f.geometry?.coordinates?.length)
-                  coords.push(...f.geometry.coordinates);
+                  allCoords.push(...f.geometry.coordinates);
               });
-              if (coords.length) {
-                const bounds = coords.reduce(
+
+              if (allCoords.length) {
+                const startCoord = allCoords[0];
+                const endCoord = allCoords[allCoords.length - 1];
+
+                const [startLng, startLat] = startCoord;
+                const [endLng, endLat] = endCoord;
+                const overlap =
+                  Math.abs(startLng - endLng) < 0.00005 &&
+                  Math.abs(startLat - endLat) < 0.00005;
+
+                if (overlap) {
+                  const offsetMeters = 0.0001;
+                  const startOffset: [number, number] = [
+                    startLng - offsetMeters,
+                    startLat,
+                  ];
+                  const endOffset: [number, number] = [
+                    endLng + offsetMeters,
+                    endLat,
+                  ];
+
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag("S", "green"),
+                  })
+                    .setLngLat(startOffset)
+                    .addTo(map);
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag("E", "red"),
+                  })
+                    .setLngLat(endOffset)
+                    .addTo(map);
+                } else {
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag("S", "green"),
+                  })
+                    .setLngLat(startCoord)
+                    .addTo(map);
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag("E", "red"),
+                  })
+                    .setLngLat(endCoord)
+                    .addTo(map);
+                }
+
+                (tour.tourpoints || []).forEach((tp, idx) => {
+                  const loc = tp.monument?.location;
+                  if (!loc) return;
+                  const lat = Array.isArray(loc)
+                    ? loc[1]
+                    : typeof loc === "object"
+                      ? loc.lat
+                      : null;
+                  const lng = Array.isArray(loc)
+                    ? loc[0]
+                    : typeof loc === "object"
+                      ? loc.lng
+                      : null;
+                  if (lat == null || lng == null) return;
+                  const color = dynamicColor(tp.waypointtype as any);
+                  new mapboxgl.Marker({
+                    element: makeNumberedFlag(String(idx + 1), color),
+                  })
+                    .setLngLat([lng, lat])
+                    .addTo(map);
+                });
+
+                const bounds = allCoords.reduce(
                   (b, [lng, lat]) => b.extend([lng, lat]),
-                  new mapboxgl.LngLatBounds(coords[0], coords[0])
+                  new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
                 );
                 map.fitBounds(bounds, { padding: 50, duration: 800 });
               }
@@ -287,22 +288,54 @@ export default function MapboxTourMap({
       }
 
       cleanup = () => {
-        markers.forEach((m) => m.remove());
         map.remove();
         mapRef.current = null;
       };
     })().catch((e) => setError(String(e)));
 
     return () => cleanup();
-  }, [tour, profile]); // <-- locale removed here
+  }, [tour, profile, locale]);
 
-  /* -------------------- React to locale change dynamically -------------------- */
+  /* -------------------- Track User Location -------------------- */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !("geolocation" in navigator)) return;
+
+    let watchId: number | null = null;
+
+    if (nav.status === "running") {
+      import("mapbox-gl").then((m) => {
+        const userMarker = new m.default.Marker({ color: "#1e90ff" });
+        userMarkerRef.current = userMarker;
+
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            const lngLat: [number, number] = [longitude, latitude];
+            userMarker.setLngLat(lngLat).addTo(map);
+            map.easeTo({ center: lngLat, duration: 1000 });
+          },
+          (err) => console.warn("Geolocation error:", err),
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+        );
+      });
+    }
+
+    return () => {
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+    };
+  }, [nav.status]);
+
+  /* -------------------- Locale Change -------------------- */
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-
     const layers = map.getStyle().layers;
-    layers?.forEach((layer) => {
+    layers?.forEach((layer: any) => {
       if (layer.type === "symbol" && layer.layout && "text-field" in layer.layout) {
         map.setLayoutProperty(
           layer.id,
@@ -319,10 +352,8 @@ export default function MapboxTourMap({
       className="relative w-full overflow-hidden rounded-lg border bg-gray-50 dark:bg-gray-900"
       style={{ height }}
     >
-      {/* Map container */}
       <div ref={mapDivRef} className="h-full w-full" />
 
-      {/* Loader */}
       {loading && (
         <div className="absolute inset-0 grid place-items-center">
           <div className="flex items-center gap-3 rounded-xl bg-white/80 p-3 shadow dark:bg-black/60">
@@ -332,14 +363,12 @@ export default function MapboxTourMap({
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <div className="absolute left-3 top-3 rounded bg-black/70 px-3 py-2 text-xs text-white">
           {error}
         </div>
       )}
 
-      {/* Route Image thumbnail */}
       {tour.routeImage?.secure_url && (
         <div className="absolute left-3 top-3 z-10">
           <img
@@ -351,7 +380,6 @@ export default function MapboxTourMap({
         </div>
       )}
 
-      {/* Fullscreen route image modal */}
       {showImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"

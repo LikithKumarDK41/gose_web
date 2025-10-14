@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, StopCircle, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -15,15 +16,13 @@ import {
 } from '@/lib/store/slices/navSlice';
 import { resetAll as resetGeofence } from '@/lib/store/slices/geofenceSlice';
 import { setActiveTour } from '@/lib/store/slices/toursSlice';
-import type { Place } from '@/lib/data/tourTypes';
 import { useLocale } from '@/providers/LocaleProvider';
 
 /* -------------------- Props -------------------- */
 type Props = {
   tourId?: string;
-  places?: Place[];
   defaultProfile?: 'walking' | 'driving' | 'cycling';
-  autoStart?: boolean; // optional prop to auto start navigation
+  autoStart?: boolean;
 };
 
 /* -------------------- Component -------------------- */
@@ -38,15 +37,61 @@ export default function NavigationOverlay({
   const dispatch = useAppDispatch();
   const { locale, t } = useLocale();
 
-  /* -------------------- Lifecycle Auto Start -------------------- */
-  // optional auto start when entering navigation page
-  if (autoStart && nav.status === 'idle' && tourId) {
-    dispatch(setActiveTour(tourId));
-    dispatch(setProfile(defaultProfile));
-    dispatch(navStart());
-  }
+  /* ----------------------------------------------------------------
+     ✅ 1. Restore navigation state on reload
+     ---------------------------------------------------------------- */
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('navState');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.status === 'running' && parsed?.tourId) {
+          dispatch(setActiveTour(parsed.tourId));
+          dispatch(setProfile(parsed.profile ?? defaultProfile));
+          dispatch(navStart());
+        } else if (parsed?.status === 'paused' && parsed?.tourId) {
+          dispatch(setActiveTour(parsed.tourId));
+          dispatch(setProfile(parsed.profile ?? defaultProfile));
+          dispatch(navPause());
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Failed to restore nav state:', err);
+    }
+  }, [dispatch, defaultProfile]);
 
-  /* -------------------- Handlers -------------------- */
+  /* ----------------------------------------------------------------
+     ✅ 2. Persist state changes (so reload keeps running)
+     ---------------------------------------------------------------- */
+  useEffect(() => {
+    if (nav.status === 'idle') {
+      localStorage.removeItem('navState');
+    } else {
+      localStorage.setItem(
+        'navState',
+        JSON.stringify({
+          status: nav.status,
+          tourId: nav.activeTourId,
+          profile: nav.profile,
+        })
+      );
+    }
+  }, [nav.status, nav.activeTourId, nav.profile]);
+
+  /* ----------------------------------------------------------------
+     ✅ 3. Optional Auto Start when entering page
+     ---------------------------------------------------------------- */
+  useEffect(() => {
+    if (autoStart && nav.status === 'idle' && tourId) {
+      dispatch(setActiveTour(tourId));
+      dispatch(setProfile(defaultProfile));
+      dispatch(navStart());
+    }
+  }, [autoStart, nav.status, tourId, defaultProfile, dispatch]);
+
+  /* ----------------------------------------------------------------
+     ✅ 4. Control Handlers
+     ---------------------------------------------------------------- */
   const handleStart = () => {
     if (tourId) dispatch(setActiveTour(tourId));
     dispatch(setProfile(defaultProfile));
@@ -54,23 +99,30 @@ export default function NavigationOverlay({
   };
 
   const handlePauseResume = () => {
-    if (nav.status === 'running') dispatch(navPause());
-    else if (nav.status === 'paused') dispatch(navResume());
+    if (nav.status === 'running') {
+      dispatch(navPause());
+    } else if (nav.status === 'paused') {
+      dispatch(navResume());
+    }
   };
 
   const handleStop = () => {
     dispatch(navStop());
     dispatch(resetGeofence());
+    localStorage.removeItem('navState');
   };
 
   const handleBack = () => {
-    show(); // show loader for smooth transition
+    show();
     dispatch(navStop());
     dispatch(resetGeofence());
+    localStorage.removeItem('navState');
     requestAnimationFrame(() => router.back());
   };
 
-  /* -------------------- Localized labels -------------------- */
+  /* ----------------------------------------------------------------
+     ✅ 5. Localized labels
+     ---------------------------------------------------------------- */
   const labels = {
     back: t('Back') || (locale === 'ja' ? '戻る' : 'Back'),
     start: t('Start') || (locale === 'ja' ? '開始' : 'Start'),
@@ -79,7 +131,9 @@ export default function NavigationOverlay({
     stop: t('Stop') || (locale === 'ja' ? '停止' : 'Stop'),
   };
 
-  /* -------------------- Render -------------------- */
+  /* ----------------------------------------------------------------
+     ✅ 6. Render UI
+     ---------------------------------------------------------------- */
   return (
     <>
       {/* 🔙 Back Button */}
@@ -96,7 +150,7 @@ export default function NavigationOverlay({
         </Button>
       </div>
 
-      {/* 🎯 Navigation Controls (Bottom Center) */}
+      {/* 🎯 Bottom Navigation Controls */}
       <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center gap-3">
         {nav.status === 'idle' && (
           <Button

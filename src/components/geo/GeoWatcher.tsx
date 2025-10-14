@@ -1,87 +1,153 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '@/lib/store/hook';
 import { selectNav } from '@/lib/store/slices/navSlice';
-import { selectTours } from '@/lib/store/slices/toursSlice';
-import { enqueue, markChecked, selectGeofenceChecked } from '@/lib/store/slices/geofenceSlice';
+import { locationTick } from '@/lib/store/slices/geofenceSlice';
+import { makeSelectTourPreferringDetail } from '@/lib/store/slices/touristSlice';
+import { toast } from 'sonner';
 
-type Fence = {
-    id: string; name: string; lat: number; lng: number; radius: number;
-    tourId: string; time?: string; blurb?: string;
+/* -------------------- Types -------------------- */
+type NormalizedPlace = {
+    id: string;
+    name: string;
+    lat: number;
+    lng: number;
+    radius: number;
+    blurb?: string;
 };
 
-const metersBetween = (a: [number, number], b: [number, number]) => {
-    const R = 6371000;
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const dLat = toRad(b[1] - a[1]);
-    const dLng = toRad(b[0] - a[0]);
-    const lat1 = toRad(a[1]), lat2 = toRad(b[1]);
-    const s = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(s));
-};
+/* -------------------- Constants -------------------- */
+const DEFAULT_RADIUS = 500; // meters if monument.georadius is not defined
+const TICK_THROTTLE_MS = 1500; // reduce battery drain
 
+/* -------------------- Component -------------------- */
 export default function GeoWatcher() {
     const dispatch = useAppDispatch();
     const nav = useAppSelector(selectNav);
-    const tours = useAppSelector(selectTours);
-    const checked = useAppSelector(selectGeofenceChecked);
+
+    // stable selector instance for current tour
+    const selectById = useMemo(() => makeSelectTourPreferringDetail(), []);
+    const tour = useAppSelector((state) =>
+        nav.activeTourId ? selectById(state, nav.activeTourId) : null
+    );
 
     const watchIdRef = useRef<number | null>(null);
+    const lastSentRef = useRef<number>(0);
 
-    const fences = useMemo<Fence[]>(() => {
-        const out: Fence[] = [];
-        for (const t of tours) {
-            for (const p of t.places) {
-                if (typeof (p as any).lat === 'number' && typeof (p as any).lng === 'number') {
-                    out.push({
-                        id: p.id, name: p.name, lat: (p as any).lat, lng: (p as any).lng,
-                        radius: Math.max(5, p.geofenceRadius ?? 30),
-                        tourId: t.id, time: p.time, blurb: p.blurb,
-                    });
-                }
-            }
+    const clearWatch = useCallback(() => {
+        if (watchIdRef.current != null) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+            watchIdRef.current = null;
         }
-        return out;
-    }, [tours]);
+    }, []);
 
+    /* -------------------- Normalize Tourpoints → Places -------------------- */
+    const places: NormalizedPlace[] = useMemo(() => {
+        if (!tour?.tourpoints?.length) return [];
+
+        return tour.tourpoints.reduce<NormalizedPlace[]>((acc, tp, i) => {
+            const loc = tp.monument?.location;
+            let lat: number | null = null;
+            let lng: number | null = null;
+
+            if (Array.isArray(loc)) {
+                lng = Number(loc[0]);
+                lat = Number(loc[1]);
+            } else if (loc && typeof loc === 'object') {
+                lat = loc.lat ?? null;
+                lng = loc.lng ?? null;
+            }
+
+            if (lat == null || lng == null) return acc;
+
+            // ✅ use monument.georadius if available, else fallback
+            const radius =
+                tp.monument?.georadius && tp.monument.georadius > 0
+                    ? tp.monument.georadius
+                    : DEFAULT_RADIUS;
+
+            acc.push({
+                id: tp._id ?? String(i),
+                name: tp.monument?.title ?? tp.name ?? `Point ${i + 1}`,
+                lat,
+                lng,
+                radius,
+                blurb: tp.monument?.content?.brief ?? undefined,
+            });
+
+            return acc;
+        }, []);
+    }, [tour]);
+
+    /* -------------------- Start / Stop GPS Watch -------------------- */
     useEffect(() => {
-        const start = () => {
-            if (!('geolocation' in navigator)) return;
-            if (watchIdRef.current != null) return;
+        // Only run when navigation is running and we have places
+        if (nav.status !== 'running' || !tour || places.length === 0) {
+            clearWatch();
+            return;
+        }
+
+        if (!('geolocation' in navigator)) {
+            toast.error('Geolocation not supported in this browser.');
+            return;
+        }
+
+        try {
             watchIdRef.current = navigator.geolocation.watchPosition(
                 (pos) => {
-                    if (nav.status !== 'running') return;
-                    const curr: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+                    const now = Date.now();
+                    if (now - lastSentRef.current < TICK_THROTTLE_MS) return;
+                    lastSentRef.current = now;
 
-                    for (const f of fences) {
-                        if (checked[f.id]) continue;
-                        const d = metersBetween(curr, [f.lng, f.lat]);
-                        if (d <= f.radius) {
-                            dispatch(markChecked(f.id));
-                            dispatch(enqueue({
-                                id: f.id, name: f.name, lat: f.lat, lng: f.lng,
-                                radius: f.radius, distance: Math.round(d),
-                                tourId: f.tourId, blurb: f.blurb, time: f.time,
-                            }));
-                        }
-                    }
+                    const { latitude, longitude } = pos.coords;
+
+                    // 🛰️ Fire a geofence location tick
+                    dispatch(
+                        locationTick({
+                            lat: latitude,
+                            lng: longitude,
+                            places: places.map((p) => ({
+                                id: p.id,
+                                name: p.name,
+                                lat: p.lat,
+                                lng: p.lng,
+                                radius: p.radius ?? DEFAULT_RADIUS,
+                                blurb: p.blurb,
+                                tourId: nav.activeTourId ?? null,
+                            })),
+                            tourId: nav.activeTourId ?? null,
+                        })
+                    );
                 },
-                () => { },
-                { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+                (err) => {
+                    // Handle permission/timeout/etc gracefully
+                    if (err.code === err.PERMISSION_DENIED) {
+                        toast.error('Location permission denied. Navigation cannot run in background.');
+                    } else {
+                        toast.error(`Geolocation error: ${err.message}`);
+                    }
+                    clearWatch();
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 2000,
+                    timeout: 10000,
+                }
             );
-        };
+        } catch (e: any) {
+            toast.error(`Failed to start location watch: ${e?.message || e}`);
+        }
 
-        const stop = () => {
-            if (watchIdRef.current != null) {
-                navigator.geolocation.clearWatch(watchIdRef.current);
-                watchIdRef.current = null;
-            }
-        };
+        return () => clearWatch();
+    }, [dispatch, nav.status, nav.activeTourId, places, tour, clearWatch]);
 
-        if (nav.status === 'running') start(); else stop();
-        return () => stop();
-    }, [nav.status, fences, checked, dispatch]);
+    /* -------------------- Pause / Stop Cleanup -------------------- */
+    useEffect(() => {
+        if (nav.status === 'paused' || nav.status === 'idle') {
+            clearWatch();
+        }
+    }, [nav.status, clearWatch]);
 
     return null;
 }

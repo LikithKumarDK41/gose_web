@@ -5,15 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import {
   ImageIcon,
-  PlayCircle,
-  PauseCircle,
-  Route,
-  Sparkles,
   Navigation,
-  Compass,
-  MapPinned,
-  TrendingUp,
-  Star,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -55,34 +47,6 @@ export default function ToursDashboardPage() {
       mounted = false;
     };
   }, [dispatch, show, hide]);
-
-  const metrics = useMemo(() => {
-    const totalTours = tours?.length ?? 0;
-    const totalStops = (tours ?? []).reduce(
-      (sum, t) => sum + (t.places?.length ?? 0),
-      0
-    );
-    let visited = 0;
-    for (const t of tours ?? []) {
-      for (const p of t.places ?? []) {
-        if (checkedMap[p.id]) visited++;
-      }
-    }
-    const pending = Math.max(0, totalStops - visited);
-    const completion = totalStops
-      ? Math.round((visited / totalStops) * 100)
-      : 0;
-    const avgStops = totalTours ? +(totalStops / totalTours).toFixed(1) : 0;
-
-    return {
-      totalTours,
-      totalStops,
-      visited,
-      pending,
-      completion,
-      avgStops,
-    };
-  }, [tours, checkedMap]);
 
   const hasTours = (tours?.length ?? 0) > 0;
 
@@ -220,7 +184,7 @@ export default function ToursDashboardPage() {
                 <div className="flex items-center justify-center space-x-4">
                   <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent dark:via-pink-500" />
                   <h2 className="bg-gradient-to-r from-pink-500 to-fuchsia-500 dark:from-pink-300 dark:to-fuchsia-400 bg-clip-text text-transparent text-2xl font-extrabold tracking-wide">
-                  {t("more_options")}
+                    {t("more_options")}
                   </h2>
                   <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent dark:via-pink-500" />
                 </div>
@@ -242,7 +206,7 @@ export default function ToursDashboardPage() {
               {/* Featured */}
               {tour.featured && (
                 <div className="absolute right-3 top-3 z-10 rounded-full bg-yellow-400/90 px-3 py-1 text-xs font-semibold text-yellow-900 backdrop-blur-sm shadow-md">
-                {t("actions.featured")}
+                  {t("actions.featured")}
                 </div>
               )}
               {/* media */}
@@ -297,7 +261,7 @@ export default function ToursDashboardPage() {
                   >
                     <Link href={`/tours/detail/navigation?id=${tour._id}`}>
                       <Navigation className="mr-1 h-4 w-4" />
-                        {t("actions.navigate")}
+                      {t("actions.navigate")}
                     </Link>
                   </Button>
                 </div>

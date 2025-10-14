@@ -4,14 +4,11 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import {
   ImageIcon,
-  MapPin,
   Navigation,
   Sparkles,
   Search,
-  SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
-  Filter,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +22,6 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 
 import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
 import {
@@ -95,7 +91,7 @@ export default function ToursPage() {
   const stats = useMemo(() => {
     const totalTours = tours?.length ?? 0;
     const totalStops = (tours ?? []).reduce(
-      (s, t) => s + (t.places?.length ?? 0),
+      (s, t) => s + (t.tourpoints?.length ?? 0),
       0
     );
     const avgStops = totalTours ? +(totalStops / totalTours).toFixed(1) : 0;
@@ -311,7 +307,7 @@ export default function ToursPage() {
                           href={`/tours/detail?id=${tour._id}`}
                           onMouseEnter={() => dispatch(fetchTourById(tour._id))}
                         >
-                        {t("actions.details")}
+                          {t("actions.details")}
                         </Link>
                       </Button>
                       <Button
