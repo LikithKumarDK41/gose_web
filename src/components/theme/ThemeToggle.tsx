@@ -13,86 +13,71 @@ import { Moon, Sun, Monitor } from "lucide-react";
 
 type Mode = "light" | "dark" | "system";
 
+function applyTheme(next: Mode) {
+  const root = document.documentElement;
+
+  // Set attribute for CSS to read
+  root.setAttribute("data-theme", next);
+
+  // Manage .dark class for Tailwind utilities
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  const isDark = next === "dark" || (next === "system" && mq.matches);
+  root.classList.toggle("dark", isDark);
+
+  // Keep OS listener only when system
+  const KEY = "__theme_mql_listener__" as const;
+  const old = (root as any)[KEY] as ((e: MediaQueryListEvent) => void) | undefined;
+  if (old) mq.removeEventListener("change", old);
+
+  if (next === "system") {
+    const handler = (e: MediaQueryListEvent) => {
+      const nowDark = e.matches;
+      root.classList.toggle("dark", nowDark);
+    };
+    mq.addEventListener("change", handler);
+    (root as any)[KEY] = handler;
+  } else {
+    (root as any)[KEY] = undefined;
+  }
+}
+
 export default function ThemeToggle() {
   const [mode, setMode] = useState<Mode>("system");
 
-  // Initialize from the layout helper or localStorage; keep in sync across tabs.
   useEffect(() => {
-    const w = window as any;
-    const initial: Mode =
-      w.__theme?.get?.() ??
-      ((localStorage.getItem("theme-mode") as Mode) || "system");
-    setMode(initial);
-
-    // Keep this tab updated if another tab changes it.
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "theme-mode") {
-        setMode((e.newValue as Mode) || "system");
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    const stored = (localStorage.getItem("theme-mode") as Mode) || "system";
+    setMode(stored);
+    applyTheme(stored);
   }, []);
 
-  const apply = (next: Mode) => {
+  const onPick = (next: Mode) => {
     setMode(next);
-    (window as any).__theme?.set?.(next);
     localStorage.setItem("theme-mode", next);
+    applyTheme(next);
   };
 
-  // Effective dark? (for the icon only)
-  const effectiveDark = useMemo(() => {
-    if (mode === "dark") return true;
-    if (mode === "light") return false;
-    // system
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  }, [mode]);
-
+  // Only for accessible label
   const label =
-    mode === "system"
-      ? "Theme: System"
-      : mode === "dark"
-      ? "Theme: Dark"
-      : "Theme: Light";
+    mode === "system" ? "Theme: System" : mode === "dark" ? "Theme: Dark" : "Theme: Light";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label={label}
-          title={label}
-          className="relative"
-        >
-          {/* CSS-only swap avoids hydration mismatches */}
+        <Button variant="outline" size="icon" aria-label={label} title={label} className="relative">
           <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">{label}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem
-          onClick={() => apply("light")}
-          className={mode === "light" ? "font-semibold" : ""}
-        >
-          <Sun className="mr-2 h-4 w-4" />
-          Light
+        <DropdownMenuItem onClick={() => onPick("light")} className={mode === "light" ? "font-semibold" : ""}>
+          <Sun className="mr-2 h-4 w-4" /> Light
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => apply("dark")}
-          className={mode === "dark" ? "font-semibold" : ""}
-        >
-          <Moon className="mr-2 h-4 w-4" />
-          Dark
+        <DropdownMenuItem onClick={() => onPick("dark")} className={mode === "dark" ? "font-semibold" : ""}>
+          <Moon className="mr-2 h-4 w-4" /> Dark
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => apply("system")}
-          className={mode === "system" ? "font-semibold" : ""}
-        >
-          <Monitor className="mr-2 h-4 w-4" />
-          System
+        <DropdownMenuItem onClick={() => onPick("system")} className={mode === "system" ? "font-semibold" : ""}>
+          <Monitor className="mr-2 h-4 w-4" /> System
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

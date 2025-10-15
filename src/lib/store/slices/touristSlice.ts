@@ -18,8 +18,7 @@ export interface CloudinaryImage {
   height?: number;
   [key: string]: any;
 }
-export interface CloudinaryIcon extends CloudinaryImage { }
-
+export type CloudinaryIcon = CloudinaryImage;
 
 /* ------------------------------------------------------------------ */
 /** Related Tour Type (inside monument.relatedtours[]) */
