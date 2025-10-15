@@ -140,7 +140,7 @@ export default function MapboxTourMap({
   };
 
   useEffect(() => {
-    let disposed = false;
+    const disposed = false; // ✅ fixed prefer-const
 
     (async () => {
       const mapboxglMod = await import("mapbox-gl");
@@ -157,7 +157,6 @@ export default function MapboxTourMap({
         (tour.tourpoints || [])
           .map((tp) =>
             normalizeLngLat(
-              // Fallback to tp.location if monument.location absent
               (tp?.monument as any)?.location ?? (tp as any)?.location
             )
           )
@@ -187,13 +186,12 @@ export default function MapboxTourMap({
         if (disposed) return;
         setLoading(false);
 
-        /* ---------- A) TOURPOINT MARKERS (S/E have NO popup) ---------- */
+        /* ---------- A) TOURPOINT MARKERS ---------- */
         clearMarkers();
         const pointPositions: [number, number][] = [];
 
         const points = (tour.tourpoints || []) as TourPoint[];
-
-        let ordinal = 0; // counts only non-start/end points
+        let ordinal = 0;
 
         points.forEach((tp: TourPoint) => {
           const pos = normalizeLngLat(
@@ -201,7 +199,6 @@ export default function MapboxTourMap({
           );
           if (!pos) return;
 
-          // Normalize type from either field and case-insensitively
           const type = String((tp as any).waypointtype ?? (tp as any).pointtype ?? "")
             .toLowerCase()
             .trim();
@@ -265,7 +262,6 @@ export default function MapboxTourMap({
 
           const marker = new mapboxgl.Marker({ element: pinEl }).setLngLat(pos);
 
-          // Only attach popup for non-start/end points
           if (!isStart && !isEnd) {
             marker.setPopup(
               new mapboxgl.Popup({
@@ -283,7 +279,6 @@ export default function MapboxTourMap({
           pointPositions.push(pos);
         });
 
-        // start bounds with tourpoints (if any)
         let bounds: mapboxgl.LngLatBounds | null = null;
         if (pointPositions.length) {
           bounds = pointPositions.reduce(
@@ -292,7 +287,6 @@ export default function MapboxTourMap({
           );
         }
 
-        /* ---------- B) ROUTE from routeJson (no S/E derived here) ---------- */
         removeRouteLayers(map);
 
         if (tour.routeJson) {
@@ -315,7 +309,6 @@ export default function MapboxTourMap({
                 paint: { "line-width": 4, "line-color": "#f97316", "line-opacity": 0.95 },
               });
 
-              // extend bounds with route coords
               const coords: [number, number][] = [];
               parsed.features?.forEach((f: any) => {
                 const g = f.geometry;
@@ -341,7 +334,6 @@ export default function MapboxTourMap({
           }
         }
 
-        /* ---------- C) FIT EVERYTHING ---------- */
         if (bounds) {
           map.fitBounds(bounds, { padding: 56, duration: 800 });
         } else if (pointPositions.length) {
@@ -371,7 +363,6 @@ export default function MapboxTourMap({
       } catch {}
       mapRef.current = null;
     };
-  // rebuild markers/popups and relabel basemap when locale changes
   }, [tour, profile, locale]);
 
   useEffect(() => {
