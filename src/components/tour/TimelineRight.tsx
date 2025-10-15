@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/lib/store";
@@ -8,26 +8,20 @@ import {
   fetchMonumentDetails,
   type TourPoint,
   type Monument,
+  type TravelMode,
 } from "@/lib/store/slices/touristSlice";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import {
   ImageIcon,
   MapPin,
-  Landmark,
-  Sparkles,
-  Store,
-  Navigation,
+  Footprints,
+  Train,
+  Car,
+  UtensilsCrossed,
 } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 
 /* ------------------------------------------------------------------ */
 export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] }) {
@@ -41,6 +35,7 @@ export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] 
   const [openId, setOpenId] = useState<string | null>(null);
   const [activeMonument, setActiveMonument] = useState<Monument | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const active = useMemo(
     () => tourpoints.find((p) => p._id === openId) ?? null,
@@ -51,6 +46,12 @@ export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] 
     if (loading) show();
     else hide();
   }, [loading, show, hide]);
+
+  useEffect(() => {
+    // Add small delay to simulate loading transition
+    const timer = setTimeout(() => setInitialLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, [tourpoints]);
 
   const handleOpen = async (id: string) => {
     setOpenId(id);
@@ -76,350 +77,297 @@ export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] 
       : activeMonument ?? active?.monument;
 
   /* ------------------------------------------------------------------ */
+  // 🧡 SHIMMER SKELETON LOADER
+  if (initialLoading) {
+    return (
+      <div className="relative mx-auto w-full max-w-6xl animate-pulse">
+        {/* Single timeline line */}
+        <div className="absolute left-[52px] top-0 bottom-0 w-[3px] bg-orange-300 rounded-full" />
+
+        <ul className="space-y-16 md:space-y-20">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li key={i} className="grid grid-cols-[90px_1fr] gap-6 items-start">
+              {/* Circle */}
+              <div className="relative h-full w-[90px]">
+                <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                  <div className="h-14 w-14 rounded-full bg-gray-300 dark:bg-gray-700 ring-4 ring-white/70 dark:ring-gray-800" />
+                </div>
+              </div>
+
+              {/* Card placeholder */}
+              <div className="col-start-2 w-full h-64 rounded-2xl bg-gray-200/60 dark:bg-gray-800/50 shadow-sm" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  /* ------------------------------------------------------------------ */
+  // 🟠 ACTUAL TIMELINE CONTENT
   return (
     <>
-      {/* Timeline list */}
       <div className="relative mx-auto w-full max-w-6xl">
-        <div className="absolute left-8 top-0 bottom-0 w-px bg-border/60" />
-        <ul className="space-y-10 md:space-y-12">
+        {/* Single vertical timeline line */}
+        <div className="absolute left-[52px] top-0 bottom-0 w-[3px] bg-gradient-to-b from-orange-500 via-orange-400 to-orange-600 rounded-full" />
+
+        <ul className="space-y-16 md:space-y-20">
           {tourpoints.map((p, i) => {
             const accent = dynamicColor(i, p.waypointtype);
-            const m = p.monument;
 
-            return (
-              <li key={p._id} className="grid grid-cols-[64px_1fr] gap-4 items-start">
-                {/* timeline dot */}
-                <div className="relative h-full w-16">
-                  <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border/40 -translate-x-1/2" />
-                  <div className="absolute left-1/2 top-0 -translate-x-1/2">
-                    <div
-                      className="grid h-10 w-10 place-items-center rounded-full text-white shadow-md ring-2 ring-white/70 dark:ring-white/15"
-                      style={{ background: accent }}
-                    >
-                      <span className="text-[11px] font-semibold">{i + 1}</span>
-                    </div>
-                  </div>
-                </div>
+            /* -------------------- START / END -------------------- */
+            if (
+              (p.waypointtype === "start" || p.waypointtype === "end") &&
+              p.pointtype === "station"
+            ) {
+              const colorClass =
+                p.waypointtype === "start"
+                  ? "bg-green-500 ring-green-300"
+                  : "bg-red-500 ring-red-300";
 
-                {/* card */}
-                <article
+              const hideTop = p.waypointtype === "start";
+              const hideBottom = p.waypointtype === "end";
+
+              return (
+                <li
                   key={p._id}
-                  className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-black text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl"
+                  className={`grid grid-cols-[90px_1fr] gap-6 ${hideBottom ? "pb-8" : "pb-10"
+                    }`}
                 >
-                  {/* Image section */}
-                  <div
-                    className="relative w-full h-60 cursor-pointer"
-                    onClick={() => handleOpen(p._id)}
-                  >
-                    {m?.image?.secure_url ? (
-                      <Image
-                        src={m.image.secure_url}
-                        alt={m.name ?? ""}
-                        fill
-                        className="object-cover opacity-90 hover:opacity-100 transition"
-                      />
-                    ) : (
-                      <div className="grid h-full w-full place-items-center bg-zinc-800">
-                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    {/* subtle overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  </div>
-
-                  {/* Content section */}
-                  <div className="p-5">
-                    <h3
-                      onClick={() => handleOpen(p._id)}
-                      className="cursor-pointer text-lg font-semibold truncate hover:text-primary transition"
-                    >
-                      {m?.title ?? m?.name ?? p.name}
-                    </h3>
-
-                    {m?.region?.title && (
-                      <div className="mt-1 flex items-center gap-1.5 text-sm text-zinc-400">
-                        <MapPin className="h-4 w-4" />
-                        <span>{m.region.title}</span>
-                      </div>
-                    )}
-
-                    {/* Show both brief and extended content */}
-                    {(m?.content?.brief || m?.content?.extended) && (
-                      <div className="mt-3 space-y-1 text-sm text-zinc-300">
-                        {m?.content?.brief && (
-                          <p className="line-clamp-2">
-                            {m.content.brief.replace(/<[^>]+>/g, "").trim()}
-                          </p>
-                        )}
-                        {m?.content?.extended && (
-                          <p className="line-clamp-2 italic text-zinc-400">
-                            {m.content.extended.replace(/<[^>]+>/g, "").trim()}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="mt-4 flex gap-3">
-                      <Button
-                        size="sm"
-                        className="flex-1 rounded-full bg-zinc-100 text-black hover:bg-white"
-                        onClick={() => handleOpen(p._id)}
+                  <div className="relative h-full w-[90px]">
+                    <div
+                      className={`absolute left-[52px] w-[3px] bg-orange-500 ${hideTop ? "top-[50%]" : "top-0"
+                        } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
+                    />
+                    <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                      <div
+                        className={`grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ${colorClass}`}
                       >
-                        {t("tourDetails.viewDetails")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 rounded-full border-zinc-500 text-zinc-300 hover:bg-zinc-800"
-                      >
-                        <MapPin className="h-4 w-4" />
-                        {t("tourDetails.checkIn")}
-                      </Button>
+                        <Train className="h-6 w-6" />
+                      </div>
                     </div>
                   </div>
-                </article>
 
+                  <div className="flex flex-col justify-center mt-1">
+                    <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-50 leading-tight">
+                      {p.name ||
+                        (p.waypointtype === "start"
+                          ? "Start Station"
+                          : "End Station")}
+                    </h3>
+                    {p.traveltime && (
+                      <p className="text-sm text-gray-400 dark:text-gray-400">
+                        Duration: {p.traveltime}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              );
+            }
 
-              </li>
+            /* -------------------- LUNCH -------------------- */
+            if (p.pointtype === "lunch") {
+              return (
+                <li
+                  key={p._id}
+                  className="grid grid-cols-[90px_1fr] gap-6 items-start"
+                >
+                  <TimelineDot index={i} accent={accent} />
+                  <div className="col-start-2 p-6 rounded-2xl bg-yellow-50 dark:bg-zinc-800 border border-yellow-200 dark:border-zinc-700 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <UtensilsCrossed className="h-6 w-6 text-orange-500" />
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                        🍱 {p.name || "Lunch Break"}
+                      </h3>
+                    </div>
+                    {p.traveltime && (
+                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                        Duration: {p.traveltime}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              );
+            }
+
+            /* -------------------- MONUMENT -------------------- */
+            const m = p.monument;
+            return (
+              <Fragment key={p._id}>
+                <li className="grid grid-cols-[90px_1fr] gap-6 items-start">
+                  <TimelineDot index={i} accent={accent} />
+
+                  <article className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl">
+                    <div
+                      className="relative w-full h-64 cursor-pointer"
+                      onClick={() => handleOpen(p._id)}
+                    >
+                      {m?.image?.secure_url ? (
+                        <Image
+                          src={m.image.secure_url}
+                          alt={m.name ?? ""}
+                          fill
+                          className="object-cover opacity-95 hover:opacity-100 transition"
+                        />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center bg-gray-200 dark:bg-gray-800">
+                          <ImageIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    </div>
+
+                    <div className="p-6">
+                      <h3
+                        onClick={() => handleOpen(p._id)}
+                        className="cursor-pointer text-lg font-semibold truncate hover:text-orange-500 transition"
+                      >
+                        {m?.title ?? m?.name ?? p.name}
+                      </h3>
+
+                      {m?.region?.title && (
+                        <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                          <MapPin className="h-5 w-5" />
+                          <span>{m.region.title}</span>
+                        </div>
+                      )}
+
+                      {(m?.content?.brief || m?.content?.extended) && (
+                        <div className="mt-3 text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                          {m?.content?.brief && (
+                            <p className="line-clamp-2">
+                              {m.content.brief.replace(/<[^>]+>/g, "").trim()}
+                            </p>
+                          )}
+                          {m?.content?.extended && (
+                            <p className="line-clamp-2 text-gray-500 dark:text-gray-400">
+                              {m.content.extended.replace(/<[^>]+>/g, "").trim()}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-5 flex gap-3">
+                        <Button
+                          size="sm"
+                          className="flex-1 rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 font-medium border border-gray-300 dark:border-gray-700"
+                          onClick={() => handleOpen(p._id)}
+                        >
+                          {t("tourDetails.viewDetails")}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                          <MapPin className="h-5 w-5" />
+                          {t("tourDetails.checkIn")}
+                        </Button>
+                      </div>
+                    </div>
+                  </article>
+                </li>
+
+                {/* Connector between points */}
+                {i < tourpoints.length - 1 && (
+                  <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
+                    <TravelConnector
+                      info={tourpoints[i + 1]?.traveltype}
+                      time={tourpoints[i + 1]?.traveltime}
+                      next={tourpoints[i + 1]}
+                    />
+                  </li>
+                )}
+              </Fragment>
             );
           })}
         </ul>
       </div>
 
-      {/* ================= Fullscreen Modal ================= */}
-      <Dialog open={!!active} onOpenChange={() => setOpenId(null)}>
-        <DialogContent className="z-50 w-screen h-screen bg-background p-0 !max-w-full">
-          {/* Header row */}
-          <DialogHeader className="flex items-center justify-between border-b bg-background py-4 px-8">
-            <div>
-              <DialogTitle className="text-xl font-semibold truncate">
-                {details?.title || details?.name || "Details"}
-              </DialogTitle>
-              {active?.traveltype?.name && (
-                <DialogDescription className="text-sm text-muted-foreground">
-                  {t("tourDetails.mode")}: {active.traveltype.name}
-                </DialogDescription>
-              )}
-            </div>
-          </DialogHeader>
-
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-10">
-            {modalLoading ? (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
-                {t("common.loading")}
-              </div>
-            ) : (
-              details && (
-                <>
-                  {/* Hero */}
-                  {details.image?.secure_url && (
-                    <div className="relative h-[420px] w-full overflow-hidden rounded-xl ring-1 ring-border">
-                      <Image
-                        src={details.image.secure_url}
-                        alt={details.title ?? ""}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-
-                  {/* Title + Region */}
-                  <section>
-                    <h2 className="text-xl font-bold">{details.title || details.name}</h2>
-                    {details.region && (
-                      <p className="mt-1 text-sm flex items-center gap-1 text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        {details.region.title || details.region.name}
-                      </p>
-                    )}
-                  </section>
-
-                  {/* Description */}
-                  {(details.content?.brief || details.content?.extended) && (
-                    <section className="prose max-w-none text-sm leading-relaxed text-muted-foreground space-y-3">
-                      {details.content?.brief && (
-                        <div dangerouslySetInnerHTML={{ __html: details.content.brief }} />
-                      )}
-                      {details.content?.extended && (
-                        <div dangerouslySetInnerHTML={{ __html: details.content.extended }} />
-                      )}
-                    </section>
-                  )}
-
-                  {/* Attributes */}
-                  <section className="flex flex-wrap gap-2">
-                    {details.era && <Badge>Era: {details.era}</Badge>}
-                    {details.year && <Badge>Year: {details.year}</Badge>}
-                    {details.size && <Badge>Size: {details.size}</Badge>}
-                    {details.mtype && <Badge>Type: {details.mtype}</Badge>}
-                    {details.access && <Badge>Access: {details.access}</Badge>}
-                    {details.rare && <Badge variant="outline">Rare</Badge>}
-                  </section>
-
-                  {/* Gallery */}
-                  {!!details.gallery?.length && (
-                    <section>
-                      <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                        <ImageIcon className="h-4 w-4" /> Gallery
-                      </h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                        {details.gallery.map(
-                          (img: any) =>
-                            img.secure_url && (
-                              <div key={img.secure_url} className="relative h-40 overflow-hidden rounded-md">
-                                <Image
-                                  src={img.secure_url}
-                                  alt=""
-                                  fill
-                                  className="object-cover hover:scale-105 transition-transform"
-                                />
-                              </div>
-                            )
-                        )}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Related Tours */}
-                  {!!details.relatedtours?.length && (
-                    <section>
-                      <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                        <Navigation className="h-4 w-4" /> Related Tours
-                      </h3>
-                      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {details.relatedtours.map((tour: any) => (
-                          <div
-                            key={tour._id}
-                            className="overflow-hidden rounded-xl border bg-card flex flex-col h-full"
-                          >
-                            {tour.image?.secure_url ? (
-                              <div className="relative h-36">
-                                <Image
-                                  src={tour.image.secure_url}
-                                  alt={tour.title}
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
-                            ) : (
-                              <div className="grid h-36 place-items-center bg-muted">
-                                <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="flex flex-col justify-between h-full p-3">
-                              <div>
-                                <h4 className="text-sm font-medium line-clamp-1">{tour.title}</h4>
-                                {tour.content?.brief && (
-                                  <p className="text-xs text-muted-foreground line-clamp-3 mt-1">
-                                    {tour.content.brief.replace(/<[^>]+>/g, "").trim()}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="mt-3 flex justify-center">
-                                <Button
-                                  size="sm"
-                                  className="rounded-full w-[140px]"
-                                  onClick={() =>
-                                    (window.location.href = `http://localhost:3000/tours/detail/?id=${tour._id}`)
-                                  }
-                                >
-                                  Go to Tour
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Nearby Monuments */}
-                  {!!details.nearbymonuments?.length && (
-                    <section>
-                      <h3 className="mb-2 flex items-center gap-2 font-semibold">
-                        <Landmark className="h-4 w-4" /> Nearby Monuments
-                      </h3>
-                      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {details.nearbymonuments.map((m: any) => (
-                          <div
-                            key={m._id}
-                            className="overflow-hidden rounded-xl border bg-card flex flex-col h-full"
-                          >
-                            {m.image?.secure_url ? (
-                              <div className="relative h-36">
-                                <Image
-                                  src={m.image.secure_url}
-                                  alt={m.title}
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
-                            ) : (
-                              <div className="grid h-36 place-items-center bg-muted">
-                                <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="flex flex-col justify-between h-full p-3">
-                              <h4 className="text-sm font-medium line-clamp-1">{m.title}</h4>
-                              <div className="mt-3 flex justify-center">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="rounded-full w-[140px]"
-                                  onClick={() => handleOpen(m._id)}
-                                >
-                                  See Details
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Nearby Services */}
-                  {!!details.nearbyservices?.length && (
-                    <section>
-                      <h3 className="mb-2 flex items-center gap-2 font-semibold">
-                        <Store className="h-4 w-4" /> Nearby Services
-                      </h3>
-                      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {details.nearbyservices.map((svc: any) => (
-                          <div key={svc._id} className="rounded-xl border p-3 bg-card">
-                            <h4 className="font-medium">{svc.title || svc.name}</h4>
-                            {svc.content?.brief && (
-                              <p className="text-xs text-muted-foreground line-clamp-3">
-                                {svc.content.brief.replace(/<[^>]+>/g, "").trim()}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-                </>
-              )
-            )}
-          </div>
-
-          {/* Bottom full-width Check-in button */}
-          <div className="border-t bg-background p-6">
-            <Button size="lg" className="w-full rounded-full flex items-center justify-center gap-2">
-              <MapPin className="h-5 w-5" />
-              {t("tourDetails.checkIn")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Monument Details Modal */}
+      <MonumentDetailModal
+        open={!!openId}
+        onClose={() => setOpenId(null)}
+        loading={modalLoading}
+        details={details}
+        onOpenAnother={handleOpen}
+      />
     </>
   );
 }
 
 /* ------------------------------------------------------------------ */
+function TimelineDot({ index, accent }: { index: number; accent: string }) {
+  return (
+    <div className="relative h-full w-[90px]">
+      <div className="absolute left-[52px] top-0 bottom-0 w-[3px] bg-transparent" />
+      <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div
+          className="grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ring-white/70 dark:ring-gray-800"
+          style={{ background: accent }}
+        >
+          <span className="text-[13px] font-semibold">{index + 1}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+function TravelConnector({
+  info,
+  time,
+  next,
+}: {
+  info?: { name?: TravelMode; title?: string };
+  time?: string;
+  next?: TourPoint;
+}) {
+  const travelMode: TravelMode = (info?.name as TravelMode) || "walk";
+  const travelTitle =
+    next?.pointtype === "lunch"
+      ? "Lunch Break"
+      : info?.title || capitalize(travelMode);
+  const icon =
+    next?.pointtype === "lunch" ? (
+      <UtensilsCrossed className="h-6 w-6 text-orange-500" />
+    ) : (
+      getTravelIcon(travelMode)
+    );
+
+  return (
+    <div className="flex items-center gap-3 text-base font-medium">
+      <div className="flex items-center gap-2">
+        {icon}
+        <span>{travelTitle}</span>
+      </div>
+      {time && <span className="text-sm opacity-80">• {time}</span>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+function getTravelIcon(mode?: TravelMode | string) {
+  const iconSize = "h-6 w-6";
+  switch (mode) {
+    case "walk":
+      return <Footprints className={iconSize} />;
+    case "train":
+      return <Train className={iconSize} />;
+    case "car":
+      return <Car className={iconSize} />;
+    default:
+      return <Footprints className={iconSize} />;
+  }
+}
+
+function capitalize(str?: string) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
+}
+
 function dynamicColor(i: number, type?: "start" | "place" | "end") {
-  if (type === "start") return "hsl(150 70% 40%)";
-  if (type === "end") return "hsl(0 75% 50%)";
-  return "hsl(30 90% 50%)";
+  if (type === "start") return "#10b981";
+  if (type === "end") return "#ef4444";
+  return "#f97316";
 }
