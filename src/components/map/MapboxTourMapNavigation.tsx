@@ -68,6 +68,10 @@ export default function MapboxTourMapNavigation({
   profile = "walking",
 }: Props) {
   const { locale, t } = useLocale();
+
+  // ✅ Narrow locale safely to "ja" | "en"
+  const mapLocale: "ja" | "en" = locale === "ja" ? "ja" : "en";
+
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -124,10 +128,10 @@ export default function MapboxTourMapNavigation({
 
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
       map.addControl(
-        new MapboxLanguage({ defaultLanguage: locale === "ja" ? "ja" : "en" })
+        new MapboxLanguage({ defaultLanguage: mapLocale })
       );
 
-      map.on("style.load", () => applyLabelLanguage(map, locale));
+      map.on("style.load", () => applyLabelLanguage(map, mapLocale));
 
       map.on("load", () => {
         if (disposed) return;
@@ -141,7 +145,7 @@ export default function MapboxTourMapNavigation({
         points.forEach((tp) => {
           const pos = normalizeLngLat(
             (tp.monument as any)?.location ?? (tp as any)?.location
-          ); // ✅ fixed from let → const
+          );
           if (!pos) return;
 
           const type = String(
@@ -253,12 +257,12 @@ export default function MapboxTourMapNavigation({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [tour, profile, locale]);
+  }, [tour, profile, mapLocale]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (map) applyLabelLanguage(map, locale);
-  }, [locale]);
+    if (map) applyLabelLanguage(map, mapLocale);
+  }, [mapLocale]);
 
   return (
     <div

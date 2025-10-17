@@ -20,7 +20,6 @@ export default function GlobalCheckinToasts() {
     if (queue.length === 0) return;
 
     for (const item of queue) {
-      // ✅ render via portal so it's outside Sonner layout & always viewport-centered
       toast.custom(
         (t) =>
           createPortal(
@@ -70,7 +69,7 @@ export default function GlobalCheckinToasts() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => toast.dismiss(t.id)}
+                    onClick={() => toast.dismiss(t)} // ✅ FIXED
                     className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   >
                     Close
@@ -83,7 +82,7 @@ export default function GlobalCheckinToasts() {
                       console.log("📘 Tour/Place Details:", item);
 
                       dispatch(confirm(String(item.id)));
-                      toast.dismiss(t.id);
+                      toast.dismiss(t); // ✅ FIXED
                       toast.success(`✅ Checked in at ${item.name}`, {
                         description: "Your visit has been recorded.",
                         duration: 4000,
@@ -100,11 +99,11 @@ export default function GlobalCheckinToasts() {
                 </div>
               </div>
             </div>,
-            document.body // ✅ attach directly to <body>
+            document.body
           ),
         {
           id: `checkin-${item.id}`,
-          duration: Infinity, // stays until closed
+          duration: Infinity,
         }
       );
     }

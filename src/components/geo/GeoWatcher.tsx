@@ -32,20 +32,30 @@ export default function GeoWatcher() {
   const getTourPlaces = () => {
     if (!tour?.tourpoints?.length) return [];
 
+    // Ensure only valid numeric lat/lng values are included
     return tour.tourpoints
       .filter((tp) => !!tp.monument?.location)
       .map((tp) => {
         const loc = tp.monument?.location;
-        let lat: number | null = null;
-        let lng: number | null = null;
+        let lat: number | undefined;
+        let lng: number | undefined;
 
         if (Array.isArray(loc) && loc.length >= 2) {
-          lng = typeof loc[0] === "number" ? loc[0] : null;
-          lat = typeof loc[1] === "number" ? loc[1] : null;
+          lng = typeof loc[0] === "number" ? loc[0] : undefined;
+          lat = typeof loc[1] === "number" ? loc[1] : undefined;
         } else if (typeof loc === "object" && loc !== null) {
-          lat = typeof (loc as any).lat === "number" ? (loc as any).lat : null;
-          lng = typeof (loc as any).lng === "number" ? (loc as any).lng : null;
+          lat =
+            typeof (loc as any).lat === "number"
+              ? (loc as any).lat
+              : undefined;
+          lng =
+            typeof (loc as any).lng === "number"
+              ? (loc as any).lng
+              : undefined;
         }
+
+        // Only return valid coordinates
+        if (lat === undefined || lng === undefined) return null;
 
         return {
           id: tp._id,
@@ -57,7 +67,7 @@ export default function GeoWatcher() {
           tourId: tour?._id ?? null,
         };
       })
-      .filter((p) => p.lat !== null && p.lng !== null);
+      .filter((p): p is NonNullable<typeof p> => p !== null);
   };
 
   /* ------------------ Start Watching ------------------ */
