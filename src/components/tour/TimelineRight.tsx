@@ -48,7 +48,6 @@ export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] 
   }, [loading, show, hide]);
 
   useEffect(() => {
-    // Add small delay to simulate loading transition
     const timer = setTimeout(() => setInitialLoading(false), 600);
     return () => clearTimeout(timer);
   }, [tourpoints]);
@@ -77,24 +76,18 @@ export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] 
       : activeMonument ?? active?.monument;
 
   /* ------------------------------------------------------------------ */
-  // 🧡 SHIMMER SKELETON LOADER
   if (initialLoading) {
     return (
       <div className="relative mx-auto w-full max-w-6xl animate-pulse">
-        {/* Single timeline line */}
         <div className="absolute left-[52px] top-0 bottom-0 w-[3px] bg-orange-300 rounded-full" />
-
         <ul className="space-y-16 md:space-y-20">
           {Array.from({ length: 3 }).map((_, i) => (
             <li key={i} className="grid grid-cols-[90px_1fr] gap-6 items-start">
-              {/* Circle */}
               <div className="relative h-full w-[90px]">
                 <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
                   <div className="h-14 w-14 rounded-full bg-gray-300 dark:bg-gray-700 ring-4 ring-white/70 dark:ring-gray-800" />
                 </div>
               </div>
-
-              {/* Card placeholder */}
               <div className="col-start-2 w-full h-64 rounded-2xl bg-gray-200/60 dark:bg-gray-800/50 shadow-sm" />
             </li>
           ))}
@@ -104,18 +97,17 @@ export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] 
   }
 
   /* ------------------------------------------------------------------ */
-  // 🟠 ACTUAL TIMELINE CONTENT
   return (
     <>
       <div className="relative mx-auto w-full max-w-6xl">
-        {/* Single vertical timeline line */}
         <div className="absolute left-[52px] top-0 bottom-0 w-[3px] bg-gradient-to-b from-orange-500 via-orange-400 to-orange-600 rounded-full" />
 
         <ul className="space-y-16 md:space-y-20">
           {tourpoints.map((p, i) => {
             const accent = dynamicColor(i, p.waypointtype);
+            const next = tourpoints[i + 1];
 
-            /* -------------------- START / END -------------------- */
+            {/* -------------------- START / END STATION -------------------- */ }
             if (
               (p.waypointtype === "start" || p.waypointtype === "end") &&
               p.pointtype === "station"
@@ -129,68 +121,91 @@ export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] 
               const hideBottom = p.waypointtype === "end";
 
               return (
-                <li
-                  key={p._id}
-                  className={`grid grid-cols-[90px_1fr] gap-6 ${hideBottom ? "pb-8" : "pb-10"
-                    }`}
-                >
-                  <div className="relative h-full w-[90px]">
-                    <div
-                      className={`absolute left-[52px] w-[3px] bg-orange-500 ${hideTop ? "top-[50%]" : "top-0"
-                        } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
-                    />
-                    <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <Fragment key={p._id}>
+                  <li
+                    className={`grid grid-cols-[90px_1fr] gap-6 ${hideBottom ? "pb-8" : "pb-10"
+                      }`}
+                  >
+                    <div className="relative h-full w-[90px]">
                       <div
-                        className={`grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ${colorClass}`}
-                      >
-                        <Train className="h-6 w-6" />
+                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${hideTop ? "top-[50%]" : "top-0"
+                          } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
+                      />
+                      <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <div
+                          className={`grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ${colorClass}`}
+                        >
+                          <Train className="h-6 w-6" />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col justify-center mt-1">
-                    <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-50 leading-tight">
-                      {p.name ||
-                        (p.waypointtype === "start"
-                          ? "Start Station"
-                          : "End Station")}
-                    </h3>
-                    {p.traveltime && (
-                      <p className="text-sm text-gray-400 dark:text-gray-400">
-                        Duration: {p.traveltime}
-                      </p>
-                    )}
-                  </div>
-                </li>
+                    {/* ✅ fixed text colors here */}
+                    <div className="flex flex-col justify-center mt-1">
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-50 leading-tight">
+                        {p.name ||
+                          (p.waypointtype === "start"
+                            ? "Start Station"
+                            : "End Station")}
+                      </h3>
+                      {p.traveltime && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Duration: {p.traveltime}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+
+                  {/* connector */}
+                  {next && (
+                    <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
+                      <TravelConnector
+                        info={next.traveltype}
+                        time={next.traveltime}
+                        next={next}
+                      />
+                    </li>
+                  )}
+                </Fragment>
               );
             }
 
             /* -------------------- LUNCH -------------------- */
             if (p.pointtype === "lunch") {
               return (
-                <li
-                  key={p._id}
-                  className="grid grid-cols-[90px_1fr] gap-6 items-start"
-                >
-                  <TimelineDot index={i} accent={accent} />
-                  <div className="col-start-2 p-6 rounded-2xl bg-yellow-50 dark:bg-zinc-800 border border-yellow-200 dark:border-zinc-700 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <UtensilsCrossed className="h-6 w-6 text-orange-500" />
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                        🍱 {p.name || "Lunch Break"}
-                      </h3>
+                <Fragment key={p._id}>
+                  <li className="grid grid-cols-[90px_1fr] gap-6 items-start">
+                    <TimelineDot index={i} accent={accent} />
+                    <div className="col-start-2 p-6 rounded-2xl bg-yellow-50 dark:bg-zinc-800 border border-yellow-200 dark:border-zinc-700 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <UtensilsCrossed className="h-6 w-6 text-orange-500" />
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                          🍱 {p.name || "Lunch Break"}
+                        </h3>
+                      </div>
+                      {p.traveltime && (
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                          Duration: {p.traveltime}
+                        </p>
+                      )}
                     </div>
-                    {p.traveltime && (
-                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                        Duration: {p.traveltime}
-                      </p>
-                    )}
-                  </div>
-                </li>
+                  </li>
+
+                  {/* connector after lunch if not last */}
+                  {next && (
+                    <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
+                      <TravelConnector
+                        info={next.traveltype}
+                        time={next.traveltime}
+                        next={next}
+                      />
+                    </li>
+                  )}
+                </Fragment>
               );
             }
 
-            /* -------------------- MONUMENT -------------------- */
+            /* -------------------- MONUMENT / PLACE -------------------- */
             const m = p.monument;
             return (
               <Fragment key={p._id}>
@@ -241,7 +256,9 @@ export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] 
                           )}
                           {m?.content?.extended && (
                             <p className="line-clamp-2 text-gray-500 dark:text-gray-400">
-                              {m.content.extended.replace(/<[^>]+>/g, "").trim()}
+                              {m.content.extended
+                                .replace(/<[^>]+>/g, "")
+                                .trim()}
                             </p>
                           )}
                         </div>
@@ -269,13 +286,13 @@ export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] 
                   </article>
                 </li>
 
-                {/* Connector between points */}
-                {i < tourpoints.length - 1 && (
+                {/* Connector to next point */}
+                {next && (
                   <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
                     <TravelConnector
-                      info={tourpoints[i + 1]?.traveltype}
-                      time={tourpoints[i + 1]?.traveltime}
-                      next={tourpoints[i + 1]}
+                      info={next.traveltype}
+                      time={next.traveltime}
+                      next={next}
                     />
                   </li>
                 )}

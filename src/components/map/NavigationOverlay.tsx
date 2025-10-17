@@ -1,34 +1,39 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Play, Pause, StopCircle, ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useGlobalLoader } from '@/providers/LoaderProvider';
-import { useAppDispatch, useAppSelector } from '@/lib/store/hook';
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Play, Pause, StopCircle, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
 import {
   selectNav,
-  start as navStart,
-  pause as navPause,
-  resume as navResume,
-  stop as navStop,
+  startTour as navStart,
+  pauseTour as navPause,
+  resumeTour as navResume,
+  stopTour as navStop,
   setProfile,
-} from '@/lib/store/slices/navSlice';
-import { resetAll as resetGeofence } from '@/lib/store/slices/geofenceSlice';
-import { setActiveTour } from '@/lib/store/slices/toursSlice';
-import { useLocale } from '@/providers/LocaleProvider';
+  setActiveTour,
+} from "@/lib/store/slices/navSlice";
+import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
+import { useLocale } from "@/providers/LocaleProvider";
+import { toast } from "sonner";
 
-/* -------------------- Props -------------------- */
+/* ----------------------------------------------------------------
+   🧩 Props
+---------------------------------------------------------------- */
 type Props = {
   tourId?: string;
-  defaultProfile?: 'walking' | 'driving' | 'cycling';
+  defaultProfile?: "walking" | "driving" | "cycling";
   autoStart?: boolean;
 };
 
-/* -------------------- Component -------------------- */
+/* ----------------------------------------------------------------
+   🚀 Component
+---------------------------------------------------------------- */
 export default function NavigationOverlay({
   tourId,
-  defaultProfile = 'walking',
+  defaultProfile = "walking",
   autoStart = false,
 }: Props) {
   const router = useRouter();
@@ -38,105 +43,145 @@ export default function NavigationOverlay({
   const { locale, t } = useLocale();
 
   /* ----------------------------------------------------------------
-     ✅ 1. Restore navigation state on reload
-     ---------------------------------------------------------------- */
+     ✅ 1. Restore state after reload or back
+  ---------------------------------------------------------------- */
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('navState');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.status === 'running' && parsed?.tourId) {
-          dispatch(setActiveTour(parsed.tourId));
-          dispatch(setProfile(parsed.profile ?? defaultProfile));
-          dispatch(navStart());
-        } else if (parsed?.status === 'paused' && parsed?.tourId) {
-          dispatch(setActiveTour(parsed.tourId));
-          dispatch(setProfile(parsed.profile ?? defaultProfile));
-          dispatch(navPause());
-        }
+      const saved = localStorage.getItem("navState");
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved);
+      if (!parsed?.tourId) return;
+
+      dispatch(setActiveTour(parsed.tourId));
+      dispatch(setProfile(parsed.profile ?? defaultProfile));
+
+      if (parsed.status === "running") {
+        dispatch(navStart(parsed.tourId));
+        toast.success("✅ Tour resumed");
+      } else if (parsed.status === "paused") {
+        dispatch(navPause());
       }
     } catch (err) {
-      console.warn('⚠️ Failed to restore nav state:', err);
+      console.warn("⚠️ Failed to restore nav state:", err);
     }
   }, [dispatch, defaultProfile]);
 
   /* ----------------------------------------------------------------
-     ✅ 2. Persist state changes (so reload keeps running)
-     ---------------------------------------------------------------- */
+     ✅ 2. Persist state in localStorage
+  ---------------------------------------------------------------- */
   useEffect(() => {
-    if (nav.status === 'idle') {
-      localStorage.removeItem('navState');
-    } else {
-      localStorage.setItem(
-        'navState',
-        JSON.stringify({
-          status: nav.status,
-          tourId: nav.activeTourId,
-          profile: nav.profile,
-        })
-      );
+    if (nav.status === "idle") {
+      localStorage.removeItem("navState");
+      return;
     }
+
+    localStorage.setItem(
+      "navState",
+      JSON.stringify({
+        status: nav.status,
+        tourId: nav.activeTourId,
+        profile: nav.profile,
+      })
+    );
   }, [nav.status, nav.activeTourId, nav.profile]);
 
   /* ----------------------------------------------------------------
-     ✅ 3. Optional Auto Start when entering page
-     ---------------------------------------------------------------- */
+     ✅ 3. Auto-start for tour detail auto play
+  ---------------------------------------------------------------- */
   useEffect(() => {
-    if (autoStart && nav.status === 'idle' && tourId) {
+    if (autoStart && nav.status === "idle" && tourId) {
       dispatch(setActiveTour(tourId));
       dispatch(setProfile(defaultProfile));
-      dispatch(navStart());
+      dispatch(navStart(tourId));
     }
   }, [autoStart, nav.status, tourId, defaultProfile, dispatch]);
 
   /* ----------------------------------------------------------------
-     ✅ 4. Control Handlers
-     ---------------------------------------------------------------- */
+     ✅ 4. Auto pause/resume on tab visibility change
+  ---------------------------------------------------------------- */
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const saved = localStorage.getItem("navState");
+      if (document.visibilityState === "hidden" && nav.status === "running") {
+        dispatch(navPause());
+        localStorage.setItem(
+          "navState",
+          JSON.stringify({
+            status: "paused",
+            tourId: nav.activeTourId,
+            profile: nav.profile,
+          })
+        );
+        toast.warning("⏸️ Tour paused (tab inactive)");
+      } else if (document.visibilityState === "visible") {
+        const parsed = saved ? JSON.parse(saved) : null;
+        if (parsed?.status === "paused" && parsed?.tourId) {
+          dispatch(navResume());
+          toast.success("▶️ Tour resumed");
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [dispatch, nav.status, nav.activeTourId, nav.profile]);
+
+  /* ----------------------------------------------------------------
+     ✅ 5. Control handlers
+  ---------------------------------------------------------------- */
   const handleStart = () => {
+    if (nav.status === "running") return;
     if (tourId) dispatch(setActiveTour(tourId));
     dispatch(setProfile(defaultProfile));
-    dispatch(navStart());
+    dispatch(navStart(tourId));
+    toast.success("🎯 Tour started");
   };
 
   const handlePauseResume = () => {
-    if (nav.status === 'running') {
+    if (nav.status === "running") {
       dispatch(navPause());
-    } else if (nav.status === 'paused') {
+      toast.warning("⏸️ Tour paused");
+    } else if (nav.status === "paused") {
       dispatch(navResume());
+      toast.success("▶️ Tour resumed");
     }
   };
 
   const handleStop = () => {
     dispatch(navStop());
     dispatch(resetGeofence());
-    localStorage.removeItem('navState');
+    localStorage.removeItem("navState");
+    toast.info("🛑 Tour stopped");
   };
 
   const handleBack = () => {
     show();
     dispatch(navStop());
     dispatch(resetGeofence());
-    localStorage.removeItem('navState');
+    localStorage.removeItem("navState");
     requestAnimationFrame(() => router.back());
   };
 
   /* ----------------------------------------------------------------
-     ✅ 5. Localized labels
-     ---------------------------------------------------------------- */
+     ✅ 6. Localized labels
+  ---------------------------------------------------------------- */
   const labels = {
-    back: t('Back') || (locale === 'ja' ? '戻る' : 'Back'),
-    start: t('Start') || (locale === 'ja' ? '開始' : 'Start'),
-    pause: t('Pause') || (locale === 'ja' ? '一時停止' : 'Pause'),
-    resume: t('Resume') || (locale === 'ja' ? '再開' : 'Resume'),
-    stop: t('Stop') || (locale === 'ja' ? '停止' : 'Stop'),
+    back: t("Back") || (locale === "ja" ? "戻る" : "Back"),
+    start: t("Start") || (locale === "ja" ? "開始" : "Start"),
+    pause: t("Pause") || (locale === "ja" ? "一時停止" : "Pause"),
+    resume: t("Resume") || (locale === "ja" ? "再開" : "Resume"),
+    stop: t("Stop") || (locale === "ja" ? "停止" : "Stop"),
   };
 
   /* ----------------------------------------------------------------
-     ✅ 6. Render UI
-     ---------------------------------------------------------------- */
+     ✅ 7. Render UI
+  ---------------------------------------------------------------- */
   return (
     <>
-      {/* 🔙 Back Button */}
+      {/* 🔙 Back button */}
       <div className="fixed left-3 top-3 z-[60]">
         <Button
           size="icon"
@@ -152,7 +197,8 @@ export default function NavigationOverlay({
 
       {/* 🎯 Bottom Navigation Controls */}
       <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center gap-3">
-        {nav.status === 'idle' && (
+        {/* 🚀 Idle → show Start */}
+        {nav.status === "idle" && (
           <Button
             size="lg"
             className="pointer-events-auto rounded-full px-6 shadow-lg bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400"
@@ -163,12 +209,13 @@ export default function NavigationOverlay({
           </Button>
         )}
 
-        {nav.status === 'running' && (
+        {/* 🟢 Running → show Pause + Stop */}
+        {nav.status === "running" && (
           <>
             <Button
               size="lg"
               variant="outline"
-              className="pointer-events-auto rounded-full px-6 shadow-lg bg-white/80 dark:bg-black/40 backdrop-blur-sm"
+              className="pointer-events-auto rounded-full px-6 shadow-lg bg-white/90 dark:bg-black/40 backdrop-blur-sm"
               onClick={handlePauseResume}
               aria-label={labels.pause}
             >
@@ -186,7 +233,8 @@ export default function NavigationOverlay({
           </>
         )}
 
-        {nav.status === 'paused' && (
+        {/* 🟠 Paused → show Resume + Stop */}
+        {nav.status === "paused" && (
           <>
             <Button
               size="lg"

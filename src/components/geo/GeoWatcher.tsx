@@ -1,153 +1,137 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useAppDispatch, useAppSelector } from '@/lib/store/hook';
-import { selectNav } from '@/lib/store/slices/navSlice';
-import { locationTick } from '@/lib/store/slices/geofenceSlice';
-import { makeSelectTourPreferringDetail } from '@/lib/store/slices/touristSlice';
-import { toast } from 'sonner';
+import { useEffect, useMemo, useRef } from "react";
+import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
+import { selectNav, pauseTour as navPause, resumeTour as navResume } from "@/lib/store/slices/navSlice";
+import { locationTick } from "@/lib/store/slices/geofenceSlice";
+import { makeSelectTourPreferringDetail } from "@/lib/store/slices/touristSlice";
+import { toast } from "sonner";
 
-/* -------------------- Types -------------------- */
-type NormalizedPlace = {
-    id: string;
-    name: string;
-    lat: number;
-    lng: number;
-    radius: number;
-    blurb?: string;
-};
+const DEFAULT_RADIUS = 5000;
+const UPDATE_INTERVAL = 1500;
+const GEO_TIMEOUT = 30000;
+const RETRY_DELAY = 5000;
 
-/* -------------------- Constants -------------------- */
-const DEFAULT_RADIUS = 500; // meters if monument.georadius is not defined
-const TICK_THROTTLE_MS = 1500; // reduce battery drain
-
-/* -------------------- Component -------------------- */
 export default function GeoWatcher() {
-    const dispatch = useAppDispatch();
-    const nav = useAppSelector(selectNav);
+  const dispatch = useAppDispatch();
+  const nav = useAppSelector(selectNav);
+  const selectById = useMemo(() => makeSelectTourPreferringDetail(), []);
+  const tour = useAppSelector((s) =>
+    nav.activeTourId ? selectById(s, nav.activeTourId) : null
+  );
 
-    // stable selector instance for current tour
-    const selectById = useMemo(() => makeSelectTourPreferringDetail(), []);
-    const tour = useAppSelector((state) =>
-        nav.activeTourId ? selectById(state, nav.activeTourId) : null
+  const watchIdRef = useRef<number | null>(null);
+  const lastSentRef = useRef<number>(0);
+  const retryTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const startWatching = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation not supported by this browser.");
+      return;
+    }
+
+    const places =
+      tour?.tourpoints
+        ?.filter((tp) => tp.monument?.location)
+        .map((tp) => {
+          const loc = tp.monument!.location!;
+          const lat = Array.isArray(loc) ? loc[1] : loc.lat!;
+          const lng = Array.isArray(loc) ? loc[0] : loc.lng!;
+          return {
+            id: tp._id,
+            name: tp.monument?.title ?? tp.name ?? "Unknown",
+            lat,
+            lng,
+            radius: tp.monument?.georadius ?? DEFAULT_RADIUS,
+            blurb: tp.monument?.content?.brief ?? "",
+            tourId: tour?._id ?? null,
+          };
+        }) ?? [];
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const now = Date.now();
+        if (now - lastSentRef.current < UPDATE_INTERVAL) return;
+        lastSentRef.current = now;
+
+        const { latitude, longitude } = pos.coords;
+        localStorage.setItem("last_known_location", JSON.stringify({ lat: latitude, lng: longitude }));
+
+        dispatch(locationTick({ lat: latitude, lng: longitude, places, tourId: tour?._id ?? null }));
+      },
+      (err) => {
+        console.error("❌ Geolocation error:", err);
+        if (err.code === err.TIMEOUT) {
+          toast.warning("⏳ Location timeout, retrying...");
+          retryTimer.current = setTimeout(startWatching, RETRY_DELAY);
+        }
+      },
+      { enableHighAccuracy: false, timeout: GEO_TIMEOUT, maximumAge: 10000 }
     );
+  };
 
-    const watchIdRef = useRef<number | null>(null);
-    const lastSentRef = useRef<number>(0);
+  const stopWatching = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (retryTimer.current) {
+      clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
+  };
 
-    const clearWatch = useCallback(() => {
-        if (watchIdRef.current != null) {
-            navigator.geolocation.clearWatch(watchIdRef.current);
-            watchIdRef.current = null;
-        }
-    }, []);
+  /* ✅ Visibility handling: Pause when hidden, resume when visible */
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden" && nav.status === "running") {
+        console.log("🟠 App hidden → auto-pausing tour");
+        dispatch(navPause());
+        stopWatching();
+      } else if (document.visibilityState === "visible" && nav.status === "paused") {
+        console.log("🟢 App visible → resuming tour tracking");
+        dispatch(navResume());
+        startWatching();
+      }
+    };
 
-    /* -------------------- Normalize Tourpoints → Places -------------------- */
-    const places: NormalizedPlace[] = useMemo(() => {
-        if (!tour?.tourpoints?.length) return [];
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [nav.status, dispatch]);
 
-        return tour.tourpoints.reduce<NormalizedPlace[]>((acc, tp, i) => {
-            const loc = tp.monument?.location;
-            let lat: number | null = null;
-            let lng: number | null = null;
+  /* ✅ Watcher lifecycle */
+  useEffect(() => {
+    if (nav.status !== "running" || !tour?.tourpoints?.length) {
+      stopWatching();
+      return;
+    }
 
-            if (Array.isArray(loc)) {
-                lng = Number(loc[0]);
-                lat = Number(loc[1]);
-            } else if (loc && typeof loc === 'object') {
-                lat = loc.lat ?? null;
-                lng = loc.lng ?? null;
-            }
+    startWatching();
+    return stopWatching;
+  }, [nav.status, tour]);
 
-            if (lat == null || lng == null) return acc;
+  /* ✅ Restore last known position on load */
+  useEffect(() => {
+    const saved = localStorage.getItem("last_known_location");
+    if (saved && nav.status === "running") {
+      const { lat, lng } = JSON.parse(saved);
+      const places =
+        tour?.tourpoints?.map((tp) => ({
+          id: tp._id,
+          name: tp.monument?.title ?? tp.name ?? "Unknown",
+          lat: Array.isArray(tp.monument?.location)
+            ? tp.monument!.location![1]
+            : tp.monument?.location?.lat!,
+          lng: Array.isArray(tp.monument?.location)
+            ? tp.monument!.location![0]
+            : tp.monument?.location?.lng!,
+          radius: tp.monument?.georadius ?? DEFAULT_RADIUS,
+          blurb: tp.monument?.content?.brief ?? "",
+          tourId: tour?._id ?? null,
+        })) ?? [];
+      dispatch(locationTick({ lat, lng, places, tourId: tour?._id ?? null }));
+    }
+  }, [nav.status, tour]);
 
-            // ✅ use monument.georadius if available, else fallback
-            const radius =
-                tp.monument?.georadius && tp.monument.georadius > 0
-                    ? tp.monument.georadius
-                    : DEFAULT_RADIUS;
-
-            acc.push({
-                id: tp._id ?? String(i),
-                name: tp.monument?.title ?? tp.name ?? `Point ${i + 1}`,
-                lat,
-                lng,
-                radius,
-                blurb: tp.monument?.content?.brief ?? undefined,
-            });
-
-            return acc;
-        }, []);
-    }, [tour]);
-
-    /* -------------------- Start / Stop GPS Watch -------------------- */
-    useEffect(() => {
-        // Only run when navigation is running and we have places
-        if (nav.status !== 'running' || !tour || places.length === 0) {
-            clearWatch();
-            return;
-        }
-
-        if (!('geolocation' in navigator)) {
-            toast.error('Geolocation not supported in this browser.');
-            return;
-        }
-
-        try {
-            watchIdRef.current = navigator.geolocation.watchPosition(
-                (pos) => {
-                    const now = Date.now();
-                    if (now - lastSentRef.current < TICK_THROTTLE_MS) return;
-                    lastSentRef.current = now;
-
-                    const { latitude, longitude } = pos.coords;
-
-                    // 🛰️ Fire a geofence location tick
-                    dispatch(
-                        locationTick({
-                            lat: latitude,
-                            lng: longitude,
-                            places: places.map((p) => ({
-                                id: p.id,
-                                name: p.name,
-                                lat: p.lat,
-                                lng: p.lng,
-                                radius: p.radius ?? DEFAULT_RADIUS,
-                                blurb: p.blurb,
-                                tourId: nav.activeTourId ?? null,
-                            })),
-                            tourId: nav.activeTourId ?? null,
-                        })
-                    );
-                },
-                (err) => {
-                    // Handle permission/timeout/etc gracefully
-                    if (err.code === err.PERMISSION_DENIED) {
-                        toast.error('Location permission denied. Navigation cannot run in background.');
-                    } else {
-                        toast.error(`Geolocation error: ${err.message}`);
-                    }
-                    clearWatch();
-                },
-                {
-                    enableHighAccuracy: true,
-                    maximumAge: 2000,
-                    timeout: 10000,
-                }
-            );
-        } catch (e: any) {
-            toast.error(`Failed to start location watch: ${e?.message || e}`);
-        }
-
-        return () => clearWatch();
-    }, [dispatch, nav.status, nav.activeTourId, places, tour, clearWatch]);
-
-    /* -------------------- Pause / Stop Cleanup -------------------- */
-    useEffect(() => {
-        if (nav.status === 'paused' || nav.status === 'idle') {
-            clearWatch();
-        }
-    }, [nav.status, clearWatch]);
-
-    return null;
+  return null;
 }

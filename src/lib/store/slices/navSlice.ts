@@ -1,50 +1,53 @@
-// src/lib/store/slices/navSlice.ts
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RootState } from '@/lib/store';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { RootState } from "../index";
 
-export type TravelProfile = 'walking' | 'driving' | 'cycling';
-export type NavStatus = 'idle' | 'running' | 'paused';
-
-type NavState = {
-  status: NavStatus;
-  profile: TravelProfile;
-  activeTourId?: string | null;
-};
+export interface NavState {
+  activeTourId: string | null;
+  status: "idle" | "running" | "paused" | "stopped";
+  profile: "walking" | "driving" | "cycling";
+}
 
 const initialState: NavState = {
-  status: 'idle',
-  profile: 'walking',
   activeTourId: null,
+  status: "idle",
+  profile: "walking",
 };
 
 const navSlice = createSlice({
-  name: 'nav',
+  name: "nav",
   initialState,
   reducers: {
-    setActiveTour(state, action: PayloadAction<string | null | undefined>) {
-      state.activeTourId = action.payload || null;
+    setActiveTour(state, action: PayloadAction<string | null>) {
+      state.activeTourId = action.payload;
     },
-    setProfile(state, action: PayloadAction<TravelProfile>) {
+    setProfile(state, action: PayloadAction<"walking" | "driving" | "cycling">) {
       state.profile = action.payload;
     },
-    start(state) {
-      state.status = 'running';
+    startTour(state, action: PayloadAction<string | undefined>) {
+      state.status = "running";
+      if (action.payload) state.activeTourId = action.payload;
     },
-    pause(state) {
-      if (state.status === 'running') state.status = 'paused';
+    pauseTour(state) {
+      state.status = "paused";
     },
-    resume(state) {
-      if (state.status === 'paused') state.status = 'running';
+    resumeTour(state) {
+      if (state.activeTourId) state.status = "running";
     },
-    stop(state) {
-      state.status = 'idle';
+    stopTour(state) {
+      state.status = "idle";
       state.activeTourId = null;
     },
   },
 });
 
-export const { setActiveTour, setProfile, start, pause, resume, stop } = navSlice.actions;
+export const {
+  setActiveTour,
+  setProfile,
+  startTour,
+  pauseTour,
+  resumeTour,
+  stopTour,
+} = navSlice.actions;
 
-export const selectNav = (s: RootState) => s.nav as NavState;
-
+export const selectNav = (s: RootState) => s.nav;
 export default navSlice.reducer;

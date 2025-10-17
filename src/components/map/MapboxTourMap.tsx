@@ -7,6 +7,7 @@ import MapboxLanguage from "@mapbox/mapbox-gl-language";
 import { useLocale } from "@/providers/LocaleProvider";
 import type { Tour, TourPoint } from "@/lib/store/slices/touristSlice";
 
+/* -------------------- props -------------------- */
 type Props = {
   tour: Tour;
   height?: number | string;
@@ -92,6 +93,7 @@ function sanitizeRichHtml(input?: string) {
   });
   return wrapper.innerHTML;
 }
+
 function tidyParagraphs(html: string) {
   return html.replace(/<p>\s*<\/p>/g, "").replace(/(\s*<br>\s*){3,}/g, "<br><br>");
 }
@@ -107,7 +109,7 @@ function applyLabelLanguage(map: mapboxgl.Map, locale: "ja" | "en") {
       try {
         map.setLayoutProperty(layer.id, "text-field", prop);
       } catch {
-        /* some layers may be immutable; ignore */
+        /* ignore */
       }
     }
   }
@@ -132,6 +134,7 @@ export default function MapboxTourMap({
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
   };
+
   const removeRouteLayers = (map: mapboxgl.Map) => {
     ["custom-route-line", "custom-route-outline"].forEach((id) => {
       if (map.getLayer(id)) map.removeLayer(id);
@@ -140,7 +143,7 @@ export default function MapboxTourMap({
   };
 
   useEffect(() => {
-    const disposed = false; // ✅ fixed prefer-const
+    let disposed = false;
 
     (async () => {
       const mapboxglMod = await import("mapbox-gl");
@@ -172,11 +175,9 @@ export default function MapboxTourMap({
       mapRef.current = map;
 
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
-
-      const langCtrl = new MapboxLanguage({
-        defaultLanguage: locale === "ja" ? "ja" : "en",
-      });
-      map.addControl(langCtrl);
+      map.addControl(
+        new MapboxLanguage({ defaultLanguage: locale === "ja" ? "ja" : "en" })
+      );
 
       map.on("style.load", () => {
         applyLabelLanguage(map, locale === "ja" ? "ja" : "en");
@@ -185,16 +186,44 @@ export default function MapboxTourMap({
       map.on("load", () => {
         if (disposed) return;
         setLoading(false);
-
-        /* ---------- A) TOURPOINT MARKERS ---------- */
         clearMarkers();
-        const pointPositions: [number, number][] = [];
 
         const points = (tour.tourpoints || []) as TourPoint[];
+        const pointPositions: [number, number][] = [];
         let ordinal = 0;
 
+        /* -------- A) detect start & end positions -------- */
+        const startPoint = points.find(
+          (tp) =>
+            String((tp as any).waypointtype ?? (tp as any).pointtype)
+              .toLowerCase()
+              .trim() === "start"
+        );
+        const endPoint = points.find(
+          (tp) =>
+            String((tp as any).waypointtype ?? (tp as any).pointtype)
+              .toLowerCase()
+              .trim() === "end"
+        );
+
+        const startPos = normalizeLngLat(
+          (startPoint?.monument as any)?.location ??
+          (startPoint as any)?.location
+        );
+        const endPos = normalizeLngLat(
+          (endPoint?.monument as any)?.location ??
+          (endPoint as any)?.location
+        );
+
+        const samePlace =
+          !!startPos &&
+          !!endPos &&
+          Math.abs(startPos[0] - endPos[0]) < 0.00001 &&
+          Math.abs(startPos[1] - endPos[1]) < 0.00001;
+
+        /* -------- B) Render markers -------- */
         points.forEach((tp: TourPoint) => {
-          const pos = normalizeLngLat(
+          let pos = normalizeLngLat(
             (tp?.monument as any)?.location ?? (tp as any)?.location
           );
           if (!pos) return;
@@ -202,6 +231,12 @@ export default function MapboxTourMap({
           const type = String((tp as any).waypointtype ?? (tp as any).pointtype ?? "")
             .toLowerCase()
             .trim();
+
+          // ✅ Slight offset if start & end share same location
+          if (samePlace && type === "end") {
+            pos = [pos[0] + 0.0001, pos[1] + 0.0001];
+          }
+
           const isStart = type === "start";
           const isEnd = type === "end";
 
@@ -248,13 +283,12 @@ export default function MapboxTourMap({
               ${img ? `<div class="tour-popup__media">${img}</div>` : ""}
               <div class="tour-popup__body">
                 <div class="tour-popup__title">${escapeText(titleLabel)}</div>
-                ${
-                  chips.length
-                    ? `<div class="tour-popup__chips">${chips
-                        .map((c) => `<span class="tour-chip">${c}</span>`)
-                        .join("")}</div>`
-                    : ""
-                }
+                ${chips.length
+              ? `<div class="tour-popup__chips">${chips
+                .map((c) => `<span class="tour-chip">${c}</span>`)
+                .join("")}</div>`
+              : ""
+            }
                 <div class="tour-popup__brief">${brief}</div>
               </div>
             </div>
@@ -279,6 +313,7 @@ export default function MapboxTourMap({
           pointPositions.push(pos);
         });
 
+        /* -------- C) Fit map to bounds -------- */
         let bounds: mapboxgl.LngLatBounds | null = null;
         if (pointPositions.length) {
           bounds = pointPositions.reduce(
@@ -336,16 +371,6 @@ export default function MapboxTourMap({
 
         if (bounds) {
           map.fitBounds(bounds, { padding: 56, duration: 800 });
-        } else if (pointPositions.length) {
-          map.fitBounds(
-            pointPositions.reduce(
-              (b, c) => b.extend(c),
-              new mapboxgl.LngLatBounds(pointPositions[0], pointPositions[0])
-            ),
-            { padding: 56, duration: 800 }
-          );
-        } else {
-          map.setCenter(firstPoint);
         }
 
         setTimeout(() => map.resize(), 200);
@@ -353,6 +378,7 @@ export default function MapboxTourMap({
     })().catch((e) => setError(String(e)));
 
     return () => {
+      disposed = true;
       try {
         clearMarkers();
         const map = mapRef.current;
@@ -360,15 +386,14 @@ export default function MapboxTourMap({
           removeRouteLayers(map);
           map.remove();
         }
-      } catch {}
+      } catch { }
       mapRef.current = null;
     };
   }, [tour, profile, locale]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
-    applyLabelLanguage(map, locale === "ja" ? "ja" : "en");
+    if (map) applyLabelLanguage(map, locale === "ja" ? "ja" : "en");
   }, [locale]);
 
   return (
