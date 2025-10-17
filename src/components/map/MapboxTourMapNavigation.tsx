@@ -89,14 +89,17 @@ export default function MapboxTourMapNavigation({
 
   useEffect(() => {
     let disposed = false;
+
     (async () => {
       const mapboxglMod = await import("mapbox-gl");
       const mapboxgl = mapboxglMod.default;
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
       if (!token) {
         setError("Missing NEXT_PUBLIC_MAPBOX_TOKEN");
         return;
       }
+
       mapboxgl.accessToken = token;
 
       const firstPoint =
@@ -116,6 +119,7 @@ export default function MapboxTourMapNavigation({
         zoom: 13,
         antialias: true,
       });
+
       mapRef.current = map;
 
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
@@ -135,9 +139,9 @@ export default function MapboxTourMapNavigation({
 
         let ordinal = 0;
         points.forEach((tp) => {
-          let pos = normalizeLngLat(
+          const pos = normalizeLngLat(
             (tp.monument as any)?.location ?? (tp as any)?.location
-          );
+          ); // ✅ fixed from let → const
           if (!pos) return;
 
           const type = String(
@@ -147,11 +151,7 @@ export default function MapboxTourMapNavigation({
           const isStart = type === "start";
           const isEnd = type === "end";
 
-          const label = isStart
-            ? "S"
-            : isEnd
-            ? "E"
-            : String(++ordinal);
+          const label = isStart ? "S" : isEnd ? "E" : String(++ordinal);
 
           const pin = makeNumberedPin(label, colorFor(type));
           const marker = new mapboxgl.Marker({ element: pin })
@@ -205,11 +205,15 @@ export default function MapboxTourMapNavigation({
           }
         }
 
-        if (positions.length)
-          map.fitBounds(positions.reduce(
-            (b, c) => b.extend(c),
-            new mapboxgl.LngLatBounds(positions[0], positions[0])
-          ), { padding: 56, duration: 800 });
+        if (positions.length) {
+          map.fitBounds(
+            positions.reduce(
+              (b, c) => b.extend(c),
+              new mapboxgl.LngLatBounds(positions[0], positions[0])
+            ),
+            { padding: 56, duration: 800 }
+          );
+        }
 
         // 🛰️ Watch user position
         if ("geolocation" in navigator) {

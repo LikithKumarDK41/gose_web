@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
-import { selectNav, pauseTour as navPause, resumeTour as navResume } from "@/lib/store/slices/navSlice";
+import {
+  selectNav,
+  pauseTour as navPause,
+  resumeTour as navResume,
+} from "@/lib/store/slices/navSlice";
 import { locationTick } from "@/lib/store/slices/geofenceSlice";
 import { makeSelectTourPreferringDetail } from "@/lib/store/slices/touristSlice";
 import { toast } from "sonner";
@@ -24,29 +28,46 @@ export default function GeoWatcher() {
   const lastSentRef = useRef<number>(0);
   const retryTimer = useRef<NodeJS.Timeout | null>(null);
 
+  /* ------------------ Helpers ------------------ */
+  const getTourPlaces = () => {
+    if (!tour?.tourpoints?.length) return [];
+
+    return tour.tourpoints
+      .filter((tp) => !!tp.monument?.location)
+      .map((tp) => {
+        const loc = tp.monument?.location;
+        let lat: number | null = null;
+        let lng: number | null = null;
+
+        if (Array.isArray(loc) && loc.length >= 2) {
+          lng = typeof loc[0] === "number" ? loc[0] : null;
+          lat = typeof loc[1] === "number" ? loc[1] : null;
+        } else if (typeof loc === "object" && loc !== null) {
+          lat = typeof (loc as any).lat === "number" ? (loc as any).lat : null;
+          lng = typeof (loc as any).lng === "number" ? (loc as any).lng : null;
+        }
+
+        return {
+          id: tp._id,
+          name: tp.monument?.title || tp.name || "Unknown",
+          lat,
+          lng,
+          radius: tp.monument?.georadius ?? DEFAULT_RADIUS,
+          blurb: tp.monument?.content?.brief ?? "",
+          tourId: tour?._id ?? null,
+        };
+      })
+      .filter((p) => p.lat !== null && p.lng !== null);
+  };
+
+  /* ------------------ Start Watching ------------------ */
   const startWatching = () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation not supported by this browser.");
       return;
     }
 
-    const places =
-      tour?.tourpoints
-        ?.filter((tp) => tp.monument?.location)
-        .map((tp) => {
-          const loc = tp.monument!.location!;
-          const lat = Array.isArray(loc) ? loc[1] : loc.lat!;
-          const lng = Array.isArray(loc) ? loc[0] : loc.lng!;
-          return {
-            id: tp._id,
-            name: tp.monument?.title ?? tp.name ?? "Unknown",
-            lat,
-            lng,
-            radius: tp.monument?.georadius ?? DEFAULT_RADIUS,
-            blurb: tp.monument?.content?.brief ?? "",
-            tourId: tour?._id ?? null,
-          };
-        }) ?? [];
+    const places = getTourPlaces();
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -55,9 +76,19 @@ export default function GeoWatcher() {
         lastSentRef.current = now;
 
         const { latitude, longitude } = pos.coords;
-        localStorage.setItem("last_known_location", JSON.stringify({ lat: latitude, lng: longitude }));
+        localStorage.setItem(
+          "last_known_location",
+          JSON.stringify({ lat: latitude, lng: longitude })
+        );
 
-        dispatch(locationTick({ lat: latitude, lng: longitude, places, tourId: tour?._id ?? null }));
+        dispatch(
+          locationTick({
+            lat: latitude,
+            lng: longitude,
+            places,
+            tourId: tour?._id ?? null,
+          })
+        );
       },
       (err) => {
         console.error("❌ Geolocation error:", err);
@@ -70,8 +101,9 @@ export default function GeoWatcher() {
     );
   };
 
+  /* ------------------ Stop Watching ------------------ */
   const stopWatching = () => {
-    if (watchIdRef.current) {
+    if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
@@ -81,14 +113,17 @@ export default function GeoWatcher() {
     }
   };
 
-  /* ✅ Visibility handling: Pause when hidden, resume when visible */
+  /* ✅ Pause/resume on visibility change */
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "hidden" && nav.status === "running") {
         console.log("🟠 App hidden → auto-pausing tour");
         dispatch(navPause());
         stopWatching();
-      } else if (document.visibilityState === "visible" && nav.status === "paused") {
+      } else if (
+        document.visibilityState === "visible" &&
+        nav.status === "paused"
+      ) {
         console.log("🟢 App visible → resuming tour tracking");
         dispatch(navResume());
         startWatching();
@@ -96,10 +131,11 @@ export default function GeoWatcher() {
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
   }, [nav.status, dispatch]);
 
-  /* ✅ Watcher lifecycle */
+  /* ✅ Lifecycle for tour running state */
   useEffect(() => {
     if (nav.status !== "running" || !tour?.tourpoints?.length) {
       stopWatching();
@@ -112,24 +148,26 @@ export default function GeoWatcher() {
 
   /* ✅ Restore last known position on load */
   useEffect(() => {
+    if (nav.status !== "running") return;
+
     const saved = localStorage.getItem("last_known_location");
-    if (saved && nav.status === "running") {
+    if (!saved) return;
+
+    try {
       const { lat, lng } = JSON.parse(saved);
-      const places =
-        tour?.tourpoints?.map((tp) => ({
-          id: tp._id,
-          name: tp.monument?.title ?? tp.name ?? "Unknown",
-          lat: Array.isArray(tp.monument?.location)
-            ? tp.monument!.location![1]
-            : tp.monument?.location?.lat!,
-          lng: Array.isArray(tp.monument?.location)
-            ? tp.monument!.location![0]
-            : tp.monument?.location?.lng!,
-          radius: tp.monument?.georadius ?? DEFAULT_RADIUS,
-          blurb: tp.monument?.content?.brief ?? "",
-          tourId: tour?._id ?? null,
-        })) ?? [];
-      dispatch(locationTick({ lat, lng, places, tourId: tour?._id ?? null }));
+      if (typeof lat === "number" && typeof lng === "number") {
+        const places = getTourPlaces();
+        dispatch(
+          locationTick({
+            lat,
+            lng,
+            places,
+            tourId: tour?._id ?? null,
+          })
+        );
+      }
+    } catch (e) {
+      console.warn("Invalid saved location in localStorage:", e);
     }
   }, [nav.status, tour]);
 
