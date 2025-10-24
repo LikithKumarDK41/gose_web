@@ -1,28 +1,58 @@
 // src/lib/store/index.ts
-import { configureStore } from '@reduxjs/toolkit';
-import toursReducer from './slices/toursSlice';
-import navReducer from './slices/navSlice';
-import geofenceReducer from './slices/geofenceSlice'; // ⬅️ add
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import storage from "redux-persist/lib/storage"; // defaults to localStorage
+import {
+  persistReducer,
+  persistStore,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
+} from "redux-persist";
+
+import toursReducer from "./slices/toursSlice";
+import navReducer from "./slices/navSlice";
+import geofenceReducer from "./slices/geofenceSlice";
 import authReducer from "./slices/authSlice";
 import touristReducer from "./slices/touristSlice";
 import globalReducer from "./slices/globalSlice";
 
+// ✅ combine all reducers
+const rootReducer = combineReducers({
+  tours: toursReducer,
+  nav: navReducer,
+  geofence: geofenceReducer,
+  auth: authReducer,
+  tourist: touristReducer,
+  global: globalReducer,
+});
+
+// ✅ configure persistence
+const persistConfig = {
+  key: "root",
+  storage,
+  whitelist: ["nav", "geofence", "tourist"], // only persist these slices
+};
+
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+// ✅ create the store
 export const store = configureStore({
-  reducer: {
-    tours: toursReducer,
-    nav: navReducer,
-    geofence: geofenceReducer,
-    auth: authReducer,
-    tourist: touristReducer,
-    global: globalReducer,
-  },
-  // (optional) enable Redux DevTools and serializable checks
-  middleware: (getDefault) =>
-    getDefault({
-      serializableCheck: false,
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+      },
     }),
 });
 
+// ✅ create persistor
+export const persistor = persistStore(store);
+
+// ✅ export types
 export type AppStore = typeof store;
-export type RootState = ReturnType<AppStore['getState']>;
-export type AppDispatch = AppStore['dispatch'];
+export type RootState = ReturnType<AppStore["getState"]>;
+export type AppDispatch = AppStore["dispatch"];

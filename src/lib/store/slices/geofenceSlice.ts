@@ -20,20 +20,10 @@ export interface QueueItem extends GeofencePlace {
 }
 
 interface GeofenceState {
-  /** Pending check-ins to show as toasts */
   queue: QueueItem[];
-
-  /** Track which locations are inside or armed */
-  inside: Record<string, { armed: boolean; tourId?: string | null }>;
-
-  /** Last GPS coordinate */
+  inside: Record<string, boolean>;
   last: { lat: number; lng: number } | null;
-
-  /** Record of monuments the user has already checked into */
-  checked: Record<string, boolean>;
-
-  /** Default factors (used to re-arm geofence) */
-  defaults: { rearmFactor: number };
+  checked: Record<string, boolean>; // ✅ store permanently entered points
 }
 
 /* ----------------------------------------------------------------
@@ -44,11 +34,10 @@ const initialState: GeofenceState = {
   inside: {},
   last: null,
   checked: {},
-  defaults: { rearmFactor: 1.25 },
 };
 
 /* ----------------------------------------------------------------
-   🧮 Helpers
+   🧮 Helper
 ---------------------------------------------------------------- */
 function haversine(a: [number, number], b: [number, number]): number {
   const R = 6371000; // meters
@@ -83,66 +72,52 @@ const geofenceSlice = createSlice({
     ) {
       const { lat, lng, places, tourId } = action.payload;
 
-      // Skip update if movement is too small
+      // skip small movements
       if (
         state.last &&
         haversine([state.last.lng, state.last.lat], [lng, lat]) < MIN_DISTANCE_CHANGE
-      ) {
+      )
         return;
-      }
       state.last = { lat, lng };
 
       for (const p of places) {
         const dist = haversine([lng, lat], [p.lng, p.lat]);
         const key = `${tourId || "none"}::${p.id}`;
-        const status = state.inside[key];
-        const rearmFactor = state.defaults.rearmFactor;
 
-        // Skip if already queued
-        if (state.queue.some((q) => q.id === p.id)) continue;
+        // ✅ Already handled once? skip forever
+        if (state.checked[p.id]) continue;
 
-        // Enter region first time
-        if (!status) {
-          if (dist <= p.radius) {
-            state.queue.push({ ...p, distance: dist, _key: nanoid() });
-            state.inside[key] = { armed: false, tourId };
-            console.log("🎯 Entered region:", p.name);
-          } else {
-            state.inside[key] = { armed: true, tourId };
-          }
-        }
-        // Re-enter after being armed
-        else if (status.armed && dist <= p.radius) {
+        // ✅ Enter for first time
+        if (dist <= p.radius && !state.inside[key]) {
           state.queue.push({ ...p, distance: dist, _key: nanoid() });
-          state.inside[key] = { armed: false, tourId };
-          console.log("🔁 Re-entered:", p.name);
+          state.inside[key] = true; // mark as inside
+          state.checked[p.id] = true; // ✅ permanently handled
+          console.log("🎯 Entered region:", p.name);
         }
-        // Leave region far enough → re-arm
-        else if (!status.armed && dist >= p.radius * rearmFactor) {
-          state.inside[key] = { armed: true, tourId };
-        }
+
+        // ✅ optional: no need to handle exit, since we never re-arm
       }
     },
 
-    /** User confirms a check-in */
+    /** ✅ user confirms check-in */
     confirm(state, action: PayloadAction<string>) {
       const id = action.payload;
       state.queue = state.queue.filter((q) => q.id !== id);
       state.checked[id] = true;
     },
 
-    /** User dismisses a toast */
+    /** ✅ user dismisses */
     dismiss(state, action: PayloadAction<string>) {
       const id = action.payload;
       state.queue = state.queue.filter((q) => q.id !== id);
+      state.checked[id] = true;
     },
 
-    /** Clear queue (after showing toasts) */
     clearQueue(state) {
       state.queue = [];
     },
 
-    /** ✅ Reset entire geofence state */
+    /** ✅ Reset on tour change / stop */
     resetAll(state) {
       state.queue = [];
       state.inside = {};
