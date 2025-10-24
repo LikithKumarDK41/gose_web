@@ -7,21 +7,19 @@ import MapboxLanguage from "@mapbox/mapbox-gl-language";
 import { useLocale } from "@/providers/LocaleProvider";
 import type { Tour, TourPoint } from "@/lib/store/slices/touristSlice";
 
-/* -------------------- Props -------------------- */
-type Props = {
-  tour: Tour;
-  height?: number | string;
-  profile?: "walking" | "driving" | "cycling";
-};
-
 /* -------------------- Helpers -------------------- */
 function normalizeLngLat(
   loc?: [number, number] | { lat?: number; lng?: number } | null
 ): [number, number] | null {
   if (!loc) return null;
-  if (Array.isArray(loc)) return [Number(loc[0]), Number(loc[1])];
-  if (typeof loc === "object" && loc.lat != null && loc.lng != null)
-    return [Number(loc.lng), Number(loc.lat)];
+  if (Array.isArray(loc) && loc.length >= 2) {
+    const [lng, lat] = loc;
+    return typeof lng === "number" && typeof lat === "number" ? [lng, lat] : null;
+  }
+  if (typeof loc === "object") {
+    const { lat, lng } = loc as any;
+    return typeof lat === "number" && typeof lng === "number" ? [lng, lat] : null;
+  }
   return null;
 }
 
@@ -35,30 +33,66 @@ function colorFor(kind?: string) {
 
 function makeNumberedPin(label: string, fill: string) {
   const el = document.createElement("div");
+  el.style.width = "40px";
+  el.style.height = "56px";
+  el.style.transform = "translateY(-6px)";
   el.innerHTML = `
-  <svg viewBox="0 0 40 56" xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 40 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
     <path d="M20 0c11 0 20 8.6 20 19.2 0 12.7-13.6 26.5-18.4 31.1a2.2 2.2 0 0 1-3.2 0C13.6 45.7 0 31.9 0 19.2 0 8.6 9 0 20 0z" fill="${fill}" />
     <circle cx="20" cy="19" r="12" fill="white"/>
     <text x="20" y="20.5" text-anchor="middle" font-size="12" font-weight="800" fill="${fill}" dominant-baseline="middle">${label}</text>
   </svg>`;
-  el.style.width = "40px";
-  el.style.height = "56px";
   return el;
+}
+
+function escapeText(s?: string) {
+  if (!s) return "";
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+type MaybeI18n = string | { ja?: string; en?: string } | undefined | null;
+function pickI18n(val: MaybeI18n, locale: "ja" | "en"): string {
+  if (!val) return "";
+  if (typeof val === "string") return val;
+  const wanted = val[locale];
+  const fallback = locale === "ja" ? val.en : val.ja;
+  return (wanted ?? fallback ?? "") as string;
+}
+
+function sanitizeRichHtml(input?: string) {
+  if (!input) return "";
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = input;
+  wrapper.querySelectorAll("script, style, iframe, object, embed").forEach((n) => n.remove());
+  const ALLOWED = new Set(["p", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li"]);
+  wrapper.querySelectorAll("*").forEach((el) => {
+    if (!ALLOWED.has(el.tagName.toLowerCase())) {
+      const parent = el.parentNode;
+      while (el.firstChild) parent?.insertBefore(el.firstChild, el);
+      parent?.removeChild(el);
+    }
+  });
+  return wrapper.innerHTML;
+}
+
+function tidyParagraphs(html: string) {
+  return html.replace(/<p>\s*<\/p>/g, "").replace(/(\s*<br>\s*){3,}/g, "<br><br>");
 }
 
 function applyLabelLanguage(map: mapboxgl.Map, locale: "ja" | "en") {
   const style = map.getStyle();
-  if (!style?.layers) return;
+  const layers = style?.layers || [];
   const prop = ["get", locale === "ja" ? "name_ja" : "name_en"] as any;
-  style.layers.forEach((layer) => {
-    if (layer.type === "symbol" && (layer.layout as any)?.["text-field"]) {
+
+  for (const layer of layers) {
+    if (layer.type === "symbol" && (layer.layout as any)?.["text-field"] !== undefined) {
       try {
         map.setLayoutProperty(layer.id, "text-field", prop);
       } catch {
         /* ignore */
       }
     }
-  });
+  }
 }
 
 /* -------------------- Component -------------------- */
@@ -66,10 +100,12 @@ export default function MapboxTourMapNavigation({
   tour,
   height = "100vh",
   profile = "walking",
-}: Props) {
+}: {
+  tour: Tour;
+  height?: number | string;
+  profile?: "walking" | "driving" | "cycling";
+}) {
   const { locale, t } = useLocale();
-
-  // ✅ Narrow locale safely to "ja" | "en"
   const mapLocale: "ja" | "en" = locale === "ja" ? "ja" : "en";
 
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -98,12 +134,10 @@ export default function MapboxTourMapNavigation({
       const mapboxglMod = await import("mapbox-gl");
       const mapboxgl = mapboxglMod.default;
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-
       if (!token) {
         setError("Missing NEXT_PUBLIC_MAPBOX_TOKEN");
         return;
       }
-
       mapboxgl.accessToken = token;
 
       const firstPoint =
@@ -123,14 +157,10 @@ export default function MapboxTourMapNavigation({
         zoom: 13,
         antialias: true,
       });
-
       mapRef.current = map;
 
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
-      map.addControl(
-        new MapboxLanguage({ defaultLanguage: mapLocale })
-      );
-
+      map.addControl(new MapboxLanguage({ defaultLanguage: mapLocale }));
       map.on("style.load", () => applyLabelLanguage(map, mapLocale));
 
       map.on("load", () => {
@@ -140,8 +170,8 @@ export default function MapboxTourMapNavigation({
 
         const points = (tour.tourpoints || []) as TourPoint[];
         const positions: [number, number][] = [];
-
         let ordinal = 0;
+
         points.forEach((tp) => {
           const pos = normalizeLngLat(
             (tp.monument as any)?.location ?? (tp as any)?.location
@@ -154,12 +184,56 @@ export default function MapboxTourMapNavigation({
 
           const isStart = type === "start";
           const isEnd = type === "end";
-
           const label = isStart ? "S" : isEnd ? "E" : String(++ordinal);
 
           const pin = makeNumberedPin(label, colorFor(type));
+
+          // --- 🧭 popup layout same as reference ---
+          const title = pickI18n(
+            (tp.monument?.title as any) ?? tp.name,
+            mapLocale
+          );
+          const briefRaw: MaybeI18n = (tp.monument?.content as any)?.brief ?? "";
+          const brief = tidyParagraphs(
+            sanitizeRichHtml(pickI18n(briefRaw, mapLocale))
+          );
+          const img = tp.monument?.image?.secure_url
+            ? `<img src="${tp.monument.image.secure_url}" alt="" class="tour-popup__img" />`
+            : "";
+          const chips = [
+            tp.starttime ? `🕒 ${escapeText(tp.starttime)}` : "",
+            tour.duration ? `⏱ ${escapeText(tour.duration)}` : "",
+            tour.traveltime ? `🚶 ${escapeText(tour.traveltime)}` : "",
+          ].filter(Boolean);
+
+          const popupHtml = `
+            <div class="tour-popup__card">
+              ${img ? `<div class="tour-popup__media">${img}</div>` : ""}
+              <div class="tour-popup__body">
+                <div class="tour-popup__title">${escapeText(title || "Point")}</div>
+                ${
+                  chips.length
+                    ? `<div class="tour-popup__chips">${chips
+                        .map((c) => `<span class="tour-chip">${c}</span>`)
+                        .join("")}</div>`
+                    : ""
+                }
+                <div class="tour-popup__brief">${brief}</div>
+              </div>
+            </div>
+          `;
+
+          const popup = new mapboxgl.Popup({
+            offset: 25,
+            closeButton: true,
+            closeOnMove: false,
+            className: "tour-popup",
+            maxWidth: "320px",
+          }).setHTML(popupHtml);
+
           const marker = new mapboxgl.Marker({ element: pin })
             .setLngLat(pos)
+            .setPopup(popup)
             .addTo(map);
 
           markersRef.current.push(marker);
@@ -192,16 +266,6 @@ export default function MapboxTourMapNavigation({
                   "line-color": "#f97316",
                   "line-opacity": 0.95,
                 },
-              });
-              parsed.features?.forEach((f: any) => {
-                const g = f.geometry;
-                if (g?.type === "LineString") {
-                  positions.push(...g.coordinates);
-                } else if (g?.type === "MultiLineString") {
-                  g.coordinates?.forEach((c: [number, number][]) =>
-                    positions.push(...c)
-                  );
-                }
               });
             }
           } catch (e) {
@@ -242,7 +306,6 @@ export default function MapboxTourMapNavigation({
               } else {
                 userMarkerRef.current.setLngLat(userPos);
               }
-              map.easeTo({ center: userPos, duration: 1000 });
             },
             (err) => console.warn("GPS error:", err),
             { enableHighAccuracy: true, maximumAge: 1000 }
@@ -266,7 +329,7 @@ export default function MapboxTourMapNavigation({
 
   return (
     <div
-      className="relative w-full overflow-hidden border bg-gray-50 dark:bg-gray-900"
+      className="relative w-full overflow-hidden rounded-lg border bg-gray-50 dark:bg-gray-900"
       style={{ height }}
     >
       <div ref={mapDivRef} className="h-full w-full" />

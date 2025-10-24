@@ -37,6 +37,12 @@ const navSlice = createSlice({
       state.status = "idle";
       state.activeTourId = null;
     },
+    /** ✅ Reset everything to initial nav state */
+    resetAll(state) {
+      state.activeTourId = null;
+      state.status = "idle";
+      state.profile = "walking";
+    },
   },
 });
 
@@ -47,6 +53,7 @@ export const {
   pauseTour,
   resumeTour,
   stopTour,
+  resetAll,
 } = navSlice.actions;
 
 export const selectNav = (s: RootState) => s.nav;

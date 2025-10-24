@@ -142,7 +142,7 @@ const geofenceSlice = createSlice({
       state.queue = [];
     },
 
-    /** Reset entire geofence state */
+    /** ✅ Reset entire geofence state */
     resetAll(state) {
       state.queue = [];
       state.inside = {};
@@ -158,7 +158,6 @@ const geofenceSlice = createSlice({
 export const { locationTick, confirm, dismiss, clearQueue, resetAll } =
   geofenceSlice.actions;
 
-/** Selectors */
 export const selectGeofenceQueue = (s: RootState): QueueItem[] => s.geofence.queue;
 export const selectGeofenceChecked = (s: RootState): Record<string, boolean> =>
   s.geofence.checked;
