@@ -1,14 +1,18 @@
-// src/app/tours/page.tsx
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
-import {
-  ImageIcon,
-  Navigation,
-} from "lucide-react";
-
+import { useEffect, useState } from "react";
+import { ImageIcon, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
 import { fetchTours, selectTours } from "@/lib/store/slices/touristSlice";
 import {
@@ -16,10 +20,15 @@ import {
   selectShortcuts,
   selectGlobalLoading,
 } from "@/lib/store/slices/globalSlice";
-import { selectNav } from "@/lib/store/slices/navSlice";
-import { selectGeofenceChecked } from "@/lib/store/slices/geofenceSlice";
+import {
+  selectNav,
+  setActiveTour,
+  stopTour,
+} from "@/lib/store/slices/navSlice";
+import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
+import { useRouter } from "next/navigation";
 
 export default function ToursDashboardPage() {
   const { t } = useLocale();
@@ -28,7 +37,6 @@ export default function ToursDashboardPage() {
 
   const tours = useAppSelector(selectTours);
   const nav = useAppSelector(selectNav);
-  const checkedMap = useAppSelector(selectGeofenceChecked);
   const shortcuts = useAppSelector(selectShortcuts);
   const globalLoading = useAppSelector(selectGlobalLoading);
 
@@ -57,21 +65,19 @@ export default function ToursDashboardPage() {
     const leftovers: any[] = [];
 
     list.forEach((s) => {
-      const p = s.priority ?? 0; // null → 0
+      const p = s.priority ?? 0;
       if (p === 0) {
-        nullZero.push(s); // collect 0/null first
+        nullZero.push(s);
       } else if (Number.isInteger(p) && p > 0) {
-        ordered[p] = s; // place in slot = priority
+        ordered[p] = s;
       } else {
         leftovers.push(s);
       }
     });
 
-    // flatten: 0/null first → 1,2,3… in order → leftovers
     return nullZero.concat(ordered.filter(Boolean)).concat(leftovers);
   }
 
-  // Section 1: priority 0–3
   const sectionOne = placeByPriority(
     shortcuts.filter((s) => {
       const p = s.priority ?? 0;
@@ -79,7 +85,6 @@ export default function ToursDashboardPage() {
     })
   );
 
-  // Section 2: priority 4–9
   const sectionTwo = placeByPriority(
     shortcuts.filter((s) => {
       const p = s.priority ?? 0;
@@ -89,75 +94,6 @@ export default function ToursDashboardPage() {
 
   return (
     <div className="space-y-12">
-      {/* ===== Hero ===== */}
-      {/* <div className="relative overflow-hidden rounded-2xl border">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 opacity-90 dark:opacity-80" />
-        <div className="relative flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs text-white backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("hero.liveTourTracking")}
-            </div>
-            <h1 className="text-2xl font-semibold text-white drop-shadow-sm">
-              {t("dashboard.title")}
-            </h1>
-            <p className="max-w-2xl text-sm text-white/90">
-              {t("dashboard.description")}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-xl bg-white/15 p-3 text-white backdrop-blur">
-            <span
-              className={`grid h-9 w-9 place-items-center rounded-full shadow ${
-                nav.status === "running"
-                  ? "bg-emerald-500"
-                  : nav.status === "paused"
-                  ? "bg-amber-500"
-                  : "bg-slate-400"
-              }`}
-            >
-              {nav.status === "running" ? (
-                <PlayCircle className="h-5 w-5" />
-              ) : nav.status === "paused" ? (
-                <PauseCircle className="h-5 w-5" />
-              ) : (
-                <Route className="h-5 w-5" />
-              )}
-            </span>
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold capitalize">
-                {t(`nav.status.${nav.status}`)}
-              </div>
-              <div className="text-xs/5 opacity-90">
-                {tours?.length > 0 ? tours[0].title : t("nav.noActiveTour")}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div> */}
-
-      {/* ===== Global KPIs ===== */}
-      {/* <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Kpi
-          icon={<Compass className="h-5 w-5" />}
-          label={t("total_tours")}
-          value={metrics.totalTours}
-          gradient="from-indigo-500 to-blue-500"
-        />
-        <Kpi
-          icon={<MapPinned className="h-5 w-5" />}
-          label={t("total_stops")}
-          value={metrics.totalStops}
-          gradient="from-emerald-500 to-lime-500"
-        />
-        <Kpi
-          icon={<TrendingUp className="h-5 w-5" />}
-          label={t("avg_stops")}
-          value={metrics.avgStops}
-          gradient="from-fuchsia-500 to-pink-500"
-        />
-      </div> */}
-
       {/* ===== Shortcuts by Priority ===== */}
       <div className="space-y-10">
         {globalLoading ? (
@@ -203,22 +139,19 @@ export default function ToursDashboardPage() {
               key={tour._id}
               className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm"
             >
-              {/* Featured */}
               {tour.featured && (
                 <div className="absolute right-3 top-3 z-10 rounded-full bg-yellow-400/90 px-3 py-1 text-xs font-semibold text-yellow-900 backdrop-blur-sm shadow-md">
                   {t("actions.featured")}
                 </div>
               )}
-              {/* media */}
+
               <div className="relative h-48 w-full overflow-hidden">
                 {tour.image?.secure_url ? (
-                  <>
-                    <img
-                      src={tour.image.secure_url}
-                      alt={tour.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    />
-                  </>
+                  <img
+                    src={tour.image.secure_url}
+                    alt={tour.title}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
                 ) : (
                   <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
                     <ImageIcon className="h-8 w-8" />
@@ -226,7 +159,6 @@ export default function ToursDashboardPage() {
                 )}
               </div>
 
-              {/* content */}
               <div className="flex flex-1 flex-col justify-between space-y-3 p-4">
                 <div>
                   <h3 className="line-clamp-1 text-base font-semibold">
@@ -235,35 +167,30 @@ export default function ToursDashboardPage() {
                   {tour.content?.brief && (
                     <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
                       {(tour?.content?.brief || "")
-                        .replace(/<style[\s\S]*?<\/style>/gi, "")
-                        .replace(/<script[\s\S]*?<\/script>/gi, "")
-                        .replace(/<!--[\s\S]*?-->/g, "")
                         .replace(/<[^>]+>/g, "")
                         .replace(/&nbsp;|&#160;/gi, " ")
                         .replace(/\u00A0/g, " ")
-                        .replace(/[\u200B-\u200D\uFEFF]/g, "")
                         .replace(/\s+/g, " ")
                         .trim() || null}
                     </p>
                   )}
                 </div>
 
-                {/* buttons */}
+                {/* ✅ Buttons with confirmation */}
                 <div className="grid grid-cols-2 gap-2">
-                  <Button asChild variant="secondary">
-                    <Link href={`/tours/detail?id=${tour._id}`}>
-                      {t("actions.details")}
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    className="bg-gradient-to-r from-indigo-600 to-sky-600 text-white"
-                  >
-                    <Link href={`/tours/detail/navigation?id=${tour._id}`}>
-                      <Navigation className="mr-1 h-4 w-4" />
-                      {t("actions.navigate")}
-                    </Link>
-                  </Button>
+                  <ConfirmPopupButton
+                    label={t("actions.details")}
+                    href={`/tours/detail?id=${tour._id}`}
+                    variant="secondary"
+                    tourId={tour._id}
+                  />
+                  <ConfirmPopupButton
+                    label={t("actions.navigate")}
+                    href={`/tours/detail/navigation?id=${tour._id}`}
+                    icon={<Navigation className="mr-1 h-4 w-4" />}
+                    gradient="bg-gradient-to-r from-indigo-600 to-sky-600 text-white"
+                    tourId={tour._id}
+                  />
                 </div>
               </div>
             </div>
@@ -279,43 +206,101 @@ export default function ToursDashboardPage() {
         </div>
       )}
 
-      {/* ===== Featured Highlight ===== */}
-      {tours.find((t) => t.featured) && (
-        <div className="rounded-2xl border bg-gradient-to-r from-sky-500/10 to-indigo-500/10 p-8 shadow-lg">
-          <h2 className="mb-4 text-xl font-semibold">{t("featured_highlight")}</h2>
-          {(() => {
-            const ft = tours.find((t) => t.featured);
-            if (!ft) return null;
-            return (
-              <div className="flex flex-col items-center gap-4 text-center md:flex-row md:text-left">
-                <img
-                  src={ft.image?.secure_url}
-                  alt={ft.title}
-                  className="h-40 w-64 rounded-xl object-cover shadow"
-                />
-                <div>
-                  <h3 className="text-lg font-bold">{ft.title}</h3>
-                  {ft.content?.brief && (
-                    <p className="mt-2 text-sm text-muted-foreground line-clamp-3">
-                      {ft.content.brief.replace(/<[^>]+>/g, "")}
-                    </p>
-                  )}
-                  <Button asChild size="sm" className="mt-3">
-                    <Link href={`/tours/detail?id=${ft._id}`}>{t("actions.explore_now")}</Link>
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
       {!hasTours && (
         <div className="rounded-xl border p-10 text-center">
-          <p className="text-sm text-muted-foreground">{t("no_tours_available")}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("no_tours_available")}
+          </p>
         </div>
       )}
     </div>
+  );
+}
+
+/* ---------- 🔘 Confirmation Popup Wrapper ---------- */
+function ConfirmPopupButton({
+  label,
+  href,
+  variant,
+  icon,
+  gradient,
+  tourId,
+}: {
+  label: string;
+  href: string;
+  variant?: "secondary" | "outline" | "default";
+  icon?: React.ReactNode;
+  gradient?: string;
+  tourId: string;
+}) {
+  const nav = useAppSelector(selectNav);
+  const tourist = useAppSelector((state) => state.tourist); // ✅ has detail._id
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+
+  const handleClick = (e: React.MouseEvent) => {
+    const currentDetailId = tourist?.detail?._id;
+
+    // ✅ Case 1: No active tour — just navigate normally
+    if (nav.status === "idle" || !nav.activeTourId) {
+      e.preventDefault();
+      router.push(href);
+      return;
+    }
+
+    // ✅ Case 2: Same tour running → directly navigate (no popup)
+    if (nav.activeTourId === tourId || currentDetailId === tourId) {
+      e.preventDefault();
+      router.push(href);
+      return;
+    }
+
+    // 🚫 Case 3: Different tour running → ask confirmation
+    e.preventDefault();
+    setOpen(true);
+  };
+
+  const handleConfirm = async () => {
+    // ✅ Reset both slices before continuing
+    dispatch(resetGeofence());
+    dispatch(stopTour());
+    dispatch(setActiveTour(null));
+    localStorage.removeItem("navState");
+
+    setOpen(false);
+    router.push(href);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant={variant}
+          className={gradient}
+          onClick={handleClick}
+        >
+          {icon}
+          {label}
+        </Button>
+      </DialogTrigger>
+
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirm Action</DialogTitle>
+          <DialogDescription>
+            A different tour is currently active. Do you want to stop it and
+            continue?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-end mt-4">
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm}>Yes, Continue</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -335,10 +320,7 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
       {shortcuts.map((item, idx) => {
         const gradient = gradients[idx % gradients.length];
         return (
-          <div
-            key={item._id}
-            className="flex flex-col items-center text-center"
-          >
+          <div key={item._id} className="flex flex-col items-center text-center">
             <div
               className={`h-20 w-20 rounded-full flex items-center justify-center 
                           bg-gradient-to-br ${gradient} text-white shadow-md
@@ -360,38 +342,6 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-/* ---------- small UI atoms ---------- */
-function Kpi({
-  icon,
-  label,
-  value,
-  gradient,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  gradient: string;
-}) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl border">
-      <div
-        className={`pointer-events-none absolute -inset-2 opacity-[0.18] blur-2xl bg-gradient-to-r ${gradient}`}
-      />
-      <div className="relative flex items-center gap-4 p-4">
-        <div
-          className={`grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-sm`}
-        >
-          {icon}
-        </div>
-        <div>
-          <div className="text-xs text-muted-foreground">{label}</div>
-          <div className="text-xl font-semibold">{value}</div>
-        </div>
-      </div>
     </div>
   );
 }
