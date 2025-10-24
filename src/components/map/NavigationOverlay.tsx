@@ -159,9 +159,6 @@ export default function NavigationOverlay({
 
   const handleBack = () => {
     show();
-    dispatch(navStop());
-    dispatch(resetGeofence());
-    localStorage.removeItem("navState");
     requestAnimationFrame(() => router.back());
   };
 
