@@ -397,6 +397,27 @@ export default function MapboxTourMapNavigation({
                   pos.coords.longitude,
                   pos.coords.latitude,
                 ];
+
+                // If map not ready yet, wait until it’s ready before adding marker
+                if (!map.isStyleLoaded()) {
+                  map.once("idle", () => {
+                    const el = document.createElement("div");
+                    el.className = "user-marker";
+                    el.style.width = "20px";
+                    el.style.height = "20px";
+                    el.style.borderRadius = "50%";
+                    el.style.background = "#2563eb";
+                    el.style.border = "3px solid white";
+                    el.style.boxShadow = "0 0 6px rgba(0,0,0,0.4)";
+                    userMarkerRef.current = new mapboxgl.Marker(el)
+                      .setLngLat(userPos)
+                      .addTo(map);
+                    map.easeTo({ center: userPos, duration: 1000 });
+                  });
+                  return;
+                }
+
+                // Marker creation or update
                 if (!userMarkerRef.current) {
                   const el = document.createElement("div");
                   el.className = "user-marker";
@@ -409,6 +430,7 @@ export default function MapboxTourMapNavigation({
                   userMarkerRef.current = new mapboxgl.Marker(el)
                     .setLngLat(userPos)
                     .addTo(map);
+                  map.easeTo({ center: userPos, duration: 800 });
                 } else {
                   userMarkerRef.current.setLngLat(userPos);
                 }
@@ -417,6 +439,7 @@ export default function MapboxTourMapNavigation({
               { enableHighAccuracy: true, maximumAge: 1000 }
             );
           }
+
         } catch (e) {
           console.error(e);
           setError("Map style failed to load.");
