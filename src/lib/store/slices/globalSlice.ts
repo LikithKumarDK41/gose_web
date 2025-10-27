@@ -1,33 +1,12 @@
 // src/lib/store/slices/globalSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import api from "@/lib/api";
-import { RootState } from "../index";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import type { RootState } from "../index";
+import {
+  apiFetchShortcuts,
+  type Shortcut, // re-use service types
+} from "@/services/userGlobalservice";
 
-/* === Types === */
-export interface Shortcut {
-  _id: string;
-  title: string;
-  icon?: {
-    secure_url?: string;
-    url?: string;
-  };
-  link?: string;
-  pdffile?: {
-    url?: string;
-    mimetype?: string;
-    filename?: string;
-    size?: number;
-  };
-  screentype?: string;
-  content?: {
-    brief?: string;
-    extended?: string;
-  };
-  priority?: number;
-  primarymenu?: boolean;
-  authrequired?: boolean;
-}
-
+/* === State === */
 interface GlobalState {
   shortcuts: Shortcut[];
   loading: boolean;
@@ -40,19 +19,17 @@ const initialState: GlobalState = {
   error: null,
 };
 
-/* === Thunks === */
+/* === Thunks (delegating to service) === */
 export const fetchShortcuts = createAsyncThunk<
   Shortcut[],
   void,
   { rejectValue: string }
 >("global/fetchShortcuts", async (_, { rejectWithValue }) => {
   try {
-    const { data } = await api.get<{ shortcuts: { results: Shortcut[] } }>(
-      "/v1/shortcuts"
-    );
-    return data.shortcuts.results;
+    const list = await apiFetchShortcuts();
+    return list;
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.message || "Failed to load shortcuts");
+    return rejectWithValue(err.message || "Failed to load shortcuts");
   }
 });
 
@@ -72,7 +49,7 @@ const globalSlice = createSlice({
     });
     builder.addCase(fetchShortcuts.rejected, (s, { payload }) => {
       s.loading = false;
-      s.error = payload || "Failed to load shortcuts";
+      s.error = (payload as string) || "Failed to load shortcuts";
     });
   },
 });

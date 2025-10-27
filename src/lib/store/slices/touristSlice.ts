@@ -1,162 +1,23 @@
+// src/lib/store/slices/touristSlice.ts
 import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
-import api from "@/lib/api";
-import { RootState } from "../index";
-
-/* -------------------- Shared Types -------------------- */
-export type TravelMode = "car" | "walk" | "train";
-
-/** Cloudinary Image Type */
-export interface CloudinaryImage {
-  public_id?: string;
-  version?: number;
-  signature?: string;
-  format?: string;
-  resource_type?: string;
-  url?: string;
-  secure_url?: string;
-  width?: number;
-  height?: number;
-  [key: string]: any;
-}
-export type CloudinaryIcon = CloudinaryImage;
-
-/* ------------------------------------------------------------------ */
-/** Related Tour Type (inside monument.relatedtours[]) */
-export interface RelatedTour {
-  _id?: string;
-  title?: string;
-  duration?: string;
-  traveltime?: string;
-  link?: string;
-  content?: {
-    brief?: string;
-    extended?: string;
-  };
-  image?: CloudinaryImage;
-  featured?: boolean;
-}
-
-/* ------------------------------------------------------------------ */
-/** Region Type (inside monument.region) */
-export interface Region {
-  _id?: string;
-  slug?: string;
-  name?: string;
-  title?: string;
-  location?: [number, number];
-  featuredmonument?: string[];
-  content?: {
-    brief?: string;
-    extended?: string;
-  };
-  state?: string;
-  __v?: number;
-}
-
-/* ------------------------------------------------------------------ */
-/** Subtheme / Theme Type */
-export interface Theme {
-  _id?: string;
-  title?: string;
-  image?: CloudinaryImage;
-  theme?: string[];
-}
-
-/* ------------------------------------------------------------------ */
-/** Monument Interface (main type) */
-export interface Monument {
-  _id: string;
-  slug?: string;
-  sortOrder?: number;
-
-  name: string;
-  title?: string;
-  description?: string;
-
-  /** Images */
-  image?: CloudinaryImage;
-  gallery?: CloudinaryImage[];
-
-  /** Geo & Region */
-  location?: { lat?: number; lng?: number } | [number, number];
-  region?: Region;
-
-  /** Classification */
-  subtheme?: Theme[];
-  theme?: Theme[];
-  artemplates?: any[];
-
-  /** Settings / Flags */
-  arenabled?: boolean;
-  avenabled?: boolean;
-  featured?: boolean;
-  rare?: boolean;
-  tourpoint?: boolean;
-
-  /** Meta Info */
-  era?: string;
-  year?: string;
-  size?: string;
-  mtype?: string;
-  access?: string;
-  georadius?: number;
-  state?: string;
-
-  /** Content */
-  content?: {
-    brief?: string;
-    extended?: string;
-  };
-
-  /** Relations */
-  nearbyservices?: any[];
-  nearbymonuments?: any[];
-  relatedtours?: RelatedTour[];
-
-  /** Other Metadata */
-  imagecredit?: string | { en?: string; ja?: string };
-  popularity?: number;
-  __v?: number;
-}
-
-export interface TravelType {
-  _id: string;
-  title?: string;
-  name?: TravelMode;
-  icon?: CloudinaryIcon;
-  state?: string;
-}
-
-export interface TourPoint {
-  _id: string;
-  name?: string;
-  waypointtype?: "start" | "place" | "end";
-  traveltype?: TravelType;
-  monument?: Monument;
-  traveltime?: string;
-  starttime?: string;
-  state?: string;
-  pointtype?: "monument" | "station" | "lunch";
-}
-
-export interface Tour {
-  _id: string;
-  title: string;
-  description?: string;
-  duration?: string;
-  traveltime?: string;
-  link?: string;
-  tour?: Record<string, any>;
-  content?: { brief?: string; extended?: string };
-  monuments?: string[];
-  image?: CloudinaryImage;
-  routeImage?: CloudinaryImage;
-  routeJson?: string;
-  featured?: boolean;
-  special?: boolean;
-  specialContent?: string;
-  tourpoints?: TourPoint[];
-}
+import type { RootState } from "../index";
+import {
+  apiFetchTours,
+  apiFetchTourById,
+  apiFetchTourPoints,
+  apiFetchMonumentDetails,
+  // types
+  type TravelMode,
+  type CloudinaryImage,
+  type CloudinaryIcon,
+  type RelatedTour,
+  type Region,
+  type Theme,
+  type Monument,
+  type TravelType,
+  type TourPoint,
+  type Tour,
+} from "@/services/userTourService";
 
 /* -------------------- Redux State -------------------- */
 interface TouristState {
@@ -175,44 +36,25 @@ const initialState: TouristState = {
   error: null,
 };
 
-/* -------------------- Async Thunks -------------------- */
-
+/* -------------------- Async Thunks (delegating to service) -------------------- */
 export const fetchTours = createAsyncThunk<Tour[], void, { rejectValue: string }>(
   "tourist/fetchTours",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await api.post<{ tours: { results: Tour[] } }>("/v2/tours");
-      return data.tours.results;
+      return await apiFetchTours();
     } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message || "Failed to load tours");
+      return rejectWithValue(err.message || "Failed to load tours");
     }
   }
 );
 
 export const fetchTourById = createAsyncThunk<Tour, string, { rejectValue: string }>(
   "tourist/fetchTourById",
-  async (id, { rejectWithValue, signal }) => {
+  async (id, { rejectWithValue }) => {
     try {
-      const locale =
-        typeof window !== "undefined"
-          ? localStorage.getItem("site_locale") || "ja"
-          : "ja";
-
-      const { data } = await api.get<{ tour: Tour }>(
-        `/v1/tours/${id}?lang=${locale}`,
-        {
-          signal,
-          headers: {
-            "Accept-Language": locale,
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-        }
-      );
-
-      return data.tour;
+      return await apiFetchTourById(id);
     } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? "Failed to load tour");
+      return rejectWithValue(err.message ?? "Failed to load tour");
     }
   }
 );
@@ -223,21 +65,10 @@ export const fetchTourPoints = createAsyncThunk<
   { rejectValue: string }
 >("tourist/fetchTourPoints", async (tourId, { rejectWithValue }) => {
   try {
-    const { data } = await api.get<{ tourpoints: { results: TourPoint[] } }>(
-      `/v1/tourpoints?filter=${encodeURIComponent(JSON.stringify({ tour: tourId }))}`
-    );
-
-    const results = data.tourpoints?.results ?? [];
-    const order: Record<"start" | "place" | "end", number> = { start: 1, place: 2, end: 3 };
-
-    const sorted = results.sort((a, b) => {
-      const getOrder = (t?: "start" | "place" | "end") => (t ? order[t] : 99);
-      return getOrder(a.waypointtype) - getOrder(b.waypointtype);
-    });
-
-    return { tourId, points: sorted };
+    const points = await apiFetchTourPoints(tourId);
+    return { tourId, points };
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.message ?? "Failed to load tourpoints");
+    return rejectWithValue(err.message ?? "Failed to load tourpoints");
   }
 });
 
@@ -247,15 +78,13 @@ export const fetchMonumentDetails = createAsyncThunk<
   { rejectValue: string }
 >("tourist/fetchMonumentDetails", async (monument, { rejectWithValue }) => {
   try {
-    const { data } = await api.post<{ monument: Monument }>("/v2/monument", { monument });
-    return data.monument;
+    return await apiFetchMonumentDetails(monument);
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.message ?? "Failed to load monument details");
+    return rejectWithValue(err.message ?? "Failed to load monument details");
   }
 });
 
 /* -------------------- Slice -------------------- */
-
 const touristSlice = createSlice({
   name: "tourist",
   initialState,
@@ -271,6 +100,7 @@ const touristSlice = createSlice({
     builder
       .addCase(fetchTours.pending, (s) => {
         s.loading = true;
+        s.error = null;
       })
       .addCase(fetchTours.fulfilled, (s, { payload }) => {
         s.loading = false;
@@ -278,11 +108,12 @@ const touristSlice = createSlice({
       })
       .addCase(fetchTours.rejected, (s, { payload }) => {
         s.loading = false;
-        s.error = payload || "Failed to load tours";
+        s.error = (payload as string) || "Failed to load tours";
       })
 
       .addCase(fetchTourById.pending, (s) => {
         s.loading = true;
+        s.error = null;
       })
       .addCase(fetchTourById.fulfilled, (s, { payload }) => {
         s.loading = false;
@@ -293,19 +124,22 @@ const touristSlice = createSlice({
       })
       .addCase(fetchTourById.rejected, (s, { payload }) => {
         s.loading = false;
-        s.error = payload || "Failed to load tour";
+        s.error = (payload as string) || "Failed to load tour";
       })
 
       .addCase(fetchTourPoints.fulfilled, (s, { payload }) => {
-        s.loading = false;
         const { tourId, points } = payload;
         if (s.detail && s.detail._id === tourId) s.detail.tourpoints = points;
         const i = s.list.findIndex((t) => t._id === tourId);
         if (i !== -1) s.list[i].tourpoints = points;
       })
+      .addCase(fetchTourPoints.rejected, (s, { payload }) => {
+        s.error = (payload as string) ?? s.error;
+      })
 
       .addCase(fetchMonumentDetails.pending, (s) => {
         s.loading = true;
+        s.error = null;
       })
       .addCase(fetchMonumentDetails.fulfilled, (s, { payload }) => {
         s.loading = false;
@@ -313,7 +147,7 @@ const touristSlice = createSlice({
       })
       .addCase(fetchMonumentDetails.rejected, (s, { payload }) => {
         s.loading = false;
-        s.error = payload || "Failed to load monument details";
+        s.error = (payload as string) || "Failed to load monument details";
       });
   },
 });
@@ -321,7 +155,6 @@ const touristSlice = createSlice({
 export const { clearTourDetail, clearMonumentDetail } = touristSlice.actions;
 
 /* -------------------- Selectors -------------------- */
-
 export const selectTours = (s: RootState) => s.tourist.list;
 export const selectTourDetail = (s: RootState) => s.tourist.detail;
 export const selectMonumentDetail = (s: RootState) => s.tourist.monumentDetail;

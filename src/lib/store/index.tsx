@@ -12,7 +12,6 @@ import {
   REGISTER,
 } from "redux-persist";
 
-import toursReducer from "./slices/toursSlice";
 import navReducer from "./slices/navSlice";
 import geofenceReducer from "./slices/geofenceSlice";
 import authReducer from "./slices/authSlice";
@@ -21,7 +20,6 @@ import globalReducer from "./slices/globalSlice";
 
 // ✅ combine all reducers
 const rootReducer = combineReducers({
-  tours: toursReducer,
   nav: navReducer,
   geofence: geofenceReducer,
   auth: authReducer,

@@ -1,18 +1,54 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { RootState } from "../index";
+// src/lib/store/slices/navSlice.ts
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import type { RootState } from "../index";
+import {
+  apiSyncUserTourStatus,
+  type SyncPayload,
+  type NavStatus,
+  type NavProfile,
+} from "@/services/userNavService";
 
+/* ============================================================
+   🧩 Types (state)
+============================================================ */
 export interface NavState {
   activeTourId: string | null;
-  status: "idle" | "running" | "paused" | "stopped";
-  profile: "walking" | "driving" | "cycling";
+  status: NavStatus;
+  profile: NavProfile;
+  syncing: boolean;
+  error: string | null;
 }
 
+/* ============================================================
+   🧩 Initial State
+============================================================ */
 const initialState: NavState = {
   activeTourId: null,
   status: "idle",
   profile: "walking",
+  syncing: false,
+  error: null,
 };
 
+/* ============================================================
+   🛰️ Async Thunk — sync to /v1/usertours (delegates to service)
+============================================================ */
+export const syncUserTourStatus = createAsyncThunk<
+  any, // keep as any to match your current usage
+  SyncPayload,
+  { rejectValue: string }
+>("nav/syncUserTourStatus", async (payload, { rejectWithValue }) => {
+  try {
+    const data = await apiSyncUserTourStatus(payload);
+    return data;
+  } catch (err: any) {
+    return rejectWithValue(err.message || "Failed to sync tour status");
+  }
+});
+
+/* ============================================================
+   🧭 Slice
+============================================================ */
 const navSlice = createSlice({
   name: "nav",
   initialState,
@@ -20,7 +56,7 @@ const navSlice = createSlice({
     setActiveTour(state, action: PayloadAction<string | null>) {
       state.activeTourId = action.payload;
     },
-    setProfile(state, action: PayloadAction<"walking" | "driving" | "cycling">) {
+    setProfile(state, action: PayloadAction<NavProfile>) {
       state.profile = action.payload;
     },
     startTour(state, action: PayloadAction<string | undefined>) {
@@ -37,12 +73,26 @@ const navSlice = createSlice({
       state.status = "idle";
       state.activeTourId = null;
     },
-    /** ✅ Reset everything to initial nav state */
     resetAll(state) {
       state.activeTourId = null;
       state.status = "idle";
       state.profile = "walking";
+      state.error = null;
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(syncUserTourStatus.pending, (state) => {
+        state.syncing = true;
+        state.error = null;
+      })
+      .addCase(syncUserTourStatus.fulfilled, (state) => {
+        state.syncing = false;
+      })
+      .addCase(syncUserTourStatus.rejected, (state, { payload }) => {
+        state.syncing = false;
+        state.error = payload || "Sync failed";
+      });
   },
 });
 

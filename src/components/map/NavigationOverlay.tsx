@@ -14,8 +14,10 @@ import {
   stopTour as navStop,
   setProfile,
   setActiveTour,
+  syncUserTourStatus,
 } from "@/lib/store/slices/navSlice";
 import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
+// ❌ removed: import { selectAuth } from "@/lib/store/slices/authSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { toast } from "sonner";
 
@@ -39,8 +41,16 @@ export default function NavigationOverlay({
   const router = useRouter();
   const { show } = useGlobalLoader();
   const nav = useAppSelector(selectNav);
+  const auth = useAppSelector((s) => s.auth); // ✅ inline selector instead of selectAuth
+  const geofence = useAppSelector((s) => s.geofence);
   const dispatch = useAppDispatch();
   const { locale, t } = useLocale();
+
+  // 🧭 Helper: Get user location (from geofence)
+  const getLocation = (): [string, string] => {
+    const loc = geofence.last || { lat: 0, lng: 0 };
+    return [String(loc.lng), String(loc.lat)];
+  };
 
   /* ----------------------------------------------------------------
      ✅ 1. Restore state after reload or back
@@ -94,6 +104,18 @@ export default function NavigationOverlay({
       dispatch(setActiveTour(tourId));
       dispatch(setProfile(defaultProfile));
       dispatch(navStart(tourId));
+
+      // 🔁 Sync start to backend
+      if (auth.data?.user?._id) {
+        dispatch(
+          syncUserTourStatus({
+            userId: auth.data.user._id,
+            tourId,
+            status: "start",
+            location: getLocation(),
+          })
+        );
+      }
     }
   }, [autoStart, nav.status, tourId, defaultProfile, dispatch]);
 
@@ -103,6 +125,7 @@ export default function NavigationOverlay({
   useEffect(() => {
     const handleVisibilityChange = () => {
       const saved = localStorage.getItem("navState");
+
       if (document.visibilityState === "hidden" && nav.status === "running") {
         dispatch(navPause());
         localStorage.setItem(
@@ -114,11 +137,35 @@ export default function NavigationOverlay({
           })
         );
         toast.warning("⏸️ Tour paused (tab inactive)");
+
+        // 🔁 Sync pause to backend
+        if (auth.data?.user?._id && nav.activeTourId) {
+          dispatch(
+            syncUserTourStatus({
+              userId: auth.data.user._id,
+              tourId: nav.activeTourId,
+              status: "pause",
+              location: getLocation(),
+            })
+          );
+        }
       } else if (document.visibilityState === "visible") {
         const parsed = saved ? JSON.parse(saved) : null;
         if (parsed?.status === "paused" && parsed?.tourId) {
           dispatch(navResume());
           toast.success("▶️ Tour resumed");
+
+          // 🔁 Sync resume to backend
+          if (auth.data?.user?._id) {
+            dispatch(
+              syncUserTourStatus({
+                userId: auth.data.user._id,
+                tourId: parsed.tourId,
+                status: "start",
+                location: getLocation(),
+              })
+            );
+          }
         }
       }
     };
@@ -127,34 +174,83 @@ export default function NavigationOverlay({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [dispatch, nav.status, nav.activeTourId, nav.profile]);
+  }, [dispatch, nav.status, nav.activeTourId, nav.profile, auth.data]);
 
   /* ----------------------------------------------------------------
      ✅ 5. Control handlers
   ---------------------------------------------------------------- */
   const handleStart = () => {
-    if (nav.status === "running") return;
-    if (tourId) dispatch(setActiveTour(tourId));
+    if (nav.status === "running" || !tourId) return;
+    dispatch(setActiveTour(tourId));
     dispatch(setProfile(defaultProfile));
     dispatch(navStart(tourId));
     toast.success("🎯 Tour started");
+
+    // 🔁 Sync start
+    if (auth.data?.user?._id) {
+      dispatch(
+        syncUserTourStatus({
+          userId: auth.data.user._id,
+          tourId,
+          status: "start",
+          location: getLocation(),
+        })
+      );
+    }
   };
 
   const handlePauseResume = () => {
+    if (!tourId) return;
+
     if (nav.status === "running") {
       dispatch(navPause());
       toast.warning("⏸️ Tour paused");
+
+      if (auth.data?.user?._id) {
+        dispatch(
+          syncUserTourStatus({
+            userId: auth.data.user._id,
+            tourId,
+            status: "pause",
+            location: getLocation(),
+          })
+        );
+      }
     } else if (nav.status === "paused") {
       dispatch(navResume());
       toast.success("▶️ Tour resumed");
+
+      if (auth.data?.user?._id) {
+        dispatch(
+          syncUserTourStatus({
+            userId: auth.data.user._id,
+            tourId,
+            status: "start",
+            location: getLocation(),
+          })
+        );
+      }
     }
   };
 
   const handleStop = () => {
+    if (!tourId) return;
+
     dispatch(navStop());
     dispatch(resetGeofence());
     localStorage.removeItem("navState");
     toast.info("🛑 Tour stopped");
+
+    if (auth.data?.user?._id) {
+      dispatch(
+        syncUserTourStatus({
+          userId: auth.data.user._id,
+          tourId,
+          status: "end",
+          location: getLocation(),
+        })
+      );
+    }
   };
 
   const handleBack = () => {
