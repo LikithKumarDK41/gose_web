@@ -1,7 +1,9 @@
-// src/lib/services/userTourist.service.ts
+// src/services/userTouristService.ts
 import api from "@/lib/api";
 
-/* -------------------- Shared Types -------------------- */
+/* ------------------------------------------------------------
+   Shared Types
+------------------------------------------------------------ */
 export type TravelMode = "car" | "walk" | "train";
 
 /** Cloudinary Image Type */
@@ -19,24 +21,20 @@ export interface CloudinaryImage {
 }
 export type CloudinaryIcon = CloudinaryImage;
 
-/* ------------------------------------------------------------------ */
-/** Related Tour Type (inside monument.relatedtours[]) */
+/* ------------------------------------------------------------
+   Related Types
+------------------------------------------------------------ */
 export interface RelatedTour {
     _id?: string;
     title?: string;
     duration?: string;
     traveltime?: string;
     link?: string;
-    content?: {
-        brief?: string;
-        extended?: string;
-    };
+    content?: { brief?: string; extended?: string };
     image?: CloudinaryImage;
     featured?: boolean;
 }
 
-/* ------------------------------------------------------------------ */
-/** Region Type (inside monument.region) */
 export interface Region {
     _id?: string;
     slug?: string;
@@ -44,16 +42,11 @@ export interface Region {
     title?: string;
     location?: [number, number];
     featuredmonument?: string[];
-    content?: {
-        brief?: string;
-        extended?: string;
-    };
+    content?: { brief?: string; extended?: string };
     state?: string;
     __v?: number;
 }
 
-/* ------------------------------------------------------------------ */
-/** Subtheme / Theme Type */
 export interface Theme {
     _id?: string;
     title?: string;
@@ -61,8 +54,9 @@ export interface Theme {
     theme?: string[];
 }
 
-/* ------------------------------------------------------------------ */
-/** Monument Interface (main type) */
+/* ------------------------------------------------------------
+   Monument Interface
+------------------------------------------------------------ */
 export interface Monument {
     _id: string;
     slug?: string;
@@ -85,7 +79,7 @@ export interface Monument {
     theme?: Theme[];
     artemplates?: any[];
 
-    /** Settings / Flags */
+    /** Flags */
     arenabled?: boolean;
     avenabled?: boolean;
     featured?: boolean;
@@ -102,10 +96,7 @@ export interface Monument {
     state?: string;
 
     /** Content */
-    content?: {
-        brief?: string;
-        extended?: string;
-    };
+    content?: { brief?: string; extended?: string };
 
     /** Relations */
     nearbyservices?: any[];
@@ -118,6 +109,9 @@ export interface Monument {
     __v?: number;
 }
 
+/* ------------------------------------------------------------
+   Tour Types
+------------------------------------------------------------ */
 export interface TravelType {
     _id: string;
     title?: string;
@@ -136,6 +130,7 @@ export interface TourPoint {
     starttime?: string;
     state?: string;
     pointtype?: "monument" | "station" | "lunch";
+    location?: { lat?: number; lng?: number } | [number, number];
 }
 
 export interface Tour {
@@ -157,14 +152,22 @@ export interface Tour {
     tourpoints?: TourPoint[];
 }
 
-/* -------------------- Helpers -------------------- */
-function parseAxiosError(err: any, fallback: string) {
-    return err?.response?.data?.message || err?.message || fallback;
+/* ------------------------------------------------------------
+   Visit History
+------------------------------------------------------------ */
+export interface VisitHistoryPayload {
+    historytype: "monument" | "tour";
+    user: string;
+    status: "active" | "inactive" | string;
+    monument?: string;
+    tour?: string;
 }
 
-function getLocale(): string {
-    if (typeof window === "undefined") return "ja";
-    return localStorage.getItem("site_locale") || "ja";
+/* ------------------------------------------------------------
+   Helpers
+------------------------------------------------------------ */
+function parseAxiosError(err: any, fallback: string): string {
+    return err?.response?.data?.message || err?.message || fallback;
 }
 
 type ToursEnvelope = { tours?: { results?: Tour[] } } | { results?: Tour[] } | Tour[];
@@ -176,7 +179,11 @@ function extractTours(data: ToursEnvelope): Tour[] {
     return [];
 }
 
-/* -------------------- Service API -------------------- */
+/* ------------------------------------------------------------
+   API Services (Locale + Token handled globally in api.ts)
+------------------------------------------------------------ */
+
+/** Fetch all tours */
 export async function apiFetchTours(): Promise<Tour[]> {
     try {
         const { data } = await api.get<ToursEnvelope>("/v1/tours");
@@ -186,22 +193,17 @@ export async function apiFetchTours(): Promise<Tour[]> {
     }
 }
 
+/** Fetch a single tour by ID */
 export async function apiFetchTourById(id: string): Promise<Tour> {
-    const locale = getLocale();
     try {
-        const { data } = await api.get<{ tour: Tour }>(`/v1/tours/${id}?lang=${locale}`, {
-            headers: {
-                "Accept-Language": locale,
-                "Cache-Control": "no-cache",
-                Pragma: "no-cache",
-            },
-        });
+        const { data } = await api.get<{ tour: Tour }>(`/v1/tours/${id}`);
         return data.tour;
     } catch (err: any) {
         throw new Error(parseAxiosError(err, "Failed to load tour"));
     }
 }
 
+/** Fetch all tourpoints for a specific tour */
 export async function apiFetchTourPoints(tourId: string): Promise<TourPoint[]> {
     try {
         const filter = encodeURIComponent(JSON.stringify({ tour: tourId }));
@@ -221,11 +223,22 @@ export async function apiFetchTourPoints(tourId: string): Promise<TourPoint[]> {
     }
 }
 
+/** Fetch detailed monument data */
 export async function apiFetchMonumentDetails(monument: string): Promise<Monument> {
     try {
         const { data } = await api.post<{ monument: Monument }>("/v2/monument", { monument });
         return data.monument;
     } catch (err: any) {
         throw new Error(parseAxiosError(err, "Failed to load monument details"));
+    }
+}
+
+/** Create or update visit history */
+export async function apiCreateVisitHistory(payload: VisitHistoryPayload): Promise<any> {
+    try {
+        const { data } = await api.post("/v1/visithistories", payload);
+        return data;
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to record visit history"));
     }
 }

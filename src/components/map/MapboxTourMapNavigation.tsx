@@ -5,7 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import type mapboxgl from "mapbox-gl";
 import MapboxLanguage from "@mapbox/mapbox-gl-language";
 import { useLocale } from "@/providers/LocaleProvider";
-import type { Tour, TourPoint } from "@/lib/store/slices/touristSlice";
+import type { Tour, TourPoint } from "@/services/userTourService";
 import type { Feature, Polygon } from "geojson";
 
 /* -------------------- Helpers -------------------- */
@@ -96,12 +96,7 @@ function applyLabelLanguage(map: mapboxgl.Map, locale: "ja" | "en") {
   }
 }
 
-/** Properly typed GeoJSON circle generator */
-function createCircle(
-  center: [number, number],
-  radius: number,
-  points = 64
-): Feature<Polygon> {
+function createCircle(center: [number, number], radius: number, points = 64): Feature<Polygon> {
   const coords: [number, number][] = [];
   const [lng, lat] = center;
   const earthRadius = 6378137; // meters
@@ -126,7 +121,6 @@ function createCircle(
   };
 }
 
-/** Wait until style is fully ready (prevents "style not done loading") */
 function waitForStyle(map: mapboxgl.Map): Promise<void> {
   if (map.isStyleLoaded()) return Promise.resolve();
   return new Promise((resolve) => {
@@ -228,13 +222,10 @@ export default function MapboxTourMapNavigation({
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
       map.addControl(new MapboxLanguage({ defaultLanguage: mapLocale }));
 
-      // Once everything is *actually* ready…
       map.once("load", async () => {
         if (disposed) return;
 
-        await waitForStyle(map); // ⛑️ guarantees style is usable
-
-        // apply label language after style is ready
+        await waitForStyle(map);
         applyLabelLanguage(map, mapLocale);
 
         try {
@@ -247,26 +238,25 @@ export default function MapboxTourMapNavigation({
           let ordinal = 0;
 
           points.forEach((tp) => {
-            const pos = normalizeLngLat(
-              (tp.monument as any)?.location ?? (tp as any)?.location
-            );
+            // ---- Position resolved once (monument.location preferred) ----
+            const pos =
+              normalizeLngLat(
+                (tp as any)?.monument?.location ?? (tp as any)?.location
+              ) || null;
             if (!pos) return;
 
-            const type = String(
-              (tp as any).waypointtype ?? (tp as any).pointtype ?? ""
-            ).toLowerCase();
-            const label = type === "start" ? "S" : type === "end" ? "E" : String(++ordinal);
-            const pin = makeNumberedPin(label, colorFor(type));
+            // ---- Marker / Pin ----
+            const wtype = String(tp.waypointtype ?? "").toLowerCase();
+            const label = wtype === "start" ? "S" : wtype === "end" ? "E" : String(++ordinal);
+            const pin = makeNumberedPin(label, colorFor(wtype));
 
-            // popup content
+            // ---- Popup HTML ----
             const title = pickI18n(
               (tp.monument?.title as any) ?? tp.name,
               mapLocale
             );
             const briefRaw: MaybeI18n = (tp.monument?.content as any)?.brief ?? "";
-            const brief = tidyParagraphs(
-              sanitizeRichHtml(pickI18n(briefRaw, mapLocale))
-            );
+            const brief = tidyParagraphs(sanitizeRichHtml(pickI18n(briefRaw, mapLocale)));
             const img = (tp as any)?.monument?.image?.secure_url
               ? `<img src="${(tp as any).monument.image.secure_url}" alt="" class="tour-popup__img" />`
               : "";
@@ -308,19 +298,22 @@ export default function MapboxTourMapNavigation({
             markersRef.current.push(marker);
             positions.push(pos);
 
-            /* Draw geofence radius circle */
+            // ---- Geofence circle: use monument.georadius if present; else default 50m ----
+            const mr = (tp as any)?.monument?.georadius;
             const geoRadius =
-              (tp as any).geoRadius ??
-              (tp as any).radius ??
-              (tp as any)?.monument?.georadius;
-            if (geoRadius && Number(geoRadius) > 0) {
-              const circleFeature = createCircle(pos, Number(geoRadius));
-              const srcId = `radius-${(tp as any).id ?? (tp as any)._id ?? label}`;
+              typeof mr === "number" && mr > 0 ? mr : 50;
+
+            if (geoRadius > 0) {
+              const circleFeature = createCircle(pos, geoRadius);
+              const baseId =
+                (tp as any).id ??
+                (tp as any)._id ??
+                (tp as any)?.monument?._id ??
+                label;
+              const srcId = `radius-${baseId}`;
+
               if (!map.getSource(srcId)) {
-                map.addSource(srcId, {
-                  type: "geojson",
-                  data: circleFeature,
-                });
+                map.addSource(srcId, { type: "geojson", data: circleFeature });
                 map.addLayer({
                   id: srcId,
                   type: "fill",
@@ -340,11 +333,14 @@ export default function MapboxTourMapNavigation({
                     "line-opacity": 0.4,
                   },
                 });
+              } else {
+                const s = map.getSource(srcId) as mapboxgl.GeoJSONSource;
+                s.setData(circleFeature);
               }
             }
           });
 
-          // route line
+          // ---- Route line (if provided) ----
           if (tour.routeJson) {
             try {
               const parsed = JSON.parse(tour.routeJson);
@@ -377,6 +373,7 @@ export default function MapboxTourMapNavigation({
             }
           }
 
+          // ---- Fit bounds to all points ----
           if (positions.length) {
             try {
               const bounds = positions.reduce(
@@ -389,7 +386,7 @@ export default function MapboxTourMapNavigation({
             }
           }
 
-          // Track user position (store id so we can clear it)
+          // ---- Track user position ----
           if ("geolocation" in navigator && geoWatchIdRef.current == null) {
             geoWatchIdRef.current = navigator.geolocation.watchPosition(
               (pos) => {
@@ -398,7 +395,6 @@ export default function MapboxTourMapNavigation({
                   pos.coords.latitude,
                 ];
 
-                // If map not ready yet, wait until it’s ready before adding marker
                 if (!map.isStyleLoaded()) {
                   map.once("idle", () => {
                     const el = document.createElement("div");
@@ -417,7 +413,6 @@ export default function MapboxTourMapNavigation({
                   return;
                 }
 
-                // Marker creation or update
                 if (!userMarkerRef.current) {
                   const el = document.createElement("div");
                   el.className = "user-marker";
@@ -439,22 +434,18 @@ export default function MapboxTourMapNavigation({
               { enableHighAccuracy: true, maximumAge: 1000 }
             );
           }
-
         } catch (e) {
           console.error(e);
           setError("Map style failed to load.");
         }
       });
 
-      // if the style changes later (e.g., user toggles dark mode with setStyle),
-      // keep labels in correct locale
       map.on("style.load", () => applyLabelLanguage(map, mapLocale));
     })().catch((e) => setError(String(e)));
 
     return () => {
       disposed = true;
 
-      // clear geolocation watcher
       if (geoWatchIdRef.current != null) {
         try {
           navigator.geolocation.clearWatch(geoWatchIdRef.current);
@@ -462,7 +453,6 @@ export default function MapboxTourMapNavigation({
         geoWatchIdRef.current = null;
       }
 
-      // cleanup map & layers
       try {
         clearMarkers();
         const map = mapRef.current;

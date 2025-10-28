@@ -1,10 +1,14 @@
 // src/services/userAuthservice.ts
 import api from "@/lib/api";
 
-/** ===== Constants ===== */
+/* ------------------------------------------------------------
+   🔐 Constants
+------------------------------------------------------------ */
 export const AUTH_USER_KEY = "auth_user";
 
-/** ===== Types (exported so the slice/components can reuse) ===== */
+/* ------------------------------------------------------------
+   📘 Types
+------------------------------------------------------------ */
 export type AccountType = "Facebook" | "Google" | "OTP" | "Email-OTP";
 
 export interface Country {
@@ -14,8 +18,8 @@ export interface Country {
 }
 
 export interface CountriesResponse {
-  contries?: Country[];   // current backend key (typo)
-  countries?: Country[];  // future-safe if fixed
+  contries?: Country[];   // legacy key from backend
+  countries?: Country[];  // future key (fixed spelling)
 }
 
 export interface AuthResponse {
@@ -32,6 +36,7 @@ export interface SigninPayload {
 export interface SendEmailOtpPayload {
   emailid: string;
 }
+
 export interface SendEmailOtpResponse {
   otp: string;
 }
@@ -39,6 +44,7 @@ export interface SendEmailOtpResponse {
 export interface SendPhoneOtpPayload {
   phonenumber: string;
 }
+
 export interface SendPhoneOtpResponse {
   otp: string;
 }
@@ -56,8 +62,10 @@ export interface RegisterPayload {
   firebaseUserId: string;
 }
 
-/** ===== Helpers ===== */
-function parseAxiosError(err: any, fallback: string) {
+/* ------------------------------------------------------------
+   ⚙️ Helpers
+------------------------------------------------------------ */
+function parseAxiosError(err: any, fallback: string): string {
   return err?.response?.data?.message || err?.message || fallback;
 }
 
@@ -69,7 +77,9 @@ function normalizeCountries(resp: CountriesResponse): Country[] {
   }));
 }
 
-/** ===== Storage helpers (centralized) ===== */
+/* ------------------------------------------------------------
+   💾 Local Storage Helpers
+------------------------------------------------------------ */
 export function getPersistedUser(): AuthResponse | null {
   if (typeof window === "undefined") return null;
   try {
@@ -78,16 +88,21 @@ export function getPersistedUser(): AuthResponse | null {
     return null;
   }
 }
+
 export function persistUser(data: AuthResponse) {
   if (typeof window === "undefined") return;
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data));
 }
+
 export function clearPersistedUser() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(AUTH_USER_KEY);
 }
 
-/** ===== Service API ===== */
+/* ------------------------------------------------------------
+   🌐 API Services (Token + Locale handled globally by api.ts)
+------------------------------------------------------------ */
+
 export async function apiSignin(payload: SigninPayload): Promise<AuthResponse> {
   try {
     const { data } = await api.post<AuthResponse>("/v2/signin", payload);
