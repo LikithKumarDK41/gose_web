@@ -179,7 +179,7 @@ function extractTours(data: ToursEnvelope): Tour[] {
 /* -------------------- Service API -------------------- */
 export async function apiFetchTours(): Promise<Tour[]> {
     try {
-        const { data } = await api.post<ToursEnvelope>("/v2/tours");
+        const { data } = await api.get<ToursEnvelope>("/v1/tours");
         return extractTours(data);
     } catch (err: any) {
         throw new Error(parseAxiosError(err, "Failed to load tours"));

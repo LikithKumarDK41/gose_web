@@ -6,10 +6,12 @@ import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/lib/store";
 import {
   fetchMonumentDetails,
+} from "@/lib/store/slices/touristSlice";
+import {
   type TourPoint,
   type Monument,
   type TravelMode,
-} from "@/lib/store/slices/touristSlice";
+} from "@/services/userTourService";
 import { Button } from "@/components/ui/button";
 import {
   ImageIcon,

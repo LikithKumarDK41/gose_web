@@ -1,3 +1,4 @@
+// NavigationOverlay.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -17,7 +18,6 @@ import {
   syncUserTourStatus,
 } from "@/lib/store/slices/navSlice";
 import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
-// ❌ removed: import { selectAuth } from "@/lib/store/slices/authSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { toast } from "sonner";
 
@@ -28,6 +28,11 @@ type Props = {
   tourId?: string;
   defaultProfile?: "walking" | "driving" | "cycling";
   autoStart?: boolean;
+
+  // NEW: modal controls
+  listOpen?: boolean;
+  onOpenList?: () => void;
+  onCloseList?: () => void;
 };
 
 /* ----------------------------------------------------------------
@@ -37,11 +42,14 @@ export default function NavigationOverlay({
   tourId,
   defaultProfile = "walking",
   autoStart = false,
+  listOpen = false,
+  onOpenList,
+  onCloseList,
 }: Props) {
   const router = useRouter();
   const { show } = useGlobalLoader();
   const nav = useAppSelector(selectNav);
-  const auth = useAppSelector((s) => s.auth); // ✅ inline selector instead of selectAuth
+  const auth = useAppSelector((s) => s.auth);
   const geofence = useAppSelector((s) => s.geofence);
   const dispatch = useAppDispatch();
   const { locale, t } = useLocale();
@@ -52,9 +60,7 @@ export default function NavigationOverlay({
     return [String(loc.lng), String(loc.lat)];
   };
 
-  /* ----------------------------------------------------------------
-     ✅ 1. Restore state after reload or back
-  ---------------------------------------------------------------- */
+  /* ---------- keep your existing effects (restore, persist, auto-start, vis-change) ---------- */
   useEffect(() => {
     try {
       const saved = localStorage.getItem("navState");
@@ -77,15 +83,11 @@ export default function NavigationOverlay({
     }
   }, [dispatch, defaultProfile]);
 
-  /* ----------------------------------------------------------------
-     ✅ 2. Persist state in localStorage
-  ---------------------------------------------------------------- */
   useEffect(() => {
     if (nav.status === "idle") {
       localStorage.removeItem("navState");
       return;
     }
-
     localStorage.setItem(
       "navState",
       JSON.stringify({
@@ -96,16 +98,11 @@ export default function NavigationOverlay({
     );
   }, [nav.status, nav.activeTourId, nav.profile]);
 
-  /* ----------------------------------------------------------------
-     ✅ 3. Auto-start for tour detail auto play
-  ---------------------------------------------------------------- */
   useEffect(() => {
     if (autoStart && nav.status === "idle" && tourId) {
       dispatch(setActiveTour(tourId));
       dispatch(setProfile(defaultProfile));
       dispatch(navStart(tourId));
-
-      // 🔁 Sync start to backend
       if (auth.data?.user?._id) {
         dispatch(
           syncUserTourStatus({
@@ -119,9 +116,6 @@ export default function NavigationOverlay({
     }
   }, [autoStart, nav.status, tourId, defaultProfile, dispatch]);
 
-  /* ----------------------------------------------------------------
-     ✅ 4. Auto pause/resume on tab visibility change
-  ---------------------------------------------------------------- */
   useEffect(() => {
     const handleVisibilityChange = () => {
       const saved = localStorage.getItem("navState");
@@ -138,7 +132,6 @@ export default function NavigationOverlay({
         );
         toast.warning("⏸️ Tour paused (tab inactive)");
 
-        // 🔁 Sync pause to backend
         if (auth.data?.user?._id && nav.activeTourId) {
           dispatch(
             syncUserTourStatus({
@@ -155,7 +148,6 @@ export default function NavigationOverlay({
           dispatch(navResume());
           toast.success("▶️ Tour resumed");
 
-          // 🔁 Sync resume to backend
           if (auth.data?.user?._id) {
             dispatch(
               syncUserTourStatus({
@@ -176,17 +168,13 @@ export default function NavigationOverlay({
     };
   }, [dispatch, nav.status, nav.activeTourId, nav.profile, auth.data]);
 
-  /* ----------------------------------------------------------------
-     ✅ 5. Control handlers
-  ---------------------------------------------------------------- */
+  /* ---------- Controls ---------- */
   const handleStart = () => {
     if (nav.status === "running" || !tourId) return;
     dispatch(setActiveTour(tourId));
     dispatch(setProfile(defaultProfile));
     dispatch(navStart(tourId));
     toast.success("🎯 Tour started");
-
-    // 🔁 Sync start
     if (auth.data?.user?._id) {
       dispatch(
         syncUserTourStatus({
@@ -201,11 +189,9 @@ export default function NavigationOverlay({
 
   const handlePauseResume = () => {
     if (!tourId) return;
-
     if (nav.status === "running") {
       dispatch(navPause());
       toast.warning("⏸️ Tour paused");
-
       if (auth.data?.user?._id) {
         dispatch(
           syncUserTourStatus({
@@ -219,7 +205,6 @@ export default function NavigationOverlay({
     } else if (nav.status === "paused") {
       dispatch(navResume());
       toast.success("▶️ Tour resumed");
-
       if (auth.data?.user?._id) {
         dispatch(
           syncUserTourStatus({
@@ -235,12 +220,10 @@ export default function NavigationOverlay({
 
   const handleStop = () => {
     if (!tourId) return;
-
     dispatch(navStop());
     dispatch(resetGeofence());
     localStorage.removeItem("navState");
     toast.info("🛑 Tour stopped");
-
     if (auth.data?.user?._id) {
       dispatch(
         syncUserTourStatus({
@@ -258,23 +241,20 @@ export default function NavigationOverlay({
     requestAnimationFrame(() => router.back());
   };
 
-  /* ----------------------------------------------------------------
-     ✅ 6. Localized labels
-  ---------------------------------------------------------------- */
+  /* ---------- Labels ---------- */
   const labels = {
     back: t("Back") || (locale === "ja" ? "戻る" : "Back"),
     start: t("Start") || (locale === "ja" ? "開始" : "Start"),
     pause: t("Pause") || (locale === "ja" ? "一時停止" : "Pause"),
     resume: t("Resume") || (locale === "ja" ? "再開" : "Resume"),
     stop: t("Stop") || (locale === "ja" ? "停止" : "Stop"),
+    map: t("Map") || (locale === "ja" ? "地図" : "Map"),
+    list: t("List") || (locale === "ja" ? "一覧" : "List"),
   };
 
-  /* ----------------------------------------------------------------
-     ✅ 7. Render UI
-  ---------------------------------------------------------------- */
   return (
     <>
-      {/* 🔙 Back button */}
+      {/* 🔙 Back button (top-left) */}
       <div className="fixed left-3 top-3 z-[60]">
         <Button
           size="icon"
@@ -288,9 +268,40 @@ export default function NavigationOverlay({
         </Button>
       </div>
 
-      {/* 🎯 Bottom Navigation Controls */}
+      {/* 🧭 Segmented control (top-center) */}
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[60] pointer-events-none">
+        <div className="pointer-events-auto inline-flex items-center rounded-full border bg-white/80 dark:bg-black/50 backdrop-blur px-1 py-1 shadow">
+          <button
+            type="button"
+            onClick={onCloseList}
+            aria-pressed={!listOpen}
+            className={[
+              "px-3 py-1.5 rounded-full text-sm transition",
+              !listOpen
+                ? "bg-sky-600 text-white"
+                : "text-foreground/80 hover:bg-white/70 dark:hover:bg-black/40",
+            ].join(" ")}
+          >
+            {labels.map}
+          </button>
+          <button
+            type="button"
+            onClick={onOpenList}
+            aria-pressed={listOpen}
+            className={[
+              "px-3 py-1.5 rounded-full text-sm transition",
+              listOpen
+                ? "bg-sky-600 text-white"
+                : "text-foreground/80 hover:bg-white/70 dark:hover:bg-black/40",
+            ].join(" ")}
+          >
+            {labels.list}
+          </button>
+        </div>
+      </div>
+
+      {/* 🎯 Bottom Navigation Controls (unchanged) */}
       <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center gap-3">
-        {/* 🚀 Idle → show Start */}
         {nav.status === "idle" && (
           <Button
             size="lg"
@@ -302,7 +313,6 @@ export default function NavigationOverlay({
           </Button>
         )}
 
-        {/* 🟢 Running → show Pause + Stop */}
         {nav.status === "running" && (
           <>
             <Button
@@ -326,7 +336,6 @@ export default function NavigationOverlay({
           </>
         )}
 
-        {/* 🟠 Paused → show Resume + Stop */}
         {nav.status === "paused" && (
           <>
             <Button
