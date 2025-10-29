@@ -11,9 +11,12 @@ import {
 import { selectNav } from "@/lib/store/slices/navSlice";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { apiCreateVisitHistory } from "@/services/userTourService";
+import {
+  apiCreateVisitHistory,
+  apiGetVisitHistoryById,
+} from "@/services/myListService";
 import type { QueueItem } from "@/lib/store/slices/geofenceSlice";
-import type { VisitHistoryPayload } from "@/services/userTourService"; // ✅ add this import
+import type { VisitHistoryPayload, VisitHistory } from "@/services/myListService";
 
 /* ------------------------------------------------------------
    🧹 Safe HTML Sanitizer
@@ -28,15 +31,15 @@ function sanitizeHTML(input: string): string {
 }
 
 /* ------------------------------------------------------------
-   🌍 Global Check-in Toasts (Monument + Tour aware)
+   🌍 Global Check-in Toasts
 ------------------------------------------------------------ */
 export default function GlobalCheckinToasts() {
   const dispatch = useAppDispatch();
 
-  // ✅ Redux sources (consistent with NavigationOverlay)
+  // Redux sources
   const queue = useAppSelector(selectGeofenceQueue) as QueueItem[];
   const auth = useAppSelector((s) => s.auth.data);
-  const nav = useAppSelector(selectNav); // active tour, status, etc.
+  const nav = useAppSelector(selectNav); // has activeTourId, status, etc.
 
   useEffect(() => {
     if (!queue.length) return;
@@ -56,12 +59,10 @@ export default function GlobalCheckinToasts() {
                            border border-gray-200 dark:border-slate-700
                            animate-[fadeIn_0.25s_ease-out]"
               >
-                {/* Title */}
                 <h3 className="font-semibold text-lg mb-3 break-words">
                   📍 You’re near: {item.name}
                 </h3>
 
-                {/* Description / Blurb */}
                 {item.blurb ? (
                   <div
                     className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed prose dark:prose-invert"
@@ -75,20 +76,18 @@ export default function GlobalCheckinToasts() {
                   </p>
                 )}
 
-                {/* Coordinates Info */}
                 <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 space-y-1 text-left">
                   <p>
-                    <strong>Latitude:</strong> {item.lat.toFixed(6)}
+                    <strong>Latitude:</strong> {item.lat?.toFixed(6) ?? "—"}
                   </p>
                   <p>
-                    <strong>Longitude:</strong> {item.lng.toFixed(6)}
+                    <strong>Longitude:</strong> {item.lng?.toFixed(6) ?? "—"}
                   </p>
                   <p>
-                    <strong>Radius:</strong> {item.radius} m
+                    <strong>Radius:</strong> {item.radius ?? "—"} m
                   </p>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex justify-center gap-3">
                   <Button
                     size="sm"
@@ -119,37 +118,59 @@ export default function GlobalCheckinToasts() {
                         }
 
                         /* ------------------------------------------------
-                           2️⃣ Prepare payload (Monument + Tour from Redux)
+                           2️⃣ Determine correct history type
+                        ------------------------------------------------ */
+                        const hasActiveTour = Boolean(nav?.activeTourId);
+
+                        /* ------------------------------------------------
+                           3️⃣ Construct payload (timestamp + manual)
                         ------------------------------------------------ */
                         const payload: VisitHistoryPayload = {
-                          historytype: "monument", // ✅ exact literal type
                           user: userId,
-                          monument: item.id,
-                          tour: nav?.activeTourId || undefined, // undefined if null
+                          historytype: "monument",
+                          monument: String(item.monumentId),
                           status: "active",
+                          visitmode: "manual", // ✅ always manual
+                          historytime: Date.now().toString(), // ✅ numeric timestamp string
                         };
 
                         console.log("📦 Sending visit history:", payload);
 
                         /* ------------------------------------------------
-                           3️⃣ Call API
+                           4️⃣ Create Visit History
                         ------------------------------------------------ */
-                        await apiCreateVisitHistory(payload);
+                        const created = await apiCreateVisitHistory(payload);
+                        console.log("✅ Created visit history:", created);
 
                         /* ------------------------------------------------
-                           4️⃣ Update state + show toast
+                           5️⃣ Fetch that history again
+                        ------------------------------------------------ */
+                        if (created?._id) {
+                          try {
+                            const fetched: VisitHistory =
+                              await apiGetVisitHistoryById(created._id);
+                            console.log("📥 Fetched created history:", fetched);
+                          } catch (fetchErr: any) {
+                            console.warn("⚠️ Could not fetch visit history:", fetchErr);
+                          }
+                        }
+
+                        /* ------------------------------------------------
+                           6️⃣ Update State + Success Toast
                         ------------------------------------------------ */
                         dispatch(confirm(String(item.id)));
                         toast.dismiss(t);
                         toast.success(`✅ Checked in at ${item.name}`, {
-                          description: "Your visit has been recorded.",
+                          description: hasActiveTour
+                            ? "Your tour progress has been updated."
+                            : "Your visit has been recorded.",
                           duration: 4000,
                         });
                       } catch (err: any) {
                         console.error("❌ Check-in failed:", err);
                         toast.error("Failed to record visit history", {
                           description:
-                            err.message || "Please try again later.",
+                            err?.message || "Please try again later.",
                         });
                       }
                     }}
@@ -168,7 +189,7 @@ export default function GlobalCheckinToasts() {
       );
     }
 
-    // ✅ clear queue after processing
+    // ✅ Clear queue after all toasts created
     dispatch(clearQueue());
   }, [queue, dispatch, auth, nav]);
 

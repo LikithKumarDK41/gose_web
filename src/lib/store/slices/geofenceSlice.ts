@@ -12,6 +12,7 @@ export interface GeofencePlace {
   radius: number;
   blurb?: string;
   tourId?: string | null;
+  monumentId?: string | null; // ✅ NEW: actual monument _id
 }
 
 export interface QueueItem extends GeofencePlace {

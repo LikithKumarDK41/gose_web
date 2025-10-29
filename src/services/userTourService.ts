@@ -153,17 +153,6 @@ export interface Tour {
 }
 
 /* ------------------------------------------------------------
-   Visit History
------------------------------------------------------------- */
-export interface VisitHistoryPayload {
-    historytype: "monument" | "tour";
-    user: string;
-    status: "active" | "inactive" | string;
-    monument?: string;
-    tour?: string;
-}
-
-/* ------------------------------------------------------------
    Helpers
 ------------------------------------------------------------ */
 function parseAxiosError(err: any, fallback: string): string {
@@ -230,15 +219,5 @@ export async function apiFetchMonumentDetails(monument: string): Promise<Monumen
         return data.monument;
     } catch (err: any) {
         throw new Error(parseAxiosError(err, "Failed to load monument details"));
-    }
-}
-
-/** Create or update visit history */
-export async function apiCreateVisitHistory(payload: VisitHistoryPayload): Promise<any> {
-    try {
-        const { data } = await api.post("/v1/visithistories", payload);
-        return data;
-    } catch (err: any) {
-        throw new Error(parseAxiosError(err, "Failed to record visit history"));
     }
 }

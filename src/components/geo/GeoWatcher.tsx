@@ -65,6 +65,7 @@ export default function GeoWatcher() {
           radius: tp.monument?.georadius ?? DEFAULT_RADIUS,
           blurb: tp.monument?.content?.brief ?? "",
           tourId: tour?._id ?? null,
+          monumentId: tp.monument?._id ?? null, // ✅ added here
         };
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
