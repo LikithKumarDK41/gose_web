@@ -1,4 +1,4 @@
-// src/services/userTouristService.ts
+// src/services/userTourService.ts
 import api from "@/lib/api";
 
 /* ------------------------------------------------------------
@@ -219,5 +219,25 @@ export async function apiFetchMonumentDetails(monument: string): Promise<Monumen
         return data.monument;
     } catch (err: any) {
         throw new Error(parseAxiosError(err, "Failed to load monument details"));
+    }
+}
+
+/** ------------------------------------------------------------
+ * 🏛️ Fetch all monuments
+ * ------------------------------------------------------------
+ * GET /v1/monuments
+ * Returns: { monuments: { total: number; results: Monument[] } }
+ */
+export async function apiFetchAllMonuments(): Promise<Monument[]> {
+    try {
+        const { data } = await api.get<{ monuments: { total: number; results: Monument[] } }>(
+            "/v1/monuments"
+        );
+
+        // Safely extract results (if payload shape changes)
+        const results = data?.monuments?.results ?? [];
+        return results;
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load monuments"));
     }
 }
