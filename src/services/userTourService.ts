@@ -153,6 +153,19 @@ export interface Tour {
 }
 
 /* ------------------------------------------------------------
+   Monument Sort Interface
+------------------------------------------------------------ */
+export interface MonumentSort {
+    _id: string;
+    name?: string;
+    state?: string;
+    title?: string;
+    icon?: CloudinaryIcon;
+    priority?: number;
+    link?: string;
+}
+
+/* ------------------------------------------------------------
    Helpers
 ------------------------------------------------------------ */
 function parseAxiosError(err: any, fallback: string): string {
@@ -239,5 +252,28 @@ export async function apiFetchAllMonuments(): Promise<Monument[]> {
         return results;
     } catch (err: any) {
         throw new Error(parseAxiosError(err, "Failed to load monuments"));
+    }
+}
+
+/* ------------------------------------------------------------
+   Fetch Monument Sorts
+------------------------------------------------------------ */
+/**
+ * 🗂️ Fetch all monument sorts
+ * ------------------------------------------------------------
+ * GET /v1/monumentsorts
+ * Returns: { monumentsorts: { total: number; results: MonumentSort[] } }
+ */
+export async function apiFetchMonumentSorts(): Promise<MonumentSort[]> {
+    try {
+        const { data } = await api.get<{ monumentsorts: { total: number; results: MonumentSort[] } }>(
+            "/v1/monumentsorts"
+        );
+
+        // Safely extract results (if payload shape changes)
+        const results = data?.monumentsorts?.results ?? [];
+        return results;
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load monument sorts"));
     }
 }

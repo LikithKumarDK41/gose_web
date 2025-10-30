@@ -10,8 +10,9 @@ import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 import {
     apiFetchAllMonuments,
     apiFetchMonumentDetails,
+    apiFetchMonumentSorts
 } from "@/services/userTourService";
-import type { Monument } from "@/services/userTourService";
+import type { Monument, MonumentSort } from "@/services/userTourService";
 import { useLocale } from "@/providers/LocaleProvider";
 import {
     DropdownMenu,
@@ -356,6 +357,33 @@ export function MonumentsToolbar({
     onSortSelect: (v: string) => void;
     onFilterSelect: (v: string) => void;
 }) {
+    const [sortOptions, setSortOptions] = useState<MonumentSort[]>([]);
+    const [loadingSorts, setLoadingSorts] = useState(false);
+
+    /* -------------------- Fetch Sort Options -------------------- */
+    useEffect(() => {
+        let mounted = true;
+        const loadSorts = async () => {
+            try {
+                setLoadingSorts(true);
+                const data = await apiFetchMonumentSorts();
+                if (mounted) {
+                    // Sort by priority ascending
+                    const sorted = data.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
+                    setSortOptions(sorted);
+                }
+            } catch (err) {
+                console.error("Failed to fetch monument sorts:", err);
+            } finally {
+                setLoadingSorts(false);
+            }
+        };
+        loadSorts();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
     return (
         <div className="flex justify-end items-center gap-2 mb-6">
             {/* Search Dropdown */}
@@ -402,28 +430,40 @@ export function MonumentsToolbar({
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Sort Dropdown */}
+            {/* Sort Dropdown (dynamic) */}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="rounded-full">
                         <ArrowUpDown className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>Sort By</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onSortSelect("name-asc")}>
-                        Name A–Z
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onSortSelect("name-desc")}>
-                        Name Z–A
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onSortSelect("newest")}>
-                        Newest
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onSortSelect("oldest")}>
-                        Oldest
-                    </DropdownMenuItem>
+                    {loadingSorts ? (
+                        <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+                    ) : sortOptions.length > 0 ? (
+                        sortOptions.map((s) => (
+                            <DropdownMenuItem
+                                key={s._id}
+                                onClick={() => onSortSelect(s.link || s.name || "")}
+                                className="flex items-center gap-2"
+                            >
+                                {s.icon?.secure_url ? (
+                                    <img
+                                        src={s.icon.secure_url}
+                                        alt={s.title || s.name}
+                                        className="h-4 w-4 rounded-sm object-contain"
+                                    />
+                                ) : (
+                                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span>{s.title || s.name}</span>
+                            </DropdownMenuItem>
+                        ))
+                    ) : (
+                        <DropdownMenuItem disabled>No sort options</DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>

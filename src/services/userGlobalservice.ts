@@ -56,3 +56,96 @@ export async function apiFetchShortcuts(): Promise<Shortcut[]> {
         throw new Error(parseAxiosError(err, "Failed to load shortcuts"));
     }
 }
+
+/* ========= About Types ========= */
+export interface About {
+    _id: string;
+    name: string;
+    state?: string;
+    title?: string;
+    image?: {
+        secure_url?: string;
+        url?: string;
+    } | null;
+    link?: string;
+    content?: {
+        brief?: string;
+        extended?: string;
+    };
+    relatedtours?: any[];
+}
+
+export type AboutsEnvelope =
+    | { abouts: { results: About[] } }
+    | { results: About[] }
+    | About[];
+
+/** Normalize /v1/abouts/ response */
+function extractAbouts(data: AboutsEnvelope): About[] {
+    if (Array.isArray(data)) return data;
+    if ("abouts" in data && Array.isArray((data as any).abouts?.results)) {
+        return (data as any).abouts.results as About[];
+    }
+    if ("results" in data && Array.isArray((data as any).results)) {
+        return (data as any).results as About[];
+    }
+    return [];
+}
+
+/* ========= About API ========= */
+export async function apiFetchAbouts(): Promise<About[]> {
+    try {
+        const { data } = await api.get<AboutsEnvelope>("/v1/abouts");
+        return extractAbouts(data);
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load abouts"));
+    }
+}
+
+/* ========= Events Types ========= */
+export interface EventItem {
+    _id: string;
+    title: string;
+    description?: string;
+    image?: {
+        secure_url?: string;
+        url?: string;
+    } | null;
+    displaydate?: string;
+    eventmonth?: string;
+    state?: string;
+    priority?: number;
+    monument?: {
+        _id: string;
+        title: string;
+    } | null;
+}
+
+export type EventsEnvelope =
+    | { events: { results: EventItem[]; total?: number } }
+    | { results: EventItem[] }
+    | EventItem[];
+
+/** Normalize /v1/events response */
+function extractEvents(data: EventsEnvelope): EventItem[] {
+    if (Array.isArray(data)) return data;
+    if ("events" in data && Array.isArray((data as any).events?.results)) {
+        return (data as any).events.results as EventItem[];
+    }
+    if ("results" in data && Array.isArray((data as any).results)) {
+        return (data as any).results as EventItem[];
+    }
+    return [];
+}
+
+/* ========= Events API ========= */
+export async function apiFetchEvents(): Promise<EventItem[]> {
+    try {
+        const { data } = await api.get<EventsEnvelope>("/v1/events");
+        return extractEvents(data);
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load events"));
+    }
+}
+
+

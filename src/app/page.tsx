@@ -329,11 +329,11 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
         break;
 
       case 3:
-        router.push("/shortcuts/about-gose-city");
+        router.push("/shortcuts/about");
         break;
 
       case 4:
-        router.push("/shortcuts/events-and-fests");
+        router.push("/shortcuts/events");
         break;
 
       case 5:
