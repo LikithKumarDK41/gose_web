@@ -37,7 +37,9 @@ type Props = {
   onCloseList?: () => void;
 };
 
-/* ---------------- helpers ---------------- */
+/* =========================================================
+   🌍 Helpers
+========================================================= */
 function normalizeLngLat(
   loc?: [number, number] | { lat?: number; lng?: number } | null
 ): { lat: number; lng: number } | null {
@@ -66,15 +68,14 @@ function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng:
 async function getOneShotLocation(): Promise<{ lat: number; lng: number } | null> {
   if (!("geolocation" in navigator)) return null;
 
-  // Try to preflight permission where supported (ignore errors)
   try {
-    // @ts-ignore
     if ("permissions" in navigator) {
-      // @ts-ignore
       const p = await navigator.permissions.query({ name: "geolocation" as PermissionName });
       if (p.state === "denied") return null;
     }
-  } catch {}
+  } catch {
+    /* ignore */
+  }
 
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
@@ -85,6 +86,9 @@ async function getOneShotLocation(): Promise<{ lat: number; lng: number } | null
   });
 }
 
+/* =========================================================
+   🧭 Component
+========================================================= */
 export default function NavigationOverlay({
   tourId,
   defaultProfile = "walking",
@@ -94,7 +98,7 @@ export default function NavigationOverlay({
   onCloseList,
 }: Props) {
   const router = useRouter();
-  const { show } = useGlobalLoader();
+  const loader = useGlobalLoader(); // ✅ Hook used only at top-level
   const nav = useAppSelector(selectNav);
   const auth = useAppSelector((s) => s.auth);
   const geofence = useAppSelector((s) => s.geofence);
@@ -110,11 +114,7 @@ export default function NavigationOverlay({
     return [String(loc.lng), String(loc.lat)];
   };
 
-  // region check using monument.georadius || 50
-  function isInsideRegion(
-    user: { lat: number; lng: number },
-    tourpoints: any[]
-  ) {
+  function isInsideRegion(user: { lat: number; lng: number }, tourpoints: any[]) {
     if (!tourpoints?.length) return false;
     for (const p of tourpoints) {
       const pos = normalizeLngLat(p?.monument?.location ?? p?.location);
@@ -128,7 +128,7 @@ export default function NavigationOverlay({
     return false;
   }
 
-  /* restore */
+  /* restore from localStorage */
   useEffect(() => {
     try {
       const saved = localStorage.getItem("navState");
@@ -150,7 +150,7 @@ export default function NavigationOverlay({
     }
   }, [dispatch, defaultProfile]);
 
-  /* persist */
+  /* persist to localStorage */
   useEffect(() => {
     if (nav.status === "idle") {
       localStorage.removeItem("navState");
@@ -229,27 +229,23 @@ export default function NavigationOverlay({
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [dispatch, nav.status, nav.activeTourId, nav.profile, auth.data, geofence.last]);
 
-  /* controls */
+  /* handlers */
   const handleStart = async () => {
     if (nav.status === "running" || !tourId) return;
 
-    // pick the tour instance
     const tour =
-      tours.find((t) => t._id === tourId) ||
-      (detail?._id === tourId ? detail : null);
+      tours.find((t) => t._id === tourId) || (detail?._id === tourId ? detail : null);
 
     if (!tour?.tourpoints?.length) {
       toast.error("⚠️ Tourpoints not available yet");
       return;
     }
 
-    // compute a reasonable fallback point from the tour (first point)
     const firstPos =
       normalizeLngLat(
         tour.tourpoints[0]?.monument?.location ?? tour.tourpoints[0]?.location
       ) || null;
 
-    // get best available location: redux -> one-shot gps -> first tourpoint
     let userLoc = geofence.last || null;
     let source: "redux" | "gps" | "first" | null = null;
 
@@ -273,14 +269,12 @@ export default function NavigationOverlay({
       return;
     }
 
-    // Region check (monument.georadius || 50)
     const inside = isInsideRegion(userLoc, tour.tourpoints);
     if (!inside) {
       setShowDialog(true);
       return;
     }
 
-    // Start the tour
     dispatch(setActiveTour(tourId));
     dispatch(setProfile(defaultProfile));
     dispatch(navStart(tourId));
@@ -288,8 +282,8 @@ export default function NavigationOverlay({
       source === "gps"
         ? "🎯 Tour started (using GPS)"
         : source === "redux"
-        ? "🎯 Tour started"
-        : "🎯 Tour started (using nearest point)"
+          ? "🎯 Tour started"
+          : "🎯 Tour started (using nearest point)"
     );
 
     if (auth.data?.user?._id) {
@@ -357,12 +351,11 @@ export default function NavigationOverlay({
   };
 
   const handleBack = () => {
-    const { show } = useGlobalLoader();
-    show();
+    loader.show();
     requestAnimationFrame(() => router.back());
   };
 
-  const { back, start, pause, resume, stop, map, list } = {
+  const labels = {
     back: t("Back") || (locale === "ja" ? "戻る" : "Back"),
     start: t("Start") || (locale === "ja" ? "開始" : "Start"),
     pause: t("Pause") || (locale === "ja" ? "一時停止" : "Pause"),
@@ -381,8 +374,8 @@ export default function NavigationOverlay({
           variant="outline"
           className="rounded-full shadow bg-white/80 dark:bg-black/50 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-black/60"
           onClick={handleBack}
-          aria-label={back}
-          title={back}
+          aria-label={labels.back}
+          title={labels.back}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -402,7 +395,7 @@ export default function NavigationOverlay({
                 : "text-foreground/80 hover:bg-white/70 dark:hover:bg-black/40",
             ].join(" ")}
           >
-            {map}
+            {labels.map}
           </button>
           <button
             type="button"
@@ -415,7 +408,7 @@ export default function NavigationOverlay({
                 : "text-foreground/80 hover:bg-white/70 dark:hover:bg-black/40",
             ].join(" ")}
           >
-            {list}
+            {labels.list}
           </button>
         </div>
       </div>
@@ -427,9 +420,9 @@ export default function NavigationOverlay({
             size="lg"
             className="pointer-events-auto rounded-full px-6 shadow-lg bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400"
             onClick={handleStart}
-            aria-label={start}
+            aria-label={labels.start}
           >
-            <Play className="mr-2 h-5 w-5" /> {start}
+            <Play className="mr-2 h-5 w-5" /> {labels.start}
           </Button>
         )}
 
@@ -440,17 +433,17 @@ export default function NavigationOverlay({
               variant="outline"
               className="pointer-events-auto rounded-full px-6 shadow-lg bg-white/90 dark:bg-black/40 backdrop-blur-sm"
               onClick={handlePauseResume}
-              aria-label={pause}
+              aria-label={labels.pause}
             >
-              <Pause className="mr-2 h-5 w-5" /> {pause}
+              <Pause className="mr-2 h-5 w-5" /> {labels.pause}
             </Button>
             <Button
               size="lg"
               className="pointer-events-auto rounded-full px-6 shadow-lg bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400"
               onClick={handleStop}
-              aria-label={stop}
+              aria-label={labels.stop}
             >
-              <StopCircle className="mr-2 h-5 w-5" /> {stop}
+              <StopCircle className="mr-2 h-5 w-5" /> {labels.stop}
             </Button>
           </>
         )}
@@ -461,17 +454,17 @@ export default function NavigationOverlay({
               size="lg"
               className="pointer-events-auto rounded-full px-6 shadow-lg bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
               onClick={handlePauseResume}
-              aria-label={resume}
+              aria-label={labels.resume}
             >
-              <Play className="mr-2 h-5 w-5" /> {resume}
+              <Play className="mr-2 h-5 w-5" /> {labels.resume}
             </Button>
             <Button
               size="lg"
               className="pointer-events-auto rounded-full px-6 shadow-lg bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400"
               onClick={handleStop}
-              aria-label={stop}
+              aria-label={labels.stop}
             >
-              <StopCircle className="mr-2 h-5 w-5" /> {stop}
+              <StopCircle className="mr-2 h-5 w-5" /> {labels.stop}
             </Button>
           </>
         )}
