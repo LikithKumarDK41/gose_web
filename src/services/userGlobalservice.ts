@@ -148,4 +148,64 @@ export async function apiFetchEvents(): Promise<EventItem[]> {
     }
 }
 
+// Place Types
+export interface PlaceImage {
+  secure_url?: string;
+  url?: string;
+  public_id?: string;
+}
+
+export interface PlaceCategory {
+  _id: string;
+  title: string;
+  name: string;
+  image?: PlaceImage;
+}
+
+export interface PlaceItem {
+  _id: string;
+  title: string;
+  name: string;
+  location?: [number, number];
+  content?: {
+    brief: string;
+    extended: string;
+  };
+  image?: PlaceImage;
+  state?: string;
+  category?: PlaceCategory;
+}
+
+export interface PlacesEnvelope {
+  places?: {
+    total: number;
+    results: PlaceItem[];
+  };
+  results?: PlaceItem[];
+}
+
+/** Normalize /v1/place response */
+function extractPlaces(data: any): PlaceItem[] {
+  if (Array.isArray(data)) return data;
+
+  if (data?.places?.results && Array.isArray(data.places.results)) {
+    return data.places.results;
+  }
+
+  if (Array.isArray(data?.results)) {
+    return data.results;
+  }
+
+  return [];
+}
+
+/* ========= Places API ========= */
+export async function apiFetchPlaces(): Promise<PlaceItem[]> {
+  try {
+    const { data } = await api.get<PlacesEnvelope>("/v1/places");
+    return extractPlaces(data);
+  } catch (err: any) {
+    throw new Error(parseAxiosError(err, "Failed to load places"));
+  }
+}
 

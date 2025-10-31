@@ -5,7 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import type mapboxgl from "mapbox-gl";
 import MapboxLanguage from "@mapbox/mapbox-gl-language";
 import { useLocale } from "@/providers/LocaleProvider";
-import type { Tour, TourPoint } from "@/lib/store/slices/touristSlice";
+import { Tour, TourPoint } from "@/services/userTourService";
 
 /* -------------------- props -------------------- */
 type Props = {

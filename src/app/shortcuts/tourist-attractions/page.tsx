@@ -346,7 +346,7 @@ function EmptyState({
 /* =========================================================
    🔎 Toolbar (Search + Filter + Sort)
 ========================================================= */
-export function MonumentsToolbar({
+function MonumentsToolbar({
     query,
     setQuery,
     onSortSelect,
