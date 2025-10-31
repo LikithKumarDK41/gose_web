@@ -227,12 +227,12 @@ function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: () => void }) {
 function EventsSkeleton() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white dark:from-zinc-900 dark:to-black pb-20">
-            <div className="px-4 md:px-24 mt-6">
+            <div className="">
                 <Skeleton className="h-40 md:h-48 rounded-3xl w-full" />
             </div>
-            <div className="mt-6 px-4 md:px-24 space-y-4">
-                <div className="flex overflow-x-auto gap-2">
-                    {Array.from({ length: 6 }).map((_, i) => (
+            <div className="mt-6 space-y-4">
+                <div className="flex overflow-x-auto gap-2 min-w-max justify-center">
+                    {Array.from({ length: 10 }).map((_, i) => (
                         <Skeleton key={i} className="h-9 w-16 rounded-full" />
                     ))}
                 </div>
