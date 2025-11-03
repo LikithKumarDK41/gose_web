@@ -322,22 +322,63 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
   // ✅ Handle shortcut click
   const handleShortcutClick = (shortcut: any) => {
     try {
-      // Parse link JSON safely
+      // 1️⃣ Parse link JSON safely
       let parsedLink: any = {};
       if (shortcut.link) {
         parsedLink = JSON.parse(shortcut.link);
       }
 
-      // ✅ Extract theme ID (if available)
+      // 2️⃣ Extract theme ID (if available)
       const themeId = parsedLink.theme || null;
 
-      // ✅ Store theme ID in Redux
+      // 3️⃣ Store theme ID in Redux
       dispatch(setActiveTheme(themeId));
 
-      // ✅ Navigate to unified shortcut page
-      router.push("/shortcuts/tourist-attractions");
+      // 4️⃣ Navigate based on priority
+      const priority = shortcut.priority ?? null;
+      switch (priority) {
+        case null:
+          router.push("/shortcuts/tourist-map");
+          break;
+
+        case 2:
+          router.push("/shortcuts/tourist-attractions");
+          break;
+
+        case 3:
+          router.push("/shortcuts/about");
+          break;
+
+        case 4:
+          router.push("/shortcuts/events");
+          break;
+
+        case 5:
+          router.push("/shortcuts/gourmet-products");
+          break;
+
+        case 6:
+          router.push("/shortcuts/facility");
+          break;
+
+        case 7:
+          router.push("/shortcuts/mt-kongo-and-katsuragi");
+          break;
+
+        case 8:
+          router.push("/shortcuts/city-promotion");
+          break;
+
+        case 9:
+          router.push("/shortcuts/meetings");
+          break;
+
+        default:
+          router.push("/shortcuts/others");
+          break;
+      }
     } catch (err) {
-      console.error("Error parsing shortcut link:", err);
+      console.error("❌ Error parsing shortcut link:", err);
     }
   };
 
@@ -376,4 +417,5 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
     </div>
   );
 }
+
 
