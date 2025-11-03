@@ -31,7 +31,7 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["nav", "geofence", "tourist"], // only persist these slices
+  whitelist: ["nav", "geofence", "tourist","global","auth"], // only persist these slices
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

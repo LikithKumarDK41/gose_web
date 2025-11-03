@@ -232,5 +232,6 @@
   },
   "filter": "Filter",
   "pagination_left": "Page {{current}} of {{total}}",
-  "no_data": "No Data"
+  "no_data": "No Data",
+  "all": "All"
 }
