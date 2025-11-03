@@ -151,7 +151,8 @@
     "end": "終了",
     "route": "ルート",
     "loadingMap": "地図を読み込み中…",
-    "durationFormat": "{km} km • {hh}時間 {mm}分"
+    "durationFormat": "{km} km • {hh}時間 {mm}分",
+    "checkIn": "チェックイン"
   },
   "Back": "戻る",
   "Start": "開始",
@@ -190,5 +191,46 @@
   "loading_shortcuts": "ショートカットを読み込み中...",
   "city_promotion": "シティプロモーション",
   "city_promotion_desc": "このプロモーション動画では、御所市の四季折々の表情や、まちの人々の温かさ、そして訪れたくなる魅力あふれるスポットをご紹介します。新しい発見と感動に出会える、御所市の魅力をご覧ください。",
-  "city_promotion_video_desc": "御所市の魅力を映像で体験しよう！歴史、自然、文化が融合する美しいまち「御所市」を紹介するビデオです。"
+  "city_promotion_video_desc": "御所市の魅力を映像で体験しよう！歴史、自然、文化が融合する美しいまち「御所市」を紹介するビデオです。",
+  "shortcut": {
+    "tourist_map": "観光マップ",
+    "tourist_map_desc": "各地図をタップすると拡大・縮小できます。",
+    "tourist_attraction": "奈良の文化遺産を探検しよう",
+    "tourist_attraction_desc": "歴史と自然が調和する「御所市」— 古代から受け継がれる文化と建造物の魅力を発見しましょう。",
+    "tourist_attraction_search": "遺跡を検索",
+    "tourist_attraction_search_placeholder": "キーワードを入力...",
+    "tourist_attraction_filter1": "人気のスポット",
+    "tourist_attraction_filter2": "珍しい遺跡",
+    "tourist_attraction_filter3": "AR対応",
+    "tourist_attraction_filter4": "AV対応",
+    "tourist_attraction_details": {
+      "era": "時代",
+      "year": "年代",
+      "size": "規模",
+      "type": "種類",
+      "featured": "注目",
+      "rare": "希少",
+      "popularity": "人気度",
+      "priority": "優先度",
+      "radius": "半径",
+      "address": "住所",
+      "region_info": "地域情報",
+      "image_credit": "画像クレジット",
+      "classification": "分類",
+      "gallery": "ギャラリー",
+      "nearby_monuments": "周辺の史跡",
+      "related_tours": "関連ツアー",
+      "go_tour": "ツアーを見る",
+      "nearby_services": "周辺サービス",
+      "category": "カテゴリ"
+    },
+    "about": "御所市って？",
+    "about_desc": "歴史と自然が息づくまち「御所市」— 古代から続く文化と豊かな景観を持つ魅力あふれる土地。",
+    "about_tab_1": "御所市の位置",
+    "about_tab_2": "御所市の歴史",
+    "about_tab_3": "御所市の沿革"
+  },
+  "filter": "フィルター",
+  "pagination_left": "ページ {{current}} / {{total}}",
+  "no_data": "データがありません"
 }

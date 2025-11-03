@@ -28,15 +28,16 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
 
 /* =========================================================
    🏛️ Monuments Page
 ========================================================= */
 export default function MonumentsPage() {
     const { t } = useLocale();
+    const { show, hide } = useGlobalLoader();
 
     const [monuments, setMonuments] = useState<Monument[]>([]);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const [query, setQuery] = useState("");
@@ -54,21 +55,21 @@ export default function MonumentsPage() {
         let mounted = true;
         const loadMonuments = async () => {
             try {
-                setLoading(true);
+                show();
                 const data = await apiFetchAllMonuments();
                 if (mounted) setMonuments(data);
             } catch (err: any) {
                 console.error("Failed to fetch monuments:", err);
                 setError(err.message || "Failed to fetch monuments");
             } finally {
-                if (mounted) setLoading(false);
+                if (mounted) hide();
             }
         };
         loadMonuments();
         return () => {
             mounted = false;
         };
-    }, []);
+    }, [show, hide]);
 
     /* -------------------- Filtering -------------------- */
     useEffect(() => setPage(1), [query]);
@@ -115,15 +116,8 @@ export default function MonumentsPage() {
     };
 
     /* =========================================================
-         💠 Render
+        Render
     ========================================================= */
-    if (loading)
-        return (
-            <div className="text-center text-lg text-gray-500 mt-10">
-                {t("Loading...")}
-            </div>
-        );
-
     if (error)
         return (
             <div className="text-center text-lg text-red-500 mt-10">{error}</div>
@@ -135,10 +129,10 @@ export default function MonumentsPage() {
             <section className="relative w-full mx-auto bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white rounded-2xl shadow-xl mt-4 mb-10">
                 <div className="max-w-5xl mx-auto py-16 px-6 text-center">
                     <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
-                        奈良の文化遺産を探検しよう
+                        {t("shortcut.tourist_attraction")}
                     </h1>
                     <p className="text-lg md:text-xl font-medium opacity-90">
-                        歴史と自然が調和する「御所市」— 古代から受け継がれる文化と建造物の魅力を発見しましょう。
+                        {t("shortcut.tourist_attraction_desc")}
                     </p>
                 </div>
             </section>
@@ -230,7 +224,7 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
                     className="mt-3 bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white hover:opacity-90"
                     onClick={onOpen}
                 >
-                    {t("Details")}
+                    {t("tourDetails.viewDetails")}
                 </Button>
             </div>
         </div>
@@ -244,7 +238,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
     return (
         <div className="flex items-center justify-between gap-3 pt-4">
             <div className="text-xs text-muted-foreground">
-                ページ {page} / {totalPages}
+                {t("pagination_left", { current: page, total: totalPages })}
             </div>
             <div className="flex items-center gap-1">
                 <Button
@@ -255,7 +249,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
                     disabled={page <= 1}
                 >
                     <ChevronLeft className="mr-1 h-4 w-4" />
-                    前へ
+                    {t("tours.prev")}
                 </Button>
                 <div className="hidden sm:flex items-center gap-1">
                     {rangeAround(page, totalPages, 2).map((n, i) =>
@@ -287,7 +281,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
                     onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                     disabled={page >= totalPages}
                 >
-                    次へ
+                    {t("tours.next")}
                     <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
             </div>
@@ -356,6 +350,7 @@ function MonumentsToolbar({
     onSortSelect: (v: string) => void;
     onFilterSelect: (v: string) => void;
 }) {
+    const { t } = useLocale();
     const [sortOptions, setSortOptions] = useState<MonumentSort[]>([]);
     const [loadingSorts, setLoadingSorts] = useState(false);
 
@@ -396,10 +391,10 @@ function MonumentsToolbar({
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 p-2">
-                    <DropdownMenuLabel>遺跡を検索</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("shortcut.tourist_attraction_search")}</DropdownMenuLabel>
                     <Input
                         autoFocus
-                        placeholder="キーワードを入力..."
+                        placeholder={t("shortcut.tourist_attraction_search_placeholder")}
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         className="mt-2"
@@ -418,19 +413,19 @@ function MonumentsToolbar({
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>フィルター</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("filter")}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onFilterSelect("featured")}>
-                        人気のスポット
+                        {t("shortcut.tourist_attraction_filter1")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onFilterSelect("rare")}>
-                        珍しい遺跡
+                        {t("shortcut.tourist_attraction_filter2")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onFilterSelect("arenabled")}>
-                        AR対応
+                        {t("shortcut.tourist_attraction_filter3")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onFilterSelect("avenabled")}>
-                        AV対応
+                        {t("shortcut.tourist_attraction_filter4")}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
