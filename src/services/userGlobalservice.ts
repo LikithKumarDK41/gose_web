@@ -150,62 +150,191 @@ export async function apiFetchEvents(): Promise<EventItem[]> {
 
 // Place Types
 export interface PlaceImage {
-  secure_url?: string;
-  url?: string;
-  public_id?: string;
+    secure_url?: string;
+    url?: string;
+    public_id?: string;
 }
 
 export interface PlaceCategory {
-  _id: string;
-  title: string;
-  name: string;
-  image?: PlaceImage;
+    _id: string;
+    title: string;
+    name: string;
+    image?: PlaceImage;
 }
 
 export interface PlaceItem {
-  _id: string;
-  title: string;
-  name: string;
-  location?: [number, number];
-  content?: {
-    brief: string;
-    extended: string;
-  };
-  image?: PlaceImage;
-  state?: string;
-  category?: PlaceCategory;
+    _id: string;
+    title: string;
+    name: string;
+    location?: [number, number];
+    content?: {
+        brief: string;
+        extended: string;
+    };
+    image?: PlaceImage;
+    state?: string;
+    category?: PlaceCategory;
 }
 
 export interface PlacesEnvelope {
-  places?: {
-    total: number;
-    results: PlaceItem[];
-  };
-  results?: PlaceItem[];
+    places?: {
+        total: number;
+        results: PlaceItem[];
+    };
+    results?: PlaceItem[];
 }
 
 /** Normalize /v1/place response */
 function extractPlaces(data: any): PlaceItem[] {
-  if (Array.isArray(data)) return data;
+    if (Array.isArray(data)) return data;
 
-  if (data?.places?.results && Array.isArray(data.places.results)) {
-    return data.places.results;
-  }
+    if (data?.places?.results && Array.isArray(data.places.results)) {
+        return data.places.results;
+    }
 
-  if (Array.isArray(data?.results)) {
-    return data.results;
-  }
+    if (Array.isArray(data?.results)) {
+        return data.results;
+    }
 
-  return [];
+    return [];
 }
 
 /* ========= Places API ========= */
 export async function apiFetchPlaces(): Promise<PlaceItem[]> {
-  try {
-    const { data } = await api.get<PlacesEnvelope>("/v1/places");
-    return extractPlaces(data);
-  } catch (err: any) {
-    throw new Error(parseAxiosError(err, "Failed to load places"));
-  }
+    try {
+        const { data } = await api.get<PlacesEnvelope>("/v1/places");
+        return extractPlaces(data);
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load places"));
+    }
 }
+
+/* ========= Theme Types ========= */
+export interface ThemeItem {
+    _id: string;
+    title: string;
+    image?: {
+        secure_url?: string;
+        url?: string;
+    } | null;
+}
+
+export interface ThemesEnvelope {
+    themes?: {
+        total: number;
+        results: ThemeItem[];
+    };
+    results?: ThemeItem[];
+}
+
+/** Normalize /v1/themes response */
+function extractThemes(data: any): ThemeItem[] {
+    if (Array.isArray(data)) return data;
+    if (data?.themes?.results && Array.isArray(data.themes.results)) {
+        return data.themes.results;
+    }
+    if (Array.isArray(data?.results)) {
+        return data.results;
+    }
+    return [];
+}
+
+/* ========= Themes API ========= */
+/**
+ * 🔹 Fetch all themes
+ * GET /v1/themes
+ */
+export async function apiFetchThemes(): Promise<ThemeItem[]> {
+    try {
+        const { data } = await api.get<ThemesEnvelope>("/v1/themes");
+        return extractThemes(data);
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load themes"));
+    }
+}
+
+/* ========= Subtheme Types ========= */
+export interface SubthemeItem {
+    _id: string;
+    slug?: string;
+    name?: string;
+    state?: string;
+    title?: string;
+    description?: string;
+    sortOrder?: number;
+    priority?: number | null;
+    image?: {
+        secure_url?: string;
+        url?: string;
+    } | null;
+    theme?: {
+        _id: string;
+        slug?: string;
+        name?: string;
+        title?: string;
+    }[];
+}
+
+export interface SubthemesEnvelope {
+    subthemes?: {
+        total: number;
+        results: SubthemeItem[];
+    };
+    results?: SubthemeItem[];
+}
+
+/** Normalize /v1/subthemes response */
+function extractSubthemes(data: any): SubthemeItem[] {
+    if (Array.isArray(data)) return data;
+    if (data?.subthemes?.results && Array.isArray(data.subthemes.results)) {
+        return data.subthemes.results;
+    }
+    if (Array.isArray(data?.results)) {
+        return data.results;
+    }
+    return [];
+}
+
+/* ========= Subthemes API ========= */
+/**
+ * 🔹 Fetch subthemes dynamically with filter & sort (raw URL, no encoding)
+ * Example:
+ * apiFetchSubthemesWithQuery({
+ *   filter: { theme: "609e37a8c463476d312ba4b9" },
+ *   sort: "sortOrder"
+ * });
+ *
+ * ✅ Calls:
+ * /v1/subthemes?filter={"theme":"609e37a8c463476d312ba4b9"}&sort=sortOrder
+ */
+export async function apiFetchSubthemesWithQuery({
+    filter,
+    sort,
+}: {
+    filter?: Record<string, any>;
+    sort?: string;
+}): Promise<SubthemeItem[]> {
+    try {
+        // Build query string exactly as Postman
+        let query = "";
+
+        if (filter) {
+            const filterString = JSON.stringify(filter);
+            query += `filter=${filterString}`;
+        }
+
+        if (sort) {
+            query += (query ? "&" : "") + `sort=${sort}`;
+        }
+
+        const url = `/v1/subthemes${query ? `?${query}` : ""}`;
+
+        const { data } = await api.get<SubthemesEnvelope>(url);
+
+        return extractSubthemes(data);
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load subthemes"));
+    }
+}
+
 

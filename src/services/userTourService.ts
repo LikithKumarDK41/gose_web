@@ -277,3 +277,50 @@ export async function apiFetchMonumentSorts(): Promise<MonumentSort[]> {
         throw new Error(parseAxiosError(err, "Failed to load monument sorts"));
     }
 }
+
+/**
+ * 🏛️ Fetch monuments with raw JSON filter and sort (same as Postman)
+ * ------------------------------------------------------------
+ * Example:
+ * apiFetchAllMonumentsWithQuery({
+ *   filter: { theme: "609e37a8c463476d312ba4b9" },
+ *   sort: "+title"
+ * });
+ *
+ * ✅ Sends exactly:
+ * https://api-gose.naraiseki.org/api/v1/monuments?filter={"theme":"609e37a8c463476d312ba4b9"}&sort=+title
+ */
+export async function apiFetchAllMonumentsWithQuery({
+    filter,
+    sort,
+}: {
+    filter?: Record<string, any>;
+    sort?: string;
+}): Promise<Monument[]> {
+    try {
+        // Manually construct raw query
+        let query = "";
+
+        if (filter) {
+            const filterString = JSON.stringify(filter);
+            query += `filter=${filterString}`;
+        }
+
+        if (sort) {
+            query += (query ? "&" : "") + `sort=${sort}`;
+        }
+
+        // Final URL (unencoded like Postman)
+        const url = `/v1/monuments${query ? `?${query}` : ""}`;
+
+        // Call API
+        const { data } = await api.get<{ monuments: { total: number; results: Monument[] } }>(url);
+
+        // Return clean result
+        return data?.monuments?.results ?? [];
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load monuments with query"));
+    }
+}
+
+
