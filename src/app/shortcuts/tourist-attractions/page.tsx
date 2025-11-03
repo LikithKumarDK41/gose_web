@@ -521,7 +521,7 @@ function MonumentsToolbar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>並び替え</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("sort")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {loadingSorts ? (
             <DropdownMenuItem disabled>読み込み中...</DropdownMenuItem>

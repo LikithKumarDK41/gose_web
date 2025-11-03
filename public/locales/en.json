@@ -231,6 +231,7 @@
     "about_tab_3": "Chronology of Gose City"
   },
   "filter": "Filter",
+  "sort": "Sort",
   "pagination_left": "Page {{current}} of {{total}}",
   "no_data": "No Data",
   "all": "All"
