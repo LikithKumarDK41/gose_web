@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { apiFetchTours } from "@/services/userTourService";
 import type { Tour } from "@/services/userTourService";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
 
 export default function ToursPage() {
   const router = useRouter();
+  const { t } = useLocale();
+  const { show, hide } = useGlobalLoader();
 
   const [tours, setTours] = useState<Tour[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -22,14 +25,14 @@ export default function ToursPage() {
 
     const fetchData = async () => {
       try {
-        setLoading(true);
+        show();
         const data = await apiFetchTours();
         if (mounted) setTours(data);
       } catch (err: any) {
         console.error("Failed to fetch tours:", err);
         if (mounted) setError(err.message || "Failed to fetch tours");
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) hide();
       }
     };
 
@@ -37,23 +40,14 @@ export default function ToursPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [show, hide]);
 
   /* ------------------------------------------------------------
-     ⚙️ Loading & Error States
+     Error States
   ------------------------------------------------------------ */
-  if (loading)
-    return (
-      <div className="text-center text-lg text-violet-500 mt-10 animate-pulse">
-        Loading...
-      </div>
-    );
-
   if (error)
     return (
-      <div className="text-center text-lg text-red-400 mt-10">
-        {error}
-      </div>
+      <div className="text-center text-lg text-red-400 mt-10">{error}</div>
     );
 
   /* ------------------------------------------------------------
@@ -65,10 +59,10 @@ export default function ToursPage() {
       <section className="relative w-full bg-gradient-to-r from-indigo-600 via-violet-500 to-purple-600 text-white rounded-2xl shadow-lg mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
-            観光マップ
+            {t("shortcut.tourist_map")}
           </h1>
           <p className="text-lg md:text-xl font-medium opacity-90">
-            各地図をタップすると拡大・縮小できます。
+            {t("shortcut.tourist_map_desc")}
           </p>
         </div>
         {/* Optional gradient overlay glow */}
@@ -89,7 +83,9 @@ export default function ToursPage() {
                   <button
                     type="button"
                     className="block w-full aspect-[16/10] overflow-hidden"
-                    onClick={() => setSelectedImage(tour.routeImage!.secure_url!)}
+                    onClick={() =>
+                      setSelectedImage(tour.routeImage!.secure_url!)
+                    }
                     aria-label={`${tour.title} – open fullscreen`}
                   >
                     <img
@@ -120,7 +116,9 @@ export default function ToursPage() {
 
                     <button
                       type="button"
-                      onClick={() => router.push(`/tours/detail/?id=${tour._id}`)}
+                      onClick={() =>
+                        router.push(`/tours/detail/?id=${tour._id}`)
+                      }
                       className="shrink-0 rounded-full px-4 py-2 text-sm font-medium
                                  border border-violet-600 text-violet-600
                                  hover:bg-violet-600 hover:text-white transition-colors
@@ -129,7 +127,7 @@ export default function ToursPage() {
                                  focus:outline-none focus-visible:ring-2
                                  focus-visible:ring-violet-500 dark:focus-visible:ring-offset-slate-900"
                     >
-                      詳細を見る
+                      {t("tourDetails.viewDetails")}
                     </button>
                   </div>
 

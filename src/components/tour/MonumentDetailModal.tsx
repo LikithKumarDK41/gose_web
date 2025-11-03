@@ -152,22 +152,22 @@ export default function MonumentDetailModal({
 
                                 {/* 🏷 Meta */}
                                 <section className="flex flex-wrap gap-2">
-                                    {safeText(details.era) && <Badge>Era: {details.era}</Badge>}
-                                    {safeText(details.year) && <Badge>Year: {details.year}</Badge>}
-                                    {safeText(details.size) && <Badge>Size: {details.size}</Badge>}
-                                    {safeText(details.mtype) && <Badge>Type: {details.mtype}</Badge>}
+                                    {safeText(details.era) && <Badge>{t("shortcut.tourist_attraction_details.era")}: {details.era}</Badge>}
+                                    {safeText(details.year) && <Badge>{t("shortcut.tourist_attraction_details.year")}: {details.year}</Badge>}
+                                    {safeText(details.size) && <Badge>{t("shortcut.tourist_attraction_details.size")}: {details.size}</Badge>}
+                                    {safeText(details.mtype) && <Badge>{t("shortcut.tourist_attraction_details.type")}: {details.mtype}</Badge>}
                                     {details.featured && (
-                                        <Badge variant="outline">Featured</Badge>
+                                        <Badge variant="outline">{t("shortcut.tourist_attraction_details.featured")}</Badge>
                                     )}
-                                    {details.rare && <Badge variant="outline">Rare</Badge>}
+                                    {details.rare && <Badge variant="outline">{t("shortcut.tourist_attraction_details.rare")}</Badge>}
                                     {details.popularity && (
-                                        <Badge>Popularity: {details.popularity}</Badge>
+                                        <Badge>{t("shortcut.tourist_attraction_details.popularity")}: {details.popularity}</Badge>
                                     )}
                                     {details.priority && (
-                                        <Badge>Priority: {details.priority}</Badge>
+                                        <Badge>{t("shortcut.tourist_attraction_details.priority")}: {details.priority}</Badge>
                                     )}
                                     {details.georadius && (
-                                        <Badge>Radius: {details.georadius}m</Badge>
+                                        <Badge>{t("shortcut.tourist_attraction_details.radius")}: {details.georadius}m</Badge>
                                     )}
                                 </section>
 
@@ -175,7 +175,7 @@ export default function MonumentDetailModal({
                                 {plainAddress && (
                                     <section>
                                         <h3 className="text-lg font-semibold flex items-center gap-2 mb-1">
-                                            <Layers className="h-4 w-4 text-gray-500" /> Address
+                                            <Layers className="h-4 w-4 text-gray-500" /> {t("shortcut.tourist_attraction_details.address")}
                                         </h3>
                                         <p className="text-sm text-muted-foreground">{plainAddress}</p>
                                     </section>
@@ -185,7 +185,7 @@ export default function MonumentDetailModal({
                                 {details.region && (
                                     <section>
                                         <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
-                                            <Globe className="h-4 w-4 text-gray-500" /> Region Info
+                                            <Globe className="h-4 w-4 text-gray-500" /> {t("shortcut.tourist_attraction_details.region_info")}
                                         </h3>
                                         <p className="text-sm text-muted-foreground">
                                             {stripHTML(details.region.content?.brief)}{" "}
@@ -198,7 +198,7 @@ export default function MonumentDetailModal({
                                 {plainCredit && (
                                     <section>
                                         <h3 className="text-lg font-semibold flex items-center gap-2 mb-1">
-                                            <Info className="h-4 w-4 text-gray-500" /> Image Credit
+                                            <Info className="h-4 w-4 text-gray-500" /> {t("shortcut.tourist_attraction_details.image_credit")}
                                         </h3>
                                         <p className="text-sm text-muted-foreground">{plainCredit}</p>
                                     </section>
@@ -208,7 +208,7 @@ export default function MonumentDetailModal({
                                 {(details.theme?.length || details.subtheme?.length) && (
                                     <section>
                                         <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
-                                            <Star className="h-4 w-4 text-gray-500" /> Classification
+                                            <Star className="h-4 w-4 text-gray-500" /> {t("shortcut.tourist_attraction_details.classification")}
                                         </h3>
                                         <div className="flex flex-wrap gap-2">
                                             {details.theme?.map((th: any) => (
@@ -235,7 +235,7 @@ export default function MonumentDetailModal({
                                 {!!details.gallery?.length && (
                                     <section>
                                         <h3 className="mb-3 flex items-center gap-2 font-semibold text-lg text-foreground">
-                                            <ImageIcon className="h-5 w-5 text-gray-500" /> Gallery
+                                            <ImageIcon className="h-5 w-5 text-gray-500" /> {t("shortcut.tourist_attraction_details.gallery")}
                                         </h3>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                             {details.gallery.map(
@@ -262,7 +262,7 @@ export default function MonumentDetailModal({
                                 {!!details.nearbymonuments?.length && (
                                     <section>
                                         <h3 className="mb-3 flex items-center gap-2 font-semibold text-lg text-foreground">
-                                            <Landmark className="h-5 w-5 text-gray-500" /> Nearby Monuments
+                                            <Landmark className="h-5 w-5 text-gray-500" /> {t("shortcut.tourist_attraction_details.nearby_monuments")}
                                         </h3>
                                         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
                                             {details.nearbymonuments.map((m: any) => (
@@ -303,7 +303,7 @@ export default function MonumentDetailModal({
                              border border-gray-300 dark:border-gray-700"
                                                             onClick={() => onOpenAnother(m._id)}
                                                         >
-                                                            View Details
+                                                            {t("tourDetails.viewDetails")}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -316,7 +316,7 @@ export default function MonumentDetailModal({
                                 {!!details.relatedtours?.length && (
                                     <section>
                                         <h3 className="mb-3 flex items-center gap-2 font-semibold text-lg text-foreground">
-                                            <Route className="h-5 w-5 text-gray-500" /> Related Tours
+                                            <Route className="h-5 w-5 text-gray-500" /> {t("shortcut.tourist_attraction_details.related_tours")}
                                         </h3>
                                         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
                                             {details.relatedtours.map((tour: any) => (
@@ -361,7 +361,7 @@ export default function MonumentDetailModal({
                                                                 )
                                                             }
                                                         >
-                                                            Go Tour
+                                                            {t("shortcut.tourist_attraction_details.go_tour")}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -374,7 +374,7 @@ export default function MonumentDetailModal({
                                 {!!details.nearbyservices?.length && (
                                     <section>
                                         <h3 className="mb-3 flex items-center gap-2 font-semibold text-lg text-foreground">
-                                            <Store className="h-5 w-5 text-gray-500" /> Nearby Services
+                                            <Store className="h-5 w-5 text-gray-500" /> {t("shortcut.tourist_attraction_details.nearby_services")}
                                         </h3>
                                         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
                                             {details.nearbyservices.map((srv: any) => (
@@ -397,7 +397,7 @@ export default function MonumentDetailModal({
                                                     </h4>
                                                     {srv.category && (
                                                         <p className="text-xs text-muted-foreground">
-                                                            Category: {safeText(srv.category.name)}
+                                                            {t("shortcut.tourist_attraction_details.category")}: {safeText(srv.category.name)}
                                                         </p>
                                                     )}
                                                 </div>
