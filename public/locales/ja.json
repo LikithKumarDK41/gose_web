@@ -232,5 +232,6 @@
   },
   "filter": "フィルター",
   "pagination_left": "ページ {{current}} / {{total}}",
-  "no_data": "データがありません"
+  "no_data": "データがありません",
+  "all": "すべて"
 }
