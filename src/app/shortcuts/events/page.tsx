@@ -13,7 +13,7 @@ import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
 
 /* ------------------------------------------------------------
-   🌸 Events Page
+   🌅 Events Page (Sunrise Rose–Amber–Lime Theme)
 ------------------------------------------------------------ */
 export default function EventsPage() {
     const dispatch = useDispatch<AppDispatch>();
@@ -45,9 +45,7 @@ export default function EventsPage() {
         };
     }, []);
 
-    /* ------------------------------------------------------------
-       🧠 Group events by eventmonth dynamically
-    ------------------------------------------------------------ */
+    /* -------------------- Group Events -------------------- */
     const groupedEvents = useMemo(() => {
         const map: Record<string, EventItem[]> = {};
         for (const e of events) {
@@ -55,22 +53,18 @@ export default function EventsPage() {
             if (!map[month]) map[month] = [];
             map[month].push(e);
         }
-
         const sortedKeys = Object.keys(map).sort((a, b) => {
             const na = Number(a),
                 nb = Number(b);
             if (isNaN(na) || isNaN(nb)) return a.localeCompare(b);
             return na - nb;
         });
-
         return { map, sortedKeys };
     }, [events]);
 
     if (loading) return <EventsSkeleton />;
 
-    /* ------------------------------------------------------------
-       🧭 Handlers
-    ------------------------------------------------------------ */
+    /* -------------------- Handlers -------------------- */
     async function handleOpenMonument(event: EventItem) {
         const monumentId = event.monument?._id;
         if (!monumentId) {
@@ -96,19 +90,16 @@ export default function EventsPage() {
             ? monumentDetail
             : activeMonument;
 
-    /* ------------------------------------------------------------
-       🎨 UI Layout
-    ------------------------------------------------------------ */
+    /* -------------------- Layout -------------------- */
     return (
-        <div>
+        <div className="min-h-screen">
             {/* Hero Section */}
-            <section>
-                <div className="bg-gradient-to-r from-orange-400 via-amber-500 to-yellow-500 rounded-3xl py-12 text-center shadow-lg relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(255,255,255,0.2),transparent_70%)]"></div>
-                    <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-wide relative z-10">
+            <section className="relative w-full mx-auto bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 text-white rounded-3xl shadow-xl mt-4 mb-10">
+                <div className="max-w-5xl mx-auto py-16 px-6 text-center">
+                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
                         イベント・行祭事
                     </h1>
-                    <p className="text-white/90 text-sm md:text-base mt-2 relative z-10">
+                    <p className="text-lg md:text-xl font-medium opacity-90">
                         御所市の季節行事を見つけよう
                     </p>
                 </div>
@@ -117,14 +108,14 @@ export default function EventsPage() {
             {/* Tabs Section */}
             <section className="mt-8">
                 <Tabs defaultValue={groupedEvents.sortedKeys[0]} className="w-full">
-                    {/* full-width scrollable tabs */}
-                    <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-orange-400 scrollbar-track-transparent pb-2">
-                        <TabsList className="flex min-w-max justify-center gap-2 bg-black/5 dark:bg-white/5 rounded-2xl p-2 mx-auto">
+                    {/* Scrollable Tabs */}
+                    <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-amber-400 scrollbar-track-transparent pb-2">
+                        <TabsList className="flex min-w-max justify-center gap-2 bg-white/40 dark:bg-white/10 rounded-2xl p-2 mx-auto backdrop-blur">
                             {groupedEvents.sortedKeys.map((monthKey) => (
                                 <TabsTrigger
                                     key={monthKey}
                                     value={monthKey}
-                                    className="px-5 py-2 text-sm font-medium rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white dark:data-[state=active]:bg-amber-500 whitespace-nowrap transition"
+                                    className="px-5 py-2 text-sm font-medium rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-rose-400 data-[state=active]:via-amber-400 data-[state=active]:to-lime-400 data-[state=active]:text-white whitespace-nowrap transition"
                                 >
                                     {monthKey}月
                                 </TabsTrigger>
@@ -132,7 +123,7 @@ export default function EventsPage() {
                         </TabsList>
                     </div>
 
-                    {/* Events grid */}
+                    {/* Events Grid */}
                     {groupedEvents.sortedKeys.map((monthKey) => (
                         <TabsContent
                             key={monthKey}
@@ -140,18 +131,14 @@ export default function EventsPage() {
                             className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-fadeIn"
                         >
                             {groupedEvents.map[monthKey].map((ev) => (
-                                <EventCard
-                                    key={ev._id}
-                                    ev={ev}
-                                    onOpen={() => handleOpenMonument(ev)}
-                                />
+                                <EventCard key={ev._id} ev={ev} onOpen={() => handleOpenMonument(ev)} />
                             ))}
                         </TabsContent>
                     ))}
                 </Tabs>
             </section>
 
-            {/* ✅ Reuse Monument Detail Modal */}
+            {/* Monument Detail Modal */}
             <MonumentDetailModal
                 open={open}
                 onClose={() => setOpen(false)}
@@ -164,11 +151,11 @@ export default function EventsPage() {
 }
 
 /* ------------------------------------------------------------
-   🎴 Compact Event Card
+   🎴 Event Card
 ------------------------------------------------------------ */
 function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: () => void }) {
     return (
-        <Card className="overflow-hidden border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-zinc-900 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all py-0">
+        <Card className="overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/50 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all py-0">
             <div className="relative">
                 {ev.image?.secure_url ? (
                     <img
@@ -181,28 +168,28 @@ function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: () => void }) {
                         <span className="text-gray-400 text-xs">No Image</span>
                     </div>
                 )}
-                <div className="absolute top-2 left-2 bg-orange-500 text-white text-[11px] font-bold py-0.5 px-2 rounded-md shadow-sm">
+                <div className="absolute top-2 left-2 bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 text-white text-[11px] font-bold py-0.5 px-2 rounded-md shadow-sm">
                     {ev.displaydate || "日付未定"}
                 </div>
             </div>
 
             <div className="p-3 flex flex-col justify-between h-full">
                 <div className="space-y-1">
-                    <h3 className="font-semibold text-[15px] text-gray-800 dark:text-white line-clamp-2">
+                    <h3 className="font-semibold text-[15px] text-amber-700 dark:text-amber-300 line-clamp-2">
                         {ev.title}
                     </h3>
 
                     {ev.monument?.title && (
-                        <p className="text-[13px] text-blue-600 dark:text-blue-400 font-medium">
+                        <p className="text-[13px] text-rose-600 dark:text-rose-400 font-medium">
                             {ev.monument.title}
                         </p>
                     )}
                 </div>
 
                 <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="mt-3 w-full h-8 text-[13px] border-orange-400 text-orange-500 hover:bg-orange-500 hover:text-white transition flex justify-center items-center gap-1"
+                    className="mt-3 w-full h-8 text-[13px] text-white bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 hover:opacity-90 transition flex justify-center items-center gap-1"
                     onClick={onOpen}
                 >
                     詳細を見る
@@ -222,14 +209,12 @@ function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: () => void }) {
 }
 
 /* ------------------------------------------------------------
-   🦴 Loading Skeleton
+   🦴 Skeleton
 ------------------------------------------------------------ */
 function EventsSkeleton() {
     return (
-        <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white dark:from-zinc-900 dark:to-black pb-20">
-            <div className="">
-                <Skeleton className="h-40 md:h-48 rounded-3xl w-full" />
-            </div>
+        <div className="min-h-screen bg-gradient-to-b from-rose-50 via-amber-50 to-lime-100 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 pb-20">
+            <Skeleton className="h-40 md:h-48 rounded-3xl w-full" />
             <div className="mt-6 space-y-4">
                 <div className="flex overflow-x-auto gap-2 min-w-max justify-center">
                     {Array.from({ length: 10 }).map((_, i) => (
@@ -240,7 +225,7 @@ function EventsSkeleton() {
                     {Array.from({ length: 6 }).map((_, i) => (
                         <div
                             key={i}
-                            className="rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden"
+                            className="rounded-2xl overflow-hidden shadow-sm bg-white/80 dark:bg-slate-900/40"
                         >
                             <Skeleton className="h-44 w-full" />
                             <div className="p-4 space-y-2">

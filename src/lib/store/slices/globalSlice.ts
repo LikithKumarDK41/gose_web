@@ -1,25 +1,34 @@
 // src/lib/store/slices/globalSlice.ts
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "../index";
 import {
   apiFetchShortcuts,
   type Shortcut, // re-use service types
 } from "@/services/userGlobalservice";
 
-/* === State === */
+/* ------------------------------------------------------------
+   🧱 State Definition
+------------------------------------------------------------ */
 interface GlobalState {
   shortcuts: Shortcut[];
   loading: boolean;
   error: string | null;
+  activeThemeId: string | null; // ✅ added field
 }
 
+/* ------------------------------------------------------------
+   🌱 Initial State
+------------------------------------------------------------ */
 const initialState: GlobalState = {
   shortcuts: [],
   loading: false,
   error: null,
+  activeThemeId: null,
 };
 
-/* === Thunks (delegating to service) === */
+/* ------------------------------------------------------------
+   ⚡ Async Thunk (Fetch Shortcuts)
+------------------------------------------------------------ */
 export const fetchShortcuts = createAsyncThunk<
   Shortcut[],
   void,
@@ -33,30 +42,53 @@ export const fetchShortcuts = createAsyncThunk<
   }
 });
 
-/* === Slice === */
+/* ------------------------------------------------------------
+   🧩 Slice
+------------------------------------------------------------ */
 const globalSlice = createSlice({
   name: "global",
   initialState,
-  reducers: {},
+  reducers: {
+    // ✅ store theme ID globally when shortcut clicked
+    setActiveTheme(state, action: PayloadAction<string | null>) {
+      state.activeThemeId = action.payload;
+    },
+    clearActiveTheme(state) {
+      state.activeThemeId = null;
+    },
+  },
   extraReducers: (builder) => {
-    builder.addCase(fetchShortcuts.pending, (s) => {
-      s.loading = true;
-      s.error = null;
-    });
-    builder.addCase(fetchShortcuts.fulfilled, (s, { payload }) => {
-      s.loading = false;
-      s.shortcuts = payload;
-    });
-    builder.addCase(fetchShortcuts.rejected, (s, { payload }) => {
-      s.loading = false;
-      s.error = (payload as string) || "Failed to load shortcuts";
-    });
+    builder
+      .addCase(fetchShortcuts.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchShortcuts.fulfilled, (state, { payload }) => {
+        state.loading = false;
+        state.shortcuts = payload;
+      })
+      .addCase(fetchShortcuts.rejected, (state, { payload }) => {
+        state.loading = false;
+        state.error = (payload as string) || "Failed to load shortcuts";
+      });
   },
 });
 
-/* === Selectors === */
+/* ------------------------------------------------------------
+   📤 Actions
+------------------------------------------------------------ */
+export const { setActiveTheme, clearActiveTheme } = globalSlice.actions;
+
+/* ------------------------------------------------------------
+   🔍 Selectors
+------------------------------------------------------------ */
 export const selectShortcuts = (state: RootState) => state.global.shortcuts;
 export const selectGlobalLoading = (state: RootState) => state.global.loading;
 export const selectGlobalError = (state: RootState) => state.global.error;
+export const selectActiveThemeId = (state: RootState) =>
+  state.global.activeThemeId;
 
+/* ------------------------------------------------------------
+   🚀 Export Reducer
+------------------------------------------------------------ */
 export default globalSlice.reducer;

@@ -29,6 +29,7 @@ import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useRouter } from "next/navigation";
+import { setActiveTheme } from "@/lib/store/slices/globalSlice";
 
 export default function ToursDashboardPage() {
   const { t } = useLocale();
@@ -305,7 +306,6 @@ function ConfirmPopupButton({
 }
 
 /* ---------- Reusable Shortcuts Grid ---------- */
-
 function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
   const gradients = [
     "from-indigo-400 to-sky-400",
@@ -315,50 +315,29 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
     "from-fuchsia-400 to-violet-400",
     "from-cyan-400 to-blue-400",
   ];
+
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
-  // 🔹 Navigate based on shortcut priority
-  const handleShortcutClick = (priority: number | null) => {
-    switch (priority) {
-      case null:
-        router.push("/shortcuts/tourist-map"); // e.g., default or first page
-        break;
+  // ✅ Handle shortcut click
+  const handleShortcutClick = (shortcut: any) => {
+    try {
+      // Parse link JSON safely
+      let parsedLink: any = {};
+      if (shortcut.link) {
+        parsedLink = JSON.parse(shortcut.link);
+      }
 
-      case 2:
-        router.push("/shortcuts/tourist-attractions"); // e.g., Sightseeing Spots
-        break;
+      // ✅ Extract theme ID (if available)
+      const themeId = parsedLink.theme || null;
 
-      case 3:
-        router.push("/shortcuts/about");
-        break;
+      // ✅ Store theme ID in Redux
+      dispatch(setActiveTheme(themeId));
 
-      case 4:
-        router.push("/shortcuts/events");
-        break;
-
-      case 5:
-        router.push("/shortcuts/gourmet-products");
-        break;
-
-      case 6:
-        router.push("/shortcuts/facility");
-        break;
-
-      case 7:
-        router.push("/shortcuts/mt-kongo-and-katsuragi");
-        break;
-
-      case 8:
-        router.push("/shortcuts/city-promotion");
-        break;
-
-      case 9:
-        router.push("/shortcuts/meetings");
-        break;
-
-      default:
-        router.push("/shortcuts/others"); // fallback
-        break;
+      // ✅ Navigate to unified shortcut page
+      router.push("/shortcuts/tourist-attractions");
+    } catch (err) {
+      console.error("Error parsing shortcut link:", err);
     }
   };
 
@@ -366,11 +345,12 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
     <div className="flex flex-wrap justify-center gap-8">
       {shortcuts.map((item, idx) => {
         const gradient = gradients[idx % gradients.length];
+
         return (
           <div
             key={item._id}
             className="flex flex-col items-center text-center cursor-pointer"
-            onClick={() => handleShortcutClick(item.priority)}
+            onClick={() => handleShortcutClick(item)}
           >
             <div
               className={`h-20 w-20 rounded-full flex items-center justify-center 
@@ -396,3 +376,4 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
     </div>
   );
 }
+
