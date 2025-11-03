@@ -1,16 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ImageIcon, Search, ChevronLeft, ChevronRight, Landmark, Filter, ArrowUpDown } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+    ImageIcon,
+    Search,
+    ChevronLeft,
+    ChevronRight,
+    Landmark,
+    Filter,
+    ArrowUpDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 import {
     apiFetchAllMonuments,
     apiFetchMonumentDetails,
-    apiFetchMonumentSorts
+    apiFetchMonumentSorts,
 } from "@/services/userTourService";
 import type { Monument, MonumentSort } from "@/services/userTourService";
 import { useLocale } from "@/providers/LocaleProvider";
@@ -22,16 +28,9 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {
-    Select,
-    SelectTrigger,
-    SelectContent,
-    SelectItem,
-    SelectValue,
-} from "@/components/ui/select";
 
 /* =========================================================
-   🏛️ Monuments Page (Design-matched with LibraryPage)
+   🏛️ Monuments Page
 ========================================================= */
 export default function MonumentsPage() {
     const { t } = useLocale();
@@ -46,12 +45,13 @@ export default function MonumentsPage() {
 
     const [open, setOpen] = useState(false);
     const [modalLoading, setModalLoading] = useState(false);
-    const [selectedMonument, setSelectedMonument] = useState<Monument | null>(null);
+    const [selectedMonument, setSelectedMonument] = useState<Monument | null>(
+        null
+    );
 
     /* -------------------- Fetch All Monuments -------------------- */
     useEffect(() => {
         let mounted = true;
-
         const loadMonuments = async () => {
             try {
                 setLoading(true);
@@ -64,7 +64,6 @@ export default function MonumentsPage() {
                 if (mounted) setLoading(false);
             }
         };
-
         loadMonuments();
         return () => {
             mounted = false;
@@ -116,11 +115,13 @@ export default function MonumentsPage() {
     };
 
     /* =========================================================
-       💠 Render
+         💠 Render
     ========================================================= */
     if (loading)
         return (
-            <div className="text-center text-lg text-gray-500 mt-10">{t("Loading...")}</div>
+            <div className="text-center text-lg text-gray-500 mt-10">
+                {t("Loading...")}
+            </div>
         );
 
     if (error)
@@ -130,19 +131,17 @@ export default function MonumentsPage() {
 
     return (
         <div className="space-y-10">
-            {/* ===== HEADER ===== */}
-            <div className="relative overflow-hidden rounded-2xl border">
-                <div className="pointer-events-none absolute -top-20 -right-8 h-72 w-72 rounded-full bg-gradient-to-tr from-sky-400 via-indigo-400 to-fuchsia-400 opacity-60 blur-3xl dark:opacity-40" />
-                <div className="relative p-6 sm:p-7 text-center">
-                    <div className="inline-flex w-fit items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow ring-1 ring-white/10 backdrop-blur">
-                        <Landmark className="h-3.5 w-3.5" />
-                        {t("All Monuments")}
-                    </div>
-                    <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mt-3">
-                        {t("Explore Nara Heritage Sites")}
+            {/* ===== HERO SECTION ===== */}
+            <section className="relative w-full mx-auto bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white rounded-2xl shadow-xl mt-4 mb-10">
+                <div className="max-w-5xl mx-auto py-16 px-6 text-center">
+                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
+                        奈良の文化遺産を探検しよう
                     </h1>
+                    <p className="text-lg md:text-xl font-medium opacity-90">
+                        歴史と自然が調和する「御所市」— 古代から受け継がれる文化と建造物の魅力を発見しましょう。
+                    </p>
                 </div>
-            </div>
+            </section>
 
             {/* ===== SEARCH + FILTER BAR ===== */}
             <MonumentsToolbar
@@ -156,8 +155,8 @@ export default function MonumentsPage() {
             {filtered.length === 0 && (
                 <EmptyState
                     icon={<Landmark className="h-8 w-8" />}
-                    title={t("No monuments found")}
-                    subtitle={t("Try a different search term or check back later.")}
+                    title="該当する遺跡が見つかりません"
+                    subtitle="別のキーワードで検索してみてください。"
                 />
             )}
 
@@ -202,13 +201,13 @@ export default function MonumentsPage() {
 function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
     const { t } = useLocale();
     return (
-        <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm hover:shadow-md transition-all">
+        <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all">
             <div className="relative h-48 w-full overflow-hidden">
                 {m.image?.secure_url ? (
                     <img
                         src={m.image.secure_url}
                         alt={m.title || m.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                     />
                 ) : (
                     <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
@@ -218,7 +217,7 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
             </div>
             <div className="flex flex-1 flex-col justify-between p-4">
                 <div>
-                    <h3 className="line-clamp-1 text-base font-semibold">
+                    <h3 className="line-clamp-1 text-base font-semibold text-fuchsia-700 dark:text-pink-300">
                         {m.title || m.name}
                     </h3>
                     {m.region?.title && (
@@ -227,7 +226,10 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
                         </p>
                     )}
                 </div>
-                <Button variant="secondary" className="mt-3" onClick={onOpen}>
+                <Button
+                    className="mt-3 bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white hover:opacity-90"
+                    onClick={onOpen}
+                >
                     {t("Details")}
                 </Button>
             </div>
@@ -242,18 +244,18 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
     return (
         <div className="flex items-center justify-between gap-3 pt-4">
             <div className="text-xs text-muted-foreground">
-                Page {page} of {totalPages}
+                ページ {page} / {totalPages}
             </div>
             <div className="flex items-center gap-1">
                 <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="h-8"
+                    className="h-8 text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
                     onClick={() => onPageChange(Math.max(1, page - 1))}
                     disabled={page <= 1}
                 >
                     <ChevronLeft className="mr-1 h-4 w-4" />
-                    {t("Prev")}
+                    前へ
                 </Button>
                 <div className="hidden sm:flex items-center gap-1">
                     {rangeAround(page, totalPages, 2).map((n, i) =>
@@ -268,12 +270,10 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
                             <button
                                 key={`page-${n}-${i}`}
                                 onClick={() => onPageChange(n)}
-                                className={[
-                                    "cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm",
-                                    n === page
-                                        ? "bg-primary text-primary-foreground"
-                                        : "hover:bg-muted",
-                                ].join(" ")}
+                                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${n === page
+                                    ? "bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white"
+                                    : "hover:bg-fuchsia-50 dark:hover:bg-slate-800 text-fuchsia-700 dark:text-fuchsia-300"
+                                    }`}
                             >
                                 {n}
                             </button>
@@ -281,13 +281,13 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
                     )}
                 </div>
                 <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="h-8"
+                    className="h-8 text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
                     onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                     disabled={page >= totalPages}
                 >
-                    {t("Next")}
+                    次へ
                     <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
             </div>
@@ -328,8 +328,8 @@ function EmptyState({
     subtitle: string;
 }) {
     return (
-        <div className="grid place-items-center rounded-3xl border border-white/10 bg-gradient-to-br from-white/60 to-indigo-50/40 dark:from-gray-900/50 dark:to-gray-800/50 p-10 text-center shadow-inner">
-            <div className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-muted text-muted-foreground shadow">
+        <div className="grid place-items-center rounded-3xl bg-gradient-to-br from-white/60 to-pink-50/40 dark:from-gray-900/50 dark:to-gray-800/50 p-10 text-center shadow-inner">
+            <div className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white shadow">
                 {icon}
             </div>
             <div className="text-base font-semibold text-gray-800 dark:text-white">
@@ -341,7 +341,6 @@ function EmptyState({
         </div>
     );
 }
-
 
 /* =========================================================
    🔎 Toolbar (Search + Filter + Sort)
@@ -360,7 +359,6 @@ function MonumentsToolbar({
     const [sortOptions, setSortOptions] = useState<MonumentSort[]>([]);
     const [loadingSorts, setLoadingSorts] = useState(false);
 
-    /* -------------------- Fetch Sort Options -------------------- */
     useEffect(() => {
         let mounted = true;
         const loadSorts = async () => {
@@ -368,8 +366,9 @@ function MonumentsToolbar({
                 setLoadingSorts(true);
                 const data = await apiFetchMonumentSorts();
                 if (mounted) {
-                    // Sort by priority ascending
-                    const sorted = data.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
+                    const sorted = data.sort(
+                        (a, b) => (a.priority ?? 99) - (b.priority ?? 99)
+                    );
                     setSortOptions(sorted);
                 }
             } catch (err) {
@@ -386,18 +385,21 @@ function MonumentsToolbar({
 
     return (
         <div className="flex justify-end items-center gap-2 mb-6">
-            {/* Search Dropdown */}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="rounded-full">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+                    >
                         <Search className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 p-2">
-                    <DropdownMenuLabel>Search Monuments</DropdownMenuLabel>
+                    <DropdownMenuLabel>遺跡を検索</DropdownMenuLabel>
                     <Input
                         autoFocus
-                        placeholder="Type to search..."
+                        placeholder="キーワードを入力..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         className="mt-2"
@@ -405,43 +407,49 @@ function MonumentsToolbar({
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Filter Dropdown */}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="rounded-full">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+                    >
                         <Filter className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>Filter By</DropdownMenuLabel>
+                    <DropdownMenuLabel>フィルター</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onFilterSelect("featured")}>
-                        Featured
+                        人気のスポット
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onFilterSelect("rare")}>
-                        Rare
+                        珍しい遺跡
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onFilterSelect("arenabled")}>
-                        AR Enabled
+                        AR対応
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onFilterSelect("avenabled")}>
-                        AV Enabled
+                        AV対応
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Sort Dropdown (dynamic) */}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="rounded-full">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+                    >
                         <ArrowUpDown className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Sort By</DropdownMenuLabel>
+                    <DropdownMenuLabel>並び替え</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {loadingSorts ? (
-                        <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+                        <DropdownMenuItem disabled>読み込み中...</DropdownMenuItem>
                     ) : sortOptions.length > 0 ? (
                         sortOptions.map((s) => (
                             <DropdownMenuItem
@@ -462,7 +470,7 @@ function MonumentsToolbar({
                             </DropdownMenuItem>
                         ))
                     ) : (
-                        <DropdownMenuItem disabled>No sort options</DropdownMenuItem>
+                        <DropdownMenuItem disabled>並び替え項目なし</DropdownMenuItem>
                     )}
                 </DropdownMenuContent>
             </DropdownMenu>

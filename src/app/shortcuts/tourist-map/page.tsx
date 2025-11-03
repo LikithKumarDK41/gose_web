@@ -3,19 +3,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
-import { apiFetchTours } from "@/services/userTourService"; // ✅ import API service
-import type { Tour } from "@/services/userTourService"; // ✅ use real type
+import { apiFetchTours } from "@/services/userTourService";
+import type { Tour } from "@/services/userTourService";
 
 export default function ToursPage() {
   const router = useRouter();
 
   const [tours, setTours] = useState<Tour[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   /* ------------------------------------------------------------
-     📦 Fetch tours directly via service (no Redux)
+     📦 Fetch Tours
   ------------------------------------------------------------ */
   useEffect(() => {
     let mounted = true;
@@ -40,53 +40,50 @@ export default function ToursPage() {
   }, []);
 
   /* ------------------------------------------------------------
-     ⚙️ Render States
+     ⚙️ Loading & Error States
   ------------------------------------------------------------ */
-  if (loading) {
+  if (loading)
     return (
-      <div className="text-center text-lg text-gray-500 mt-10">
+      <div className="text-center text-lg text-violet-500 mt-10 animate-pulse">
         Loading...
       </div>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
-      <div className="text-center text-lg text-red-500 mt-10">
+      <div className="text-center text-lg text-red-400 mt-10">
         {error}
       </div>
     );
-  }
 
   /* ------------------------------------------------------------
      🖼️ Main UI
   ------------------------------------------------------------ */
   return (
-    <div>
-      {/* Header */}
-      <div className="text-center space-y-2 md:space-y-3 mb-8 md:mb-10">
-        <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-          観光マップ
-        </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300">
-          各地図をタップすると拡大・縮小できます。
-        </p>
-      </div>
+    <div className="min-h-screen">
+      {/* 🌸 Hero Section */}
+      <section className="relative w-full bg-gradient-to-r from-indigo-600 via-violet-500 to-purple-600 text-white rounded-2xl shadow-lg mt-4 mb-10">
+        <div className="max-w-5xl mx-auto py-16 px-6 text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
+            観光マップ
+          </h1>
+          <p className="text-lg md:text-xl font-medium opacity-90">
+            各地図をタップすると拡大・縮小できます。
+          </p>
+        </div>
+        {/* Optional gradient overlay glow */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-black/10 rounded-2xl pointer-events-none" />
+      </section>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+      {/* 🗺️ Tour Grid */}
+      <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
         {tours.length > 0 ? (
           tours.map(
             (tour) =>
               tour.routeImage?.secure_url && (
                 <article
                   key={tour._id}
-                  className="
-                    group relative rounded-2xl overflow-hidden
-                    bg-white ring-1 ring-gray-200 shadow-md
-                    hover:shadow-lg hover:-translate-y-0.5 transition-all
-                    dark:bg-slate-900 dark:ring-white/10
-                  "
+                  className="group relative rounded-2xl overflow-hidden bg-white ring-1 ring-violet-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all dark:bg-slate-900 dark:ring-violet-900"
                 >
                   {/* Image */}
                   <button
@@ -99,83 +96,67 @@ export default function ToursPage() {
                       src={tour.routeImage.secure_url}
                       alt={tour.title}
                       loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                      className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                     />
                   </button>
 
                   {/* Description */}
                   <div className="px-4 py-4">
-                    {tour.description ? (
-                      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                        {tour.description}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        ルートマップの詳細をご覧ください。
-                      </p>
-                    )}
+                    <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2">
+                      {tour.description || "ルートマップの詳細をご覧ください。"}
+                    </p>
                   </div>
 
                   {/* Title + CTA */}
                   <div
-                    className="
-                      absolute inset-x-4 bottom-4
-                      flex items-center justify-between gap-3
-                      rounded-xl px-3 py-2
-                      bg-white/90 backdrop-blur-md ring-1 ring-black/5
-                      dark:bg-slate-900/80 dark:ring-white/10
-                    "
+                    className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3
+                               rounded-xl px-3 py-2 bg-white/90 backdrop-blur-md
+                               ring-1 ring-violet-100 shadow-sm
+                               dark:bg-slate-900/80 dark:ring-violet-900/40"
                   >
-                    <h3 className="truncate text-base md:text-lg font-semibold text-gray-900 dark:text-white">
+                    <h3 className="truncate text-base md:text-lg font-semibold text-violet-700 dark:text-violet-300">
                       {tour.title}
                     </h3>
 
                     <button
                       type="button"
                       onClick={() => router.push(`/tours/detail/?id=${tour._id}`)}
-                      className="
-                        shrink-0 rounded-full px-4 py-2 text-sm font-medium
-                        border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white
-                        transition-colors
-                        dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-slate-900
-                        focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-                        focus-visible:ring-gray-900 dark:focus-visible:ring-white
-                        dark:focus-visible:ring-offset-slate-900
-                      "
+                      className="shrink-0 rounded-full px-4 py-2 text-sm font-medium
+                                 border border-violet-600 text-violet-600
+                                 hover:bg-violet-600 hover:text-white transition-colors
+                                 dark:border-violet-400 dark:text-violet-300
+                                 dark:hover:bg-violet-400 dark:hover:text-slate-900
+                                 focus:outline-none focus-visible:ring-2
+                                 focus-visible:ring-violet-500 dark:focus-visible:ring-offset-slate-900"
                     >
-                      View Details
+                      詳細を見る
                     </button>
                   </div>
 
-                  {/* Accent */}
-                  <span className="absolute top-2 left-2 size-2 rounded-full bg-emerald-400/80 shadow-[0_0_10px_rgba(16,185,129,0.6)]" />
+                  {/* Accent Glow */}
+                  <span className="absolute top-2 left-2 size-2 rounded-full bg-violet-400/80 shadow-[0_0_10px_rgba(139,92,246,0.6)]" />
                 </article>
               )
           )
         ) : (
-          <div className="text-center text-lg text-gray-600 dark:text-gray-300 col-span-full">
-            No Tours Available
+          <div className="text-center text-lg text-slate-600 dark:text-slate-300 col-span-full">
+            現在、観光マップは利用できません。
           </div>
         )}
       </div>
 
-      {/* Fullscreen Viewer */}
+      {/* 🔍 Fullscreen Viewer */}
       {selectedImage && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-[2px] flex justify-center items-center z-50 p-4">
           {/* Close Button */}
           <button
             type="button"
             onClick={() => setSelectedImage(null)}
-            className="
-              absolute top-4 right-4 z-50
-              rounded-full p-2
-              bg-white/90 text-gray-900
-              hover:bg-white shadow-md
-              dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700
-              transition-all duration-200
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-              focus-visible:ring-indigo-500 dark:focus-visible:ring-offset-slate-900
-            "
+            className="absolute top-4 right-4 z-50 rounded-full p-2
+                       bg-white/90 text-violet-700 hover:bg-white shadow-md
+                       dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700
+                       transition-all duration-200 focus:outline-none
+                       focus-visible:ring-2 focus-visible:ring-violet-500"
             aria-label="Close image viewer"
           >
             <X className="h-5 w-5" />
