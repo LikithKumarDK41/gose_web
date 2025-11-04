@@ -322,57 +322,47 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
   // ✅ Handle shortcut click
   const handleShortcutClick = (shortcut: any) => {
     try {
-      // 1️⃣ Parse link JSON safely
-      let parsedLink: any = {};
-      if (shortcut.link) {
-        parsedLink = JSON.parse(shortcut.link);
+      // 1️⃣ Check if link is a JSON string and parse only if needed
+      if (shortcut.link && shortcut.link.trim().startsWith("{")) {
+        const parsedLink = JSON.parse(shortcut.link);
+
+        // 2️⃣ If theme key exists, dispatch to Redux
+        if (parsedLink.theme) {
+          dispatch(setActiveTheme(parsedLink.theme));
+        }
       }
 
-      // 2️⃣ Extract theme ID (if available)
-      const themeId = parsedLink.theme || null;
-
-      // 3️⃣ Store theme ID in Redux
-      dispatch(setActiveTheme(themeId));
-
-      // 4️⃣ Navigate based on priority
+      // 3️⃣ Navigate based on priority
       const priority = shortcut.priority ?? null;
+
       switch (priority) {
         case null:
           router.push("/shortcuts/tourist-map");
           break;
-
         case 2:
           router.push("/shortcuts/tourist-attractions");
           break;
-
         case 3:
           router.push("/shortcuts/about");
           break;
-
         case 4:
           router.push("/shortcuts/events");
           break;
-
         case 5:
           router.push("/shortcuts/gourmet-products");
           break;
-
         case 6:
           router.push("/shortcuts/facility");
           break;
-
         case 7:
           router.push("/shortcuts/mt-kongo-and-katsuragi");
           break;
-
         case 8:
           router.push("/shortcuts/city-promotion");
           break;
-
         case 9:
           router.push("/shortcuts/meetings");
           break;
-
         default:
           router.push("/shortcuts/others");
           break;
