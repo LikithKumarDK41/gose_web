@@ -1,124 +1,197 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import { CheckCircle, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAppDispatch, useAppSelector } from '@/lib/store/hook';
-import { confirm, dismiss, selectGeofenceQueue } from '@/lib/store/slices/geofenceSlice';
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
+import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
+import {
+  selectGeofenceQueue,
+  confirm,
+  clearQueue,
+} from "@/lib/store/slices/geofenceSlice";
+import { selectNav } from "@/lib/store/slices/navSlice";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  apiCreateVisitHistory,
+  apiGetVisitHistoryById,
+} from "@/services/myListService";
+import type { QueueItem } from "@/lib/store/slices/geofenceSlice";
+import type { VisitHistoryPayload, VisitHistory } from "@/services/myListService";
 
-type Checkin = ReturnType<typeof selectGeofenceQueue>[number];
+/* ------------------------------------------------------------
+   🧹 Safe HTML Sanitizer
+------------------------------------------------------------ */
+function sanitizeHTML(input: string): string {
+  if (!input) return "";
+  return input
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/on\w+="[^"]*"/gi, "");
+}
 
-const metersBetween = (a: [number, number], b: [number, number]) => {
-  const R = 6371000, toRad = (d:number)=>d*Math.PI/180;
-  const dLat = toRad(b[1]-a[1]), dLng = toRad(b[0]-a[0]);
-  const lat1 = toRad(a[1]), lat2 = toRad(b[1]);
-  const s = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
-  return 2*R*Math.asin(Math.sqrt(s));
-};
-
-type Cluster = { key: string; center: [number, number]; items: Checkin[] };
-const MERGE_WITHIN_METERS = 60;
-
+/* ------------------------------------------------------------
+   🌍 Global Check-in Toasts
+------------------------------------------------------------ */
 export default function GlobalCheckinToasts() {
-  const queue = useAppSelector(selectGeofenceQueue);
   const dispatch = useAppDispatch();
 
-  const clusters = useMemo<Cluster[]>(() => {
-    const result: Cluster[] = [];
-    for (const p of queue) {
-      const pt: [number, number] = [p.lng, p.lat];
-      const idx = result.findIndex(c => metersBetween(c.center, pt) <= MERGE_WITHIN_METERS);
-      if (idx >= 0) {
-        result[idx] = { ...result[idx], items: [...result[idx].items, p] };
-      } else {
-        result.push({ key: `${p.id}-${p.tourId}`, center: pt, items: [p] });
-      }
-    }
-    return result;
-  }, [queue]);
+  // Redux sources
+  const queue = useAppSelector(selectGeofenceQueue) as QueueItem[];
+  const auth = useAppSelector((s) => s.auth.data);
+  const nav = useAppSelector(selectNav); // has activeTourId, status, etc.
 
-  if (clusters.length === 0) return null;
+  useEffect(() => {
+    if (!queue.length) return;
 
-  return (
-    <>
-      <div className="pointer-events-none fixed inset-0 z-[99]">
-        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm dark:bg-black/60" />
-      </div>
+    for (const item of queue) {
+      toast.custom(
+        (t) =>
+          createPortal(
+            <div
+              className="fixed inset-0 z-[9999999] flex items-center justify-center
+                         bg-black/60 dark:bg-black/80 backdrop-blur-sm"
+            >
+              <div
+                className="relative w-[90%] max-w-md p-6 rounded-2xl shadow-2xl
+                           bg-white dark:bg-slate-900
+                           text-gray-900 dark:text-gray-100
+                           border border-gray-200 dark:border-slate-700
+                           animate-[fadeIn_0.25s_ease-out]"
+              >
+                <h3 className="font-semibold text-lg mb-3 break-words">
+                  📍 You’re near: {item.name}
+                </h3>
 
-      <div className="pointer-events-none fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2 space-y-3 p-3">
-        {clusters.map((cluster) => (
-          <ToastCard
-            key={cluster.key}
-            cluster={cluster}
-            onClose={() => {
-              // close all items in this cluster
-              cluster.items.forEach(it => dispatch(dismiss(it.id)));
-            }}
-            onCheckin={(placeId) => dispatch(confirm(placeId))}
-          />
-        ))}
-      </div>
-    </>
-  );
-}
+                {item.blurb ? (
+                  <div
+                    className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed prose dark:prose-invert"
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeHTML(item.blurb),
+                    }}
+                  />
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    You’ve reached a check-in location.
+                  </p>
+                )}
 
-function ToastCard({
-  cluster, onClose, onCheckin,
-}: {
-  cluster: Cluster;
-  onClose: () => void;
-  onCheckin: (placeId: string) => void;
-}) {
-  const multiple = cluster.items.length > 1;
-  const title = multiple ? `You're near multiple places` : `You're near: ${cluster.items[0].name}`;
-  const widthClass = 'w-[min(92vw,28rem)]';
-
-  return (
-    <div className={`pointer-events-auto ${widthClass} rounded-xl border bg-white/95 p-4 shadow-xl backdrop-blur dark:border-white/10 dark:bg-black/85`}>
-      <div className="flex items-start gap-3">
-        <CheckCircle className="mt-0.5 h-5 w-5 text-green-600" />
-        <div className="min-w-0 flex-1">
-          <div className="font-semibold">{title}</div>
-
-          {!multiple && (
-            <SinglePlace
-              item={cluster.items[0]}
-              onCheckin={() => onCheckin(cluster.items[0].id)}
-            />
-          )}
-
-          {multiple && (
-            <div className="mt-2 max-h-72 space-y-2 overflow-auto pr-1">
-              {cluster.items.map((it) => (
-                <div key={it.id} className="flex items-start justify-between rounded-lg border bg-background/50 p-3 dark:border-white/10">
-                  <div className="min-w-0 pr-3">
-                    <div className="truncate font-medium">{it.name}</div>
-                    <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{it.blurb ?? 'Check in to mark this stop.'}</div>
-                    <div className="mt-1 text-[11px] text-muted-foreground">~{Math.max(0, Math.round(it.distance))} m • radius {it.radius} m</div>
-                  </div>
-                  <Button size="sm" className="shrink-0 rounded-full" onClick={() => onCheckin(it.id)}>Check in</Button>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 space-y-1 text-left">
+                  <p>
+                    <strong>Latitude:</strong> {item.lat?.toFixed(6) ?? "—"}
+                  </p>
+                  <p>
+                    <strong>Longitude:</strong> {item.lng?.toFixed(6) ?? "—"}
+                  </p>
+                  <p>
+                    <strong>Radius:</strong> {item.radius ?? "—"} m
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        <button className="ml-2 rounded-full p-1 hover:bg-black/5 dark:hover:bg-white/10" aria-label="Close" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
+                <div className="flex justify-center gap-3">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => toast.dismiss(t)}
+                    className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                  >
+                    Close
+                  </Button>
 
-function SinglePlace({ item, onCheckin }: { item: Checkin; onCheckin: () => void; }) {
-  return (
-    <div className="mt-1">
-      <div className="mt-1 text-xs text-muted-foreground">{item.blurb ?? 'You’ve entered the check-in area.'}</div>
-      <div className="mt-1 text-[11px] text-muted-foreground">~{Math.max(0, Math.round(item.distance))} m • radius {item.radius} m</div>
-      <div className="mt-3">
-        <Button size="sm" className="rounded-full" onClick={onCheckin}>Check in</Button>
-      </div>
-    </div>
-  );
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        /* ------------------------------------------------
+                           1️⃣ Validate user
+                        ------------------------------------------------ */
+                        const userId =
+                          auth?.user?._id ||
+                          auth?.user?.id ||
+                          auth?.user?.uuid ||
+                          null;
+
+                        if (!userId) {
+                          toast.error("Please sign in to check-in");
+                          toast.dismiss(t);
+                          return;
+                        }
+
+                        /* ------------------------------------------------
+                           2️⃣ Determine correct history type
+                        ------------------------------------------------ */
+                        const hasActiveTour = Boolean(nav?.activeTourId);
+
+                        /* ------------------------------------------------
+                           3️⃣ Construct payload (timestamp + manual)
+                        ------------------------------------------------ */
+                        const payload: VisitHistoryPayload = {
+                          user: userId,
+                          historytype: "monument",
+                          monument: String(item.monumentId),
+                          status: "active",
+                          visitmode: "manual", // ✅ always manual
+                          historytime: Date.now().toString(), // ✅ numeric timestamp string
+                        };
+
+                        console.log("📦 Sending visit history:", payload);
+
+                        /* ------------------------------------------------
+                           4️⃣ Create Visit History
+                        ------------------------------------------------ */
+                        const created = await apiCreateVisitHistory(payload);
+                        console.log("✅ Created visit history:", created);
+
+                        /* ------------------------------------------------
+                           5️⃣ Fetch that history again
+                        ------------------------------------------------ */
+                        if (created?._id) {
+                          try {
+                            const fetched: VisitHistory =
+                              await apiGetVisitHistoryById(created._id);
+                            console.log("📥 Fetched created history:", fetched);
+                          } catch (fetchErr: any) {
+                            console.warn("⚠️ Could not fetch visit history:", fetchErr);
+                          }
+                        }
+
+                        /* ------------------------------------------------
+                           6️⃣ Update State + Success Toast
+                        ------------------------------------------------ */
+                        dispatch(confirm(String(item.id)));
+                        toast.dismiss(t);
+                        toast.success(`✅ Checked in at ${item.name}`, {
+                          description: hasActiveTour
+                            ? "Your tour progress has been updated."
+                            : "Your visit has been recorded.",
+                          duration: 4000,
+                        });
+                      } catch (err: any) {
+                        console.error("❌ Check-in failed:", err);
+                        toast.error("Failed to record visit history", {
+                          description:
+                            err?.message || "Please try again later.",
+                        });
+                      }
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700
+                               dark:bg-emerald-500 dark:hover:bg-emerald-400
+                               text-white font-medium"
+                  >
+                    Check In
+                  </Button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          ),
+        { id: `checkin-${item.id}`, duration: Infinity }
+      );
+    }
+
+    // ✅ Clear queue after all toasts created
+    dispatch(clearQueue());
+  }, [queue, dispatch, auth, nav]);
+
+  return null;
 }

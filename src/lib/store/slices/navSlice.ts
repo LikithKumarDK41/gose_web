@@ -1,42 +1,110 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { RootState } from '..';
+// src/lib/store/slices/navSlice.ts
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import type { RootState } from "../index";
+import {
+  apiSyncUserTourStatus,
+  type SyncPayload,
+  type NavStatus,
+  type NavProfile,
+} from "@/services/userNavService";
 
-type Status = 'idle' | 'running' | 'paused';
+/* ============================================================
+   🧩 Types (state)
+============================================================ */
+export interface NavState {
+  activeTourId: string | null;
+  status: NavStatus;
+  profile: NavProfile;
+  syncing: boolean;
+  error: string | null;
+}
 
-export type NavStats = { distance: number; duration: number } | null;
-
-type NavState = {
-    status: Status;
-    profile: 'walking' | 'driving' | 'cycling';
-    shouldFollow: boolean;               // persisted across screens
-    customOrigin: [number, number] | null; // [lng, lat]
-    stats: NavStats;
+/* ============================================================
+   🧩 Initial State
+============================================================ */
+const initialState: NavState = {
+  activeTourId: null,
+  status: "idle",
+  profile: "walking",
+  syncing: false,
+  error: null,
 };
 
-const initial: NavState = {
-    status: 'idle',
-    profile: 'walking',
-    shouldFollow: false,
-    customOrigin: null,
-    stats: null,
-};
-
-const navSlice = createSlice({
-    name: 'nav',
-    initialState: initial,
-    reducers: {
-        start(state) { state.status = 'running'; state.shouldFollow = true; },
-        pause(state) { state.status = 'paused'; state.shouldFollow = false; },
-        resume(state) { state.status = 'running'; state.shouldFollow = true; },
-        setProfile(state, action: PayloadAction<NavState['profile']>) { state.profile = action.payload; },
-        setCustomOrigin(state, action: PayloadAction<[number, number] | null>) { state.customOrigin = action.payload; },
-        setStats(state, action: PayloadAction<NavStats>) { state.stats = action.payload; },
-        reset(state) { Object.assign(state, initial); },
-    },
+/* ============================================================
+   🛰️ Async Thunk — sync to /v1/usertours (delegates to service)
+============================================================ */
+export const syncUserTourStatus = createAsyncThunk<
+  any, // keep as any to match your current usage
+  SyncPayload,
+  { rejectValue: string }
+>("nav/syncUserTourStatus", async (payload, { rejectWithValue }) => {
+  try {
+    const data = await apiSyncUserTourStatus(payload);
+    return data;
+  } catch (err: any) {
+    return rejectWithValue(err.message || "Failed to sync tour status");
+  }
 });
 
-export const { start, pause, resume, setProfile, setCustomOrigin, setStats, reset } = navSlice.actions;
-export default navSlice.reducer;
+/* ============================================================
+   🧭 Slice
+============================================================ */
+const navSlice = createSlice({
+  name: "nav",
+  initialState,
+  reducers: {
+    setActiveTour(state, action: PayloadAction<string | null>) {
+      state.activeTourId = action.payload;
+    },
+    setProfile(state, action: PayloadAction<NavProfile>) {
+      state.profile = action.payload;
+    },
+    startTour(state, action: PayloadAction<string | undefined>) {
+      state.status = "running";
+      if (action.payload) state.activeTourId = action.payload;
+    },
+    pauseTour(state) {
+      state.status = "paused";
+    },
+    resumeTour(state) {
+      if (state.activeTourId) state.status = "running";
+    },
+    stopTour(state) {
+      state.status = "idle";
+      state.activeTourId = null;
+    },
+    resetAll(state) {
+      state.activeTourId = null;
+      state.status = "idle";
+      state.profile = "walking";
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(syncUserTourStatus.pending, (state) => {
+        state.syncing = true;
+        state.error = null;
+      })
+      .addCase(syncUserTourStatus.fulfilled, (state) => {
+        state.syncing = false;
+      })
+      .addCase(syncUserTourStatus.rejected, (state, { payload }) => {
+        state.syncing = false;
+        state.error = payload || "Sync failed";
+      });
+  },
+});
 
-// Selectors
+export const {
+  setActiveTour,
+  setProfile,
+  startTour,
+  pauseTour,
+  resumeTour,
+  stopTour,
+  resetAll,
+} = navSlice.actions;
+
 export const selectNav = (s: RootState) => s.nav;
+export default navSlice.reducer;

@@ -1,9 +1,8 @@
-// src/components/nav/HeaderBar.tsx
 "use client";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
@@ -12,17 +11,28 @@ import {
 } from "@/components/ui/navigation-menu";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import LanguageToggle from "@/components/theme/LanguageToggle";
-import { Menu, ChevronRight } from "lucide-react";
-import { NAV_ITEMS, isActivePath, currentSectionTitle } from "./routes";
+import { Menu } from "lucide-react";
+import { NAV_ITEMS, isActivePath, currentSectionTitle, NavItem } from "./routes";
 import BrandLogo from "@/components/nav/BrandLogo";
 import { useLocale } from "@/providers/LocaleProvider";
+import { useAppDispatch } from "@/lib/store/hook";
+import { logout } from "@/lib/store/slices/authSlice";
 
 export default function HeaderBar({ onOpenSidebar }: { onOpenSidebar?: () => void }) {
-  const { locale, t } = useLocale(); // get translation function
+  const { t } = useLocale();
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useAppDispatch();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const title = useMemo(() => t(currentSectionTitle(pathname)), [pathname, t]);
+
+  async function handleItemClick(item: NavItem) {
+    if (item.type === "action" && item.action === "logout") {
+      await dispatch(logout());
+      router.replace("/signin");
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/70 backdrop-blur">
@@ -56,31 +66,48 @@ export default function HeaderBar({ onOpenSidebar }: { onOpenSidebar?: () => voi
           <div className="hidden lg:block">
             <NavigationMenu>
               <NavigationMenuList>
-                {NAV_ITEMS.map((l) => {
-                  const active = isActivePath(pathname, l.href);
-                  const Icon = l.icon;
-                  return (
-                    <NavigationMenuItem key={l.href}>
-                      <Link
-                        href={l.href}
-                        className={[
-                          "relative group inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-                          active
-                            ? "text-white"
-                            : "text-muted-foreground hover:text-foreground",
-                        ].join(" ")}
-                      >
-                        <span
+                {NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+
+                  if (item.type === "link") {
+                    const active = isActivePath(pathname, item);
+                    return (
+                      <NavigationMenuItem key={item.href}>
+                        <Link
+                          href={item.href}
                           className={[
-                            "pointer-events-none absolute inset-0 -z-10 rounded-md transition-all duration-300",
+                            "relative group inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
                             active
-                              ? "opacity-100 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 shadow-sm"
-                              : "opacity-0 group-hover:opacity-100 bg-muted",
+                              ? "text-white"
+                              : "text-muted-foreground hover:text-foreground",
                           ].join(" ")}
-                        />
+                        >
+                          <span
+                            className={[
+                              "pointer-events-none absolute inset-0 -z-10 rounded-md transition-all duration-300",
+                              active
+                                ? "opacity-100 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 shadow-sm"
+                                : "opacity-0 group-hover:opacity-100 bg-muted",
+                            ].join(" ")}
+                          />
+                          <Icon className="h-4 w-4" />
+                          <span>{t(item.labelKey)}</span>
+                        </Link>
+                      </NavigationMenuItem>
+                    );
+                  }
+
+                  // item.type === "action"
+                  return (
+                    <NavigationMenuItem key={item.action}>
+                      <button
+                        type="button"
+                        onClick={() => handleItemClick(item)}
+                        className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors text-muted-foreground hover:text-foreground"
+                      >
                         <Icon className="h-4 w-4" />
-                        <span>{t(l.labelKey)}</span>
-                      </Link>
+                        <span>{t(item.labelKey)}</span>
+                      </button>
                     </NavigationMenuItem>
                   );
                 })}

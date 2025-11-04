@@ -1,27 +1,41 @@
-// src/components/nav/routes.ts
 import type { ComponentType, SVGProps } from "react";
-import { Home, List, BookmarkCheck, BookOpen } from "lucide-react";
+import { Home, List, BookmarkCheck, LogOut } from "lucide-react";
 
-export type NavItem = {
-    href: string;
-    labelKey: string;
-    icon: ComponentType<SVGProps<SVGSVGElement>>;
+/** Discriminated union: link items vs. action items */
+export type NavLinkItem = {
+  type: "link";
+  href: string;
+  labelKey: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
+export type NavActionItem = {
+  type: "action";
+  action: "logout";
+  labelKey: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+};
+
+export type NavItem = NavLinkItem | NavActionItem;
+
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/", labelKey: "nav.home", icon: Home },
-  { href: "/tours", labelKey: "nav.tours", icon: List },
-  { href: "/mylist", labelKey: "nav.myList", icon: BookmarkCheck },
+  { type: "link", href: "/", labelKey: "nav.home", icon: Home },
+  { type: "link", href: "/tours", labelKey: "nav.tours", icon: List },
+  { type: "link", href: "/mylist", labelKey: "nav.myList", icon: BookmarkCheck },
+  { type: "action", action: "logout", labelKey: "nav.logout", icon: LogOut },
 ];
 
-/** best-effort active matcher: exact or prefix match for section roots */
-export function isActivePath(pathname: string, href: string) {
-    if (href === "/") return pathname === "/";
-    return pathname === href || pathname.startsWith(href + "/");
+/** active matcher only for links */
+export function isActivePath(pathname: string, item: NavItem) {
+  if (item.type !== "link") return false;
+  if (item.href === "/") return pathname === "/";
+  return pathname === item.href || pathname.startsWith(item.href + "/");
 }
 
-/** find a human title for the current route based on sidebar items */
+/** title for current route */
 export function currentSectionTitle(pathname: string) {
-    const found = NAV_ITEMS.find((n) => isActivePath(pathname, n.href));
-    return found?.labelKey ?? "Tourist";
+  const found = NAV_ITEMS.find(
+    (n) => n.type === "link" && isActivePath(pathname, n)
+  ) as NavLinkItem | undefined;
+  return found?.labelKey ?? "Tourist";
 }

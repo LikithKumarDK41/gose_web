@@ -1,375 +1,392 @@
-// src/components/tour/TimelineRight.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import Image from "next/image";
-import type { Place } from "@/lib/data/tourTypes";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch } from "@/lib/store";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  fetchMonumentDetails,
+} from "@/lib/store/slices/touristSlice";
+import {
+  type TourPoint,
+  type Monument,
+  type TravelMode,
+} from "@/services/userTourService";
+import { Button } from "@/components/ui/button";
 import {
   ImageIcon,
-  Car,
-  Bike,
-  Bus,
-  Train,
-  Footprints,
-  Clock,
   MapPin,
-  Sparkles,
+  Footprints,
+  Train,
+  Car,
+  UtensilsCrossed,
 } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 
-type Mode = "walk" | "drive" | "cycle" | "transit" | "other";
-type PlaceCompat = Place & {
-  tags?: string[];
-  address?: string;
-  visitDurationMin?: number;
-  highlights?: string[];
-  tips?: string;
-  travelFromPrev?: {
-    mode?: Mode;
-    distanceMeters?: number;
-    durationMin?: number;
-  };
-};
-
-export default function TimelineRight({ places }: { places: PlaceCompat[] }) {
-  const [openId, setOpenId] = useState<string | null>(null);
-  const active = useMemo(() => places.find((p) => p.id === openId) ?? null, [
-    openId,
-    places,
-  ]);
+/* ------------------------------------------------------------------ */
+export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] }) {
+  const dispatch = useDispatch<AppDispatch>();
   const { t } = useLocale();
+  const { show, hide } = useGlobalLoader();
 
-  return (
-    <div className="relative mx-auto w-full max-w-6xl">
-      <div className="pointer-events-none absolute left-8 top-0 bottom-0 w-px bg-border/70" />
+  const loading = useSelector((s: any) => s.tourist.loading);
+  const monumentDetail = useSelector((s: any) => s.tourist.monumentDetail);
 
-      <ul className="space-y-12 md:space-y-14">
-        {places.map((p, idx) => {
-          const label = labelFor(places, idx);
-          const accent = dynamicColor(idx);
-          const tags = p.tags ?? [];
-          const leg = p.travelFromPrev;
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [activeMonument, setActiveMonument] = useState<Monument | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
-          return (
-            <li key={p.id} className="grid grid-cols-[64px_1fr] items-start gap-4 sm:gap-6">
-              {idx > 0 && (
-                <div className="col-span-2 -mb-6 -mt-6 pl-[80px] md:-mb-7 md:-mt-7">
-                  <LegPill accent={accent} leg={leg} t={t} />
-                </div>
-              )}
+  const active = useMemo(
+    () => tourpoints.find((p) => p._id === openId) ?? null,
+    [openId, tourpoints]
+  );
 
-              <div className="relative h-full w-16">
-                <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-px bg-border/50" />
-                <div className="absolute left-1/2 top-0 -translate-x-1/2">
-                  <div
-                    className="grid h-10 w-10 place-items-center rounded-full text-white shadow-md ring-2 ring-white/80 dark:ring-white/20"
-                    style={{ background: accent }}
-                  >
-                    <span className="text-[11px] font-semibold">{label}</span>
-                  </div>
+  useEffect(() => {
+    if (loading) show();
+    else hide();
+  }, [loading, show, hide]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setInitialLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, [tourpoints]);
+
+  const handleOpen = async (id: string) => {
+    setOpenId(id);
+    const point = tourpoints.find((p) => p._id === id);
+    const targetId = point?.monument?._id || id;
+    if (!targetId) return;
+
+    setModalLoading(true);
+    try {
+      const thunk = dispatch(fetchMonumentDetails(targetId));
+      const data = await thunk.unwrap();
+      setActiveMonument(data);
+    } catch (err) {
+      console.error("Failed to fetch monument:", err);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const details =
+    activeMonument && monumentDetail?._id === activeMonument._id
+      ? monumentDetail
+      : activeMonument ?? active?.monument;
+
+  /* ------------------------------------------------------------------ */
+  if (initialLoading) {
+    return (
+      <div className="relative mx-auto w-full max-w-6xl animate-pulse">
+        <div className="absolute left-[52px] top-0 bottom-0 w-[3px] bg-orange-300 rounded-full" />
+        <ul className="space-y-16 md:space-y-20">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li key={i} className="grid grid-cols-[90px_1fr] gap-6 items-start">
+              <div className="relative h-full w-[90px]">
+                <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                  <div className="h-14 w-14 rounded-full bg-gray-300 dark:bg-gray-700 ring-4 ring-white/70 dark:ring-gray-800" />
                 </div>
               </div>
+              <div className="col-start-2 w-full h-64 rounded-2xl bg-gray-200/60 dark:bg-gray-800/50 shadow-sm" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
 
-              <article className="group relative grid w-full grid-cols-1 gap-5 overflow-hidden rounded-2xl border bg-card/80 p-4 shadow-sm ring-1 ring-black/5 backdrop-blur transition-all hover:-translate-y-[2px] hover:shadow-md dark:ring-white/10 sm:grid-cols-[440px_1fr]">
-                <div
-                  className="pointer-events-none absolute inset-0 -z-10 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-60"
-                  style={{
-                    background:
-                      "radial-gradient(60% 40% at 0% 0%, rgba(99,102,241,.18), transparent 60%), radial-gradient(60% 40% at 100% 0%, rgba(56,189,248,.16), transparent 60%)",
-                  }}
-                />
+  /* ------------------------------------------------------------------ */
+  return (
+    <>
+      <div className="relative mx-auto w-full max-w-6xl">
+        <div className="absolute left-[52px] top-0 bottom-0 w-[3px] bg-gradient-to-b from-orange-500 via-orange-400 to-orange-600 rounded-full" />
 
-                <button
-                  aria-label={t('tourDetails.openPlace', { name: p.name })}
-                  onClick={() => setOpenId(p.id)}
-                  className="relative h-64 w-full overflow-hidden rounded-xl bg-muted ring-1 ring-border"
-                >
-                  {p.image ? (
-                    <Image
-                      src={p.image}
-                      alt={p.name}
-                      fill
-                      sizes="(max-width: 640px) 100vw, 520px"
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                      priority={idx < 2}
-                    />
-                  ) : (
-                    <div className="grid h-full w-full place-items-center text-muted-foreground">
-                      <ImageIcon className="h-6 w-6" />
-                    </div>
-                  )}
-                </button>
+        <ul className="space-y-16 md:space-y-20">
+          {tourpoints.map((p, i) => {
+            const accent = dynamicColor(i, p.waypointtype);
+            const next = tourpoints[i + 1];
 
-                <div className="min-w-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <h3
-                      className="truncate text-lg font-semibold"
-                      title={p.name}
-                      onClick={() => setOpenId(p.id)}
-                      role="button"
-                    >
-                      {p.name}
-                    </h3>
+            {/* -------------------- START / END STATION -------------------- */ }
+            if (
+              (p.waypointtype === "start" || p.waypointtype === "end") &&
+              p.pointtype === "station"
+            ) {
+              const colorClass =
+                p.waypointtype === "start"
+                  ? "bg-green-500 ring-green-300"
+                  : "bg-red-500 ring-red-300";
 
-                    <div className="flex items-center gap-2">
-                      <ModeChip mode={leg?.mode} t={t} />
-                      {p.time && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5" />
-                          {t('tourDetails.time')}: {p.time}
+              const hideTop = p.waypointtype === "start";
+              const hideBottom = p.waypointtype === "end";
+
+              return (
+                <Fragment key={p._id}>
+                  <li
+                    className={`grid grid-cols-[90px_1fr] gap-6 ${hideBottom ? "pb-8" : "pb-10"
+                      }`}
+                  >
+                    <div className="relative h-full w-[90px]">
+                      <div
+                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${hideTop ? "top-[50%]" : "top-0"
+                          } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
+                      />
+                      <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <div
+                          className={`grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ${colorClass}`}
+                        >
+                          <Train className="h-6 w-6" />
                         </div>
+                      </div>
+                    </div>
+
+                    {/* ✅ fixed text colors here */}
+                    <div className="flex flex-col justify-center mt-1">
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-50 leading-tight">
+                        {p.name ||
+                          (p.waypointtype === "start"
+                            ? "Start Station"
+                            : "End Station")}
+                      </h3>
+                      {p.traveltime && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Duration: {p.traveltime}
+                        </p>
                       )}
                     </div>
-                  </div>
+                  </li>
 
-                  {p.address && (
-                    <div className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />
-                      <span className="truncate">{p.address}</span>
+                  {/* connector */}
+                  {next && (
+                    <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
+                      <TravelConnector
+                        info={next.traveltype}
+                        time={next.traveltime}
+                        next={next}
+                      />
+                    </li>
+                  )}
+                </Fragment>
+              );
+            }
+
+            /* -------------------- LUNCH -------------------- */
+            if (p.pointtype === "lunch") {
+              return (
+                <Fragment key={p._id}>
+                  <li className="grid grid-cols-[90px_1fr] gap-6 items-start">
+                    <TimelineDot index={i} accent={accent} />
+                    <div className="col-start-2 p-6 rounded-2xl bg-yellow-50 dark:bg-zinc-800 border border-yellow-200 dark:border-zinc-700 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <UtensilsCrossed className="h-6 w-6 text-orange-500" />
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                          🍱 {p.name || "Lunch Break"}
+                        </h3>
+                      </div>
+                      {p.traveltime && (
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                          Duration: {p.traveltime}
+                        </p>
+                      )}
                     </div>
+                  </li>
+
+                  {/* connector after lunch if not last */}
+                  {next && (
+                    <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
+                      <TravelConnector
+                        info={next.traveltype}
+                        time={next.traveltime}
+                        next={next}
+                      />
+                    </li>
                   )}
+                </Fragment>
+              );
+            }
 
-                  {p.blurb && (
-                    <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{p.blurb}</p>
-                  )}
+            /* -------------------- MONUMENT / PLACE -------------------- */
+            const m = p.monument;
+            return (
+              <Fragment key={p._id}>
+                <li className="grid grid-cols-[90px_1fr] gap-6 items-start">
+                  <TimelineDot index={i} accent={accent} />
 
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-                    {p.visitDurationMin != null && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
-                        <Clock className="h-3.5 w-3.5" />
-                        {p.visitDurationMin} {t('tourDetails.minOnSite')}
-                      </span>
-                    )}
-                    {!!p.highlights?.length && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        {p.highlights.length}{" "}
-                        {p.highlights.length > 1 ? t('tourDetails.highlightsPlural') : t('tourDetails.highlightsSingular')}
-                      </span>
-                    )}
-                  </div>
+                  <article className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl">
+                    <div
+                      className="relative w-full h-64 cursor-pointer"
+                      onClick={() => handleOpen(p._id)}
+                    >
+                      {m?.image?.secure_url ? (
+                        <Image
+                          src={m.image.secure_url}
+                          alt={m.name ?? ""}
+                          fill
+                          className="object-cover opacity-95 hover:opacity-100 transition"
+                        />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center bg-gray-200 dark:bg-gray-800">
+                          <ImageIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    </div>
 
-                  {!!tags.length && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {tags.slice(0, 6).map((tTag, i) => (
-                        <Badge
-                          key={tTag}
-                          variant="secondary"
-                          className="rounded-md px-1.5 py-0 text-[10px]"
-                          style={{
-                            borderColor: dynamicColor(idx + i),
-                            borderWidth: 1,
-                          }}
+                    <div className="p-6">
+                      <h3
+                        onClick={() => handleOpen(p._id)}
+                        className="cursor-pointer text-lg font-semibold truncate hover:text-orange-500 transition"
+                      >
+                        {m?.title ?? m?.name ?? p.name}
+                      </h3>
+
+                      {m?.region?.title && (
+                        <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                          <MapPin className="h-5 w-5" />
+                          <span>{m.region.title}</span>
+                        </div>
+                      )}
+
+                      {(m?.content?.brief || m?.content?.extended) && (
+                        <div className="mt-3 text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                          {m?.content?.brief && (
+                            <p className="line-clamp-2">
+                              {m.content.brief.replace(/<[^>]+>/g, "").trim()}
+                            </p>
+                          )}
+                          {m?.content?.extended && (
+                            <p className="line-clamp-2 text-gray-500 dark:text-gray-400">
+                              {m.content.extended
+                                .replace(/<[^>]+>/g, "")
+                                .trim()}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-5 flex gap-3">
+                        <Button
+                          size="sm"
+                          className="flex-1 rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 font-medium border border-gray-300 dark:border-gray-700"
+                          onClick={() => handleOpen(p._id)}
                         >
-                          {tTag}
-                        </Badge>
-                      ))}
+                          {t("tourDetails.viewDetails")}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                          <MapPin className="h-5 w-5" />
+                          {t("tourDetails.checkIn")}
+                        </Button>
+                      </div>
                     </div>
-                  )}
+                  </article>
+                </li>
 
-                  <div className="mt-4">
-                    <Button size="sm" className="rounded-full" onClick={() => setOpenId(p.id)}>
-                      {t('tourDetails.viewDetails')}
-                    </Button>
-                  </div>
-                </div>
-              </article>
-            </li>
-          );
-        })}
-      </ul>
-
-      {/* details dialog */}
-      <Dialog open={!!active} onOpenChange={(o) => !o && setOpenId(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{active?.name}</DialogTitle>
-            {!!active?.time && (
-              <DialogDescription>
-                {t('tourDetails.time')}: {active.time}
-              </DialogDescription>
-            )}
-          </DialogHeader>
-
-          {!!active && (
-            <div className="space-y-4">
-              <div className="relative h-56 w-full overflow-hidden rounded-md bg-muted">
-                {active.image ? (
-                  <Image
-                    src={active.image}
-                    alt={active.name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 560px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="grid h-full w-full place-items-center text-muted-foreground">
-                    <ImageIcon className="h-6 w-6" />
-                  </div>
+                {/* Connector to next point */}
+                {next && (
+                  <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
+                    <TravelConnector
+                      info={next.traveltype}
+                      time={next.traveltime}
+                      next={next}
+                    />
+                  </li>
                 )}
-              </div>
+              </Fragment>
+            );
+          })}
+        </ul>
+      </div>
 
-              {active.address && (
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  <span>{active.address}</span>
-                </div>
-              )}
+      {/* Monument Details Modal */}
+      <MonumentDetailModal
+        open={!!openId}
+        onClose={() => setOpenId(null)}
+        loading={modalLoading}
+        details={details}
+        onOpenAnother={handleOpen}
+      />
+    </>
+  );
+}
 
-              {active.blurb && (
-                <p className="text-sm text-muted-foreground">{active.blurb}</p>
-              )}
-
-              {!!active.highlights?.length && (
-                <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                  {active.highlights.map((h) => (
-                    <li key={h}>{h}</li>
-                  ))}
-                </ul>
-              )}
-
-              {active.tips && (
-                <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                  {active.tips}
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+/* ------------------------------------------------------------------ */
+function TimelineDot({ index, accent }: { index: number; accent: string }) {
+  return (
+    <div className="relative h-full w-[90px]">
+      <div className="absolute left-[52px] top-0 bottom-0 w-[3px] bg-transparent" />
+      <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div
+          className="grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ring-white/70 dark:ring-gray-800"
+          style={{ background: accent }}
+        >
+          <span className="text-[13px] font-semibold">{index + 1}</span>
+        </div>
+      </div>
     </div>
   );
 }
 
-/* ------------------------ helpers ------------------------ */
+/* ------------------------------------------------------------------ */
+function TravelConnector({
+  info,
+  time,
+  next,
+}: {
+  info?: { name?: TravelMode; title?: string };
+  time?: string;
+  next?: TourPoint;
+}) {
+  const travelMode: TravelMode = (info?.name as TravelMode) || "walk";
+  const travelTitle =
+    next?.pointtype === "lunch"
+      ? "Lunch Break"
+      : info?.title || capitalize(travelMode);
+  const icon =
+    next?.pointtype === "lunch" ? (
+      <UtensilsCrossed className="h-6 w-6 text-orange-500" />
+    ) : (
+      getTravelIcon(travelMode)
+    );
 
-function dynamicColor(i: number) {
-  const hue = (i * 137.508) % 360;
-  return `hsl(${hue} 70% 46%)`;
+  return (
+    <div className="flex items-center gap-3 text-base font-medium">
+      <div className="flex items-center gap-2">
+        {icon}
+        <span>{travelTitle}</span>
+      </div>
+      {time && <span className="text-sm opacity-80">• {time}</span>}
+    </div>
+  );
 }
 
-function labelFor(places: PlaceCompat[], idx: number) {
-  const p = places[idx];
-  const isEnd = p.kind === "end" || idx === places.length - 1;
-  return isEnd ? "E" : String(idx + 1);
-}
-
-function fmtMeters(m?: number) {
-  if (m == null) return "";
-  if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
-  return `${Math.round(m)} m`;
-}
-
-function fmtMinutes(min?: number) {
-  if (min == null) return "";
-  if (min < 60) return `${Math.round(min)} min`;
-  const h = Math.floor(min / 60);
-  const mm = Math.round(min % 60);
-  return mm ? `${h}h ${mm}m` : `${h}h`;
-}
-
-function modeStyles(mode?: Mode) {
+/* ------------------------------------------------------------------ */
+function getTravelIcon(mode?: TravelMode | string) {
+  const iconSize = "h-6 w-6";
   switch (mode) {
-    case "drive":
-      return {
-        bg: "bg-sky-500/10",
-        ring: "ring-sky-500/30",
-        text: "text-sky-700 dark:text-sky-300",
-        icon: <Car className="h-3.5 w-3.5" />,
-        label: "Drive",
-      };
-    case "cycle":
-      return {
-        bg: "bg-amber-500/10",
-        ring: "ring-amber-500/30",
-        text: "text-amber-700 dark:text-amber-300",
-        icon: <Bike className="h-3.5 w-3.5" />,
-        label: "Cycle",
-      };
-    case "transit":
-      return {
-        bg: "bg-violet-500/10",
-        ring: "ring-violet-500/30",
-        text: "text-violet-700 dark:text-violet-300",
-        icon: <Bus className="h-3.5 w-3.5" />,
-        label: "Transit",
-      };
-    case "other":
-      return {
-        bg: "bg-slate-500/10",
-        ring: "ring-slate-500/30",
-        text: "text-slate-700 dark:text-slate-300",
-        icon: <Train className="h-3.5 w-3.5" />,
-        label: "Transfer",
-      };
     case "walk":
+      return <Footprints className={iconSize} />;
+    case "train":
+      return <Train className={iconSize} />;
+    case "car":
+      return <Car className={iconSize} />;
     default:
-      return {
-        bg: "bg-emerald-500/10",
-        ring: "ring-emerald-500/30",
-        text: "text-emerald-700 dark:text-emerald-300",
-        icon: <Footprints className="h-3.5 w-3.5" />,
-        label: "Walk",
-      };
+      return <Footprints className={iconSize} />;
   }
 }
 
-function ModeChip({ mode, t }: { mode?: Mode; t: any }) {
-  const s = modeStyles(mode);
-  const label = t(`tourDetails.modes.${s.label.toLowerCase()}`, { defaultValue: s.label });
-  return (
-    <span
-      className={[
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-        s.bg,
-        s.ring,
-        s.text,
-        "ring-1",
-      ].join(" ")}
-      title={label}
-    >
-      {s.icon}
-      {label}
-    </span>
-  );
+function capitalize(str?: string) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
 }
 
-function LegPill({ accent, leg, t }: { accent: string; leg?: PlaceCompat["travelFromPrev"]; t: any }) {
-  const s = modeStyles(leg?.mode);
-  const label = t(`tourDetails.modes.${s.label.toLowerCase()}`, { defaultValue: s.label });
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] shadow bg-card/95 ring-1 ring-border">
-      <span
-        className={["inline-flex items-center justify-center rounded-full p-1", s.bg, s.text, s.ring, "ring-1"].join(" ")}
-        style={{ boxShadow: `0 0 0 2px ${accent}22 inset` }}
-        aria-hidden
-      >
-        {s.icon}
-      </span>
-
-      <span className="font-semibold">{label}</span>
-
-      {leg?.distanceMeters != null && (
-        <>
-          <span className="opacity-60">•</span>
-          <span>{fmtMeters(leg.distanceMeters)}</span>
-        </>
-      )}
-      {leg?.durationMin != null && (
-        <>
-          <span className="opacity-60">•</span>
-          <span>{fmtMinutes(leg.durationMin)}</span>
-        </>
-      )}
-    </div>
-  );
+function dynamicColor(i: number, type?: "start" | "place" | "end") {
+  if (type === "start") return "#10b981";
+  if (type === "end") return "#ef4444";
+  return "#f97316";
 }

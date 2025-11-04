@@ -1,176 +1,238 @@
 {
-    "hero": {
-        "liveTourTracking": "ライブツアートラッキング",
-        "resume": "再開"
+  "hero": {
+    "liveTourTracking": "ライブツアートラッキング",
+    "resume": "再開"
+  },
+  "dashboard": {
+    "title": "ツアーダッシュボード",
+    "description": "ナビゲーションの状態、すべてのツアーの進捗を確認し、すぐに旅を開始できます。"
+  },
+  "nav": {
+    "noActiveTour": "アクティブなツアーはありません",
+    "status": {
+      "running": "実行中",
+      "paused": "一時停止中",
+      "idle": "待機中"
     },
-    "dashboard": {
-        "title": "ツアーダッシュボード",
-        "description": "ナビゲーションの状態、すべてのツアーの進捗を確認し、すぐに旅を開始できます。"
+    "home": "ホーム",
+    "tours": "ツアー一覧",
+    "myList": "マイリスト",
+    "logout": "ログアウト"
+  },
+  "kpi": {
+    "totalTours": "ツアー合計",
+    "totalStops": "停止地点合計",
+    "avgStops": "ツアー平均停止数",
+    "uniqueTags": "ユニークタグ数"
+  },
+  "active": {
+    "title": "アクティブナビゲーション",
+    "subtitle": "Redux から取得したライブセッション",
+    "tiles": {
+      "status": {
+        "title": "ステータス",
+        "subtitle": "現在のセッション"
+      },
+      "route": {
+        "title": "ルート",
+        "subtitle": "距離 • 到着予定"
+      },
+      "actions": {
+        "title": "アクション",
+        "subtitle": "クイックアクセス"
+      }
     },
-    "nav": {
-        "noActiveTour": "アクティブなツアーはありません",
-        "status": {
-            "running": "実行中",
-            "paused": "一時停止中",
-            "idle": "待機中"
-        },
-        "home": "ホーム",
-        "tours": "ツアー一覧",
-        "myList": "マイリスト"
+    "profile": "プロファイル"
+  },
+  "actions": {
+    "map": "マップ",
+    "details": "詳細",
+    "chooseTour": "開始するツアーを下から選んでください。",
+    "navigate": "ナビゲート",
+    "show_more": "もっと見る",
+    "explore_now": "今すぐ探索",
+    "featured": "注目"
+  },
+  "overview": {
+    "title": "アクティビティ概要",
+    "subtitle": "すべてのツアーのチェックイン",
+    "complete": "完了"
+  },
+  "bars": {
+    "visited": "訪問済み",
+    "pending": "保留中"
+  },
+  "allTours": {
+    "title": "全てのツアー",
+    "totalLabel": "合計",
+    "stopsLabel": "停止"
+  },
+  "badge": {
+    "new": "新着"
+  },
+  "stops": "{count, plural, one {# 箇所} other {# 箇所}}",
+  "buttons": {
+    "details": "詳細",
+    "navigate": "ナビゲート"
+  },
+  "empty": {
+    "title": "利用可能なツアーがありません",
+    "description": "開始するにはサンプルツアーをインポートするか有効にしてください。",
+    "openSample": "サンプルツアーを開く"
+  },
+  "footer": {
+    "brand": "ツーリスト",
+    "tagline": "ガイド • マップ • ライブ",
+    "description": "厳選されたルートを探索し、リアルタイムでナビゲートし、自分だけの場所ライブラリを管理しましょう。",
+    "social": {
+      "github": "ギットハブ",
+      "twitter": "ツイッター",
+      "instagram": "インスタグラム",
+      "linkedin": "リンクトイン"
     },
-    "kpi": {
-        "totalTours": "ツアー合計",
-        "totalStops": "停止地点合計",
-        "avgStops": "ツアー平均停止数",
-        "uniqueTags": "ユニークタグ数"
+    "copyright": "© {year} ツーリスト。全著作権所有。"
+  },
+  "tours": {
+    "liveTours": "ライブツアー",
+    "exploreTours": "キュレーションされたツアーを探索＆ナビゲート",
+    "bannerDescription": "検索、タグでのフィルター、最新順や最多停止順でのソート、任意のツアーの詳細やナビゲーションにジャンプできます。",
+    "stats": {
+      "tours": "ツアー",
+      "stops": "停留所",
+      "avgStops": "平均停留所/ツアー",
+      "tags": "タグ"
     },
-    "active": {
-        "title": "アクティブナビゲーション",
-        "subtitle": "Redux から取得したライブセッション",
-        "tiles": {
-            "status": {
-                "title": "ステータス",
-                "subtitle": "現在のセッション"
-            },
-            "route": {
-                "title": "ルート",
-                "subtitle": "距離 • 到着予定"
-            },
-            "actions": {
-                "title": "アクション",
-                "subtitle": "クイックアクセス"
-            }
-        },
-        "profile": "プロファイル"
+    "search": "検索",
+    "tag": "タグ",
+    "sortBy": "並び替え",
+    "perPage": "1ページあたり",
+    "showingResults": "{{current}}件中{{total}}件を表示",
+    "reset": "リセット",
+    "noMatches": "条件に一致するツアーはありません。",
+    "noToursYet": "まだツアーはありません。ツアーが利用可能になると、ここに表示されます。",
+    "stop": "停留所",
+    "stops": "停留所",
+    "new": "新着",
+    "stopsRelative": "このページの最も多いツアーに対する停留所割合",
+    "details": "詳細",
+    "navigate": "ナビゲート",
+    "pageOf": "{{total}}ページ中{{current}}ページ目",
+    "prev": "前へ",
+    "next": "次へ",
+    "searchPlaceholder": "ツアーを検索..."
+  },
+  "tourDetails": {
+    "stops": "停留所",
+    "suggestedPace": "推奨ペース",
+    "tags": "タグ",
+    "startNavigation": "ナビゲーション開始",
+    "jumpToTimeline": "タイムラインへジャンプ",
+    "easy": "簡単",
+    "moderate": "普通",
+    "casual": "カジュアル",
+    "loading": "読み込み中…",
+    "map": "地図",
+    "timeline": "タイムライン",
+    "viewDetails": "詳細を見る",
+    "time": "時間",
+    "minOnSite": "滞在時間",
+    "highlightsSingular": "ハイライト",
+    "highlightsPlural": "ハイライト",
+    "openPlace": "{{name}} を開く",
+    "modes": {
+      "walk": "徒歩",
+      "drive": "車",
+      "cycle": "自転車",
+      "transit": "公共交通",
+      "transfer": "移動",
+      "train": "列車"
     },
-    "actions": {
-        "map": "マップ",
-        "details": "詳細",
-        "chooseTour": "開始するツアーを下から選んでください。"
+    "start": "開始",
+    "end": "終了",
+    "route": "ルート",
+    "loadingMap": "地図を読み込み中…",
+    "durationFormat": "{km} km • {hh}時間 {mm}分",
+    "checkIn": "チェックイン"
+  },
+  "Back": "戻る",
+  "Start": "開始",
+  "Pause": "一時停止",
+  "Resume": "再開",
+  "Start navigation": "ナビを開始",
+  "Pause navigation": "ナビを一時停止",
+  "Resume navigation": "ナビを再開",
+  "Personal Library": "個人ライブラリ",
+  "Bookmarks & Visited Places": "ブックマークと訪問済みの場所",
+  "mylist-description": "保存したスポットに素早く戻ったり、訪れた場所を確認できます。タブを切り替えてモニュメントやツアー全体を表示してください。",
+  "Total": "合計",
+  "Monuments": "モニュメント",
+  "Tours": "ツアー",
+  "Bookmarks": "ブックマーク",
+  "Visited": "訪問済み",
+  "No monuments here yet": "まだモニュメントはありません",
+  "Save some places as bookmarks or mark them visited to see them here.": "場所をブックマークに保存するか、訪問済みとしてマークするとここに表示されます。",
+  "No tours yet": "まだツアーはありません",
+  "When you bookmark or complete tours, they’ll appear here.": "ツアーをブックマークしたり完了すると、ここに表示されます。",
+  "Monument": "モニュメント",
+  "From tour:": "ツアー：",
+  "Details": "詳細",
+  "Navigate": "ナビ開始",
+  "stop": "スポット",
+  "mylist-stops": "スポット",
+  "Stops relative to this page’s busiest tour": "このページで最も停車数の多いツアーに対するスポット数",
+  "Browse tours": "ツアーを探す",
+  "featured_highlight": "注目のハイライト",
+  "total_tours": "ツアー合計",
+  "total_stops": "停止合計",
+  "avg_stops": "平均停止数",
+  "main_categories": "主なカテゴリー",
+  "more_options": "その他のオプション",
+  "no_tours_available": "利用可能なツアーはありません",
+  "loading_shortcuts": "ショートカットを読み込み中...",
+  "city_promotion": "シティプロモーション",
+  "city_promotion_desc": "このプロモーション動画では、御所市の四季折々の表情や、まちの人々の温かさ、そして訪れたくなる魅力あふれるスポットをご紹介します。新しい発見と感動に出会える、御所市の魅力をご覧ください。",
+  "city_promotion_video_desc": "御所市の魅力を映像で体験しよう！歴史、自然、文化が融合する美しいまち「御所市」を紹介するビデオです。",
+  "shortcut": {
+    "tourist_map": "観光マップ",
+    "tourist_map_desc": "各地図をタップすると拡大・縮小できます。",
+    "tourist_attraction": "奈良の文化遺産を探検しよう",
+    "tourist_attraction_desc": "歴史と自然が調和する「御所市」— 古代から受け継がれる文化と建造物の魅力を発見しましょう。",
+    "tourist_attraction_search": "遺跡を検索",
+    "tourist_attraction_search_placeholder": "キーワードを入力...",
+    "tourist_attraction_filter1": "人気のスポット",
+    "tourist_attraction_filter2": "珍しい遺跡",
+    "tourist_attraction_filter3": "AR対応",
+    "tourist_attraction_filter4": "AV対応",
+    "tourist_attraction_details": {
+      "era": "時代",
+      "year": "年代",
+      "size": "規模",
+      "type": "種類",
+      "featured": "注目",
+      "rare": "希少",
+      "popularity": "人気度",
+      "priority": "優先度",
+      "radius": "半径",
+      "address": "住所",
+      "region_info": "地域情報",
+      "image_credit": "画像クレジット",
+      "classification": "分類",
+      "gallery": "ギャラリー",
+      "nearby_monuments": "周辺の史跡",
+      "related_tours": "関連ツアー",
+      "go_tour": "ツアーを見る",
+      "nearby_services": "周辺サービス",
+      "category": "カテゴリ"
     },
-    "overview": {
-        "title": "アクティビティ概要",
-        "subtitle": "すべてのツアーのチェックイン",
-        "complete": "完了"
-    },
-    "bars": {
-        "visited": "訪問済み",
-        "pending": "保留中"
-    },
-    "allTours": {
-        "title": "全てのツアー",
-        "totalLabel": "合計",
-        "stopsLabel": "停止"
-    },
-    "badge": {
-        "new": "新着"
-    },
-    "stops": "{count, plural, one {# 箇所} other {# 箇所}}",
-    "buttons": {
-        "details": "詳細",
-        "navigate": "ナビゲート"
-    },
-    "empty": {
-        "title": "利用可能なツアーがありません",
-        "description": "開始するにはサンプルツアーをインポートするか有効にしてください。",
-        "openSample": "サンプルツアーを開く"
-    },
-    "footer": {
-        "brand": "ツーリスト",
-        "tagline": "ガイド • マップ • ライブ",
-        "description": "厳選されたルートを探索し、リアルタイムでナビゲートし、自分だけの場所ライブラリを管理しましょう。",
-        "social": {
-            "github": "ギットハブ",
-            "twitter": "ツイッター",
-            "instagram": "インスタグラム",
-            "linkedin": "リンクトイン"
-        },
-        "copyright": "© {year} ツーリスト。全著作権所有。"
-    },
-    "tours": {
-        "liveTours": "ライブツアー",
-        "exploreTours": "キュレーションされたツアーを探索＆ナビゲート",
-        "bannerDescription": "検索、タグでのフィルター、最新順や最多停止順でのソート、任意のツアーの詳細やナビゲーションにジャンプできます。",
-        "stats": {
-            "tours": "ツアー",
-            "stops": "停留所",
-            "avgStops": "平均停留所/ツアー",
-            "tags": "タグ"
-        },
-        "search": "検索",
-        "tag": "タグ",
-        "sortBy": "並び替え",
-        "perPage": "1ページあたり",
-        "showingResults": "{{current}}件中{{total}}件を表示",
-        "reset": "リセット",
-        "noMatches": "条件に一致するツアーはありません。",
-        "noToursYet": "まだツアーはありません。ツアーが利用可能になると、ここに表示されます。",
-        "stop": "停留所",
-        "stops": "停留所",
-        "new": "新着",
-        "stopsRelative": "このページの最も多いツアーに対する停留所割合",
-        "details": "詳細",
-        "navigate": "ナビゲート",
-        "pageOf": "{{total}}ページ中{{current}}ページ目",
-        "prev": "前へ",
-        "next": "次へ"
-    },
-    "tourDetails": {
-        "stops": "停留所",
-        "suggestedPace": "推奨ペース",
-        "tags": "タグ",
-        "startNavigation": "ナビゲーション開始",
-        "jumpToTimeline": "タイムラインへジャンプ",
-        "easy": "簡単",
-        "moderate": "普通",
-        "casual": "カジュアル",
-        "loading": "読み込み中…",
-        "map": "地図",
-        "timeline": "タイムライン",
-        "viewDetails": "詳細を見る",
-        "time": "時間",
-        "minOnSite": "滞在時間",
-        "highlightsSingular": "ハイライト",
-        "highlightsPlural": "ハイライト",
-        "openPlace": "{{name}} を開く",
-        "modes": {
-            "walk": "徒歩",
-            "drive": "車",
-            "cycle": "自転車",
-            "transit": "公共交通",
-            "transfer": "移動"
-        },
-        "start": "開始",
-        "end": "終了",
-        "route": "ルート",
-        "loadingMap": "地図を読み込み中…",
-        "durationFormat": "{km} km • {hh}時間 {mm}分"
-    },
-    "Back": "戻る",
-    "Start": "開始",
-    "Pause": "一時停止",
-    "Resume": "再開",
-    "Start navigation": "ナビを開始",
-    "Pause navigation": "ナビを一時停止",
-    "Resume navigation": "ナビを再開",
-    "Personal Library": "個人ライブラリ",
-    "Bookmarks & Visited Places": "ブックマークと訪問済みの場所",
-    "mylist-description": "保存したスポットに素早く戻ったり、訪れた場所を確認できます。タブを切り替えてモニュメントやツアー全体を表示してください。",
-    "Total": "合計",
-    "Monuments": "モニュメント",
-    "Tours": "ツアー",
-    "Bookmarks": "ブックマーク",
-    "Visited": "訪問済み",
-    "No monuments here yet": "まだモニュメントはありません",
-    "Save some places as bookmarks or mark them visited to see them here.": "場所をブックマークに保存するか、訪問済みとしてマークするとここに表示されます。",
-    "No tours yet": "まだツアーはありません",
-    "When you bookmark or complete tours, they’ll appear here.": "ツアーをブックマークしたり完了すると、ここに表示されます。",
-    "Monument": "モニュメント",
-    "From tour:": "ツアー：",
-    "Details": "詳細",
-    "Navigate": "ナビ開始",
-    "stop": "スポット",
-    "mylist-stops": "スポット",
-    "Stops relative to this page’s busiest tour": "このページで最も停車数の多いツアーに対するスポット数",
-    "Browse tours": "ツアーを探す"
+    "about": "御所市って？",
+    "about_desc": "歴史と自然が息づくまち「御所市」— 古代から続く文化と豊かな景観を持つ魅力あふれる土地。",
+    "about_tab_1": "御所市の位置",
+    "about_tab_2": "御所市の歴史",
+    "about_tab_3": "御所市の沿革"
+  },
+  "filter": "フィルター",
+  "sort": "並び替え",
+  "pagination_left": "ページ {{current}} / {{total}}",
+  "no_data": "データがありません",
+  "all": "すべて"
 }

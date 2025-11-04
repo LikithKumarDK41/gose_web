@@ -1,133 +1,179 @@
-// src/app/library/page.tsx
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useAppSelector } from "@/lib/store/hook";
-import { selectTours } from "@/lib/store/slices/toursSlice";
-
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-
 import {
+  Landmark,
   Bookmark,
   CheckCircle2,
-  Landmark,
-  MapPin,
-  Navigation,
-  Sparkles,
-  ImageIcon,
   Compass,
+  ImageIcon,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useLocale } from "@/providers/LocaleProvider";
+import { apiGetBookmarks, apiGetVisitHistories } from "@/services/myListService";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch } from "@/lib/store";
+import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 
-/* ------------------------------ Types ------------------------------ */
-type PlaceCompat = {
-  id: string;
-  name: string;
+/* -------------------------------------------------------------------------- */
+/* TYPES */
+/* -------------------------------------------------------------------------- */
+type MonumentItem = {
+  _id: string;
+  name?: string;
   image?: string;
-  blurb?: string;
-  lat: number;
-  lng: number;
-  time?: string;
-  address?: string;
-  tags?: string[];
-  kind?: "start" | "place" | "end";
-  visitDurationMin?: number;
+  tourTitle?: string;
+  description?: string;
 };
-type MonumentItem = PlaceCompat & {
-  _tourId: string;
-  _tourTitle: string;
-};
+
 type TourItem = {
-  id: string;
-  title: string;
+  _id: string;
+  title?: string;
   description?: string;
   image?: string;
-  tags?: string[];
-  places: PlaceCompat[];
-  createdAt?: string;
+  tourpoints?: any[];
 };
 
-/* Helpers */
-const isMonumentLike = (p: PlaceCompat) => {
-  const s = `${p.name} ${(p.tags ?? []).join(" ")}`.toLowerCase();
-  return ["temple", "monument", "heritage", "well", "library", "shrine"].some((k) =>
-    s.includes(k)
-  );
-};
-const fmtDate = (iso?: string) =>
-  !iso ? "—" : new Date(iso).toLocaleDateString();
-
-/* ------------------------------ Page ------------------------------ */
+/* -------------------------------------------------------------------------- */
+/* COMPONENT */
+/* -------------------------------------------------------------------------- */
 export default function LibraryPage() {
   const { t } = useLocale();
+  const dispatch = useDispatch<AppDispatch>();
+  const monumentDetail = useSelector((s: any) => s.tourist.monumentDetail);
+  const loadingState = useSelector((s: any) => s.tourist.loading);
 
-  const toursRaw = useAppSelector(selectTours) ?? [];
-
-  // Normalize tours into a simple shape for the UI
-  const allTours: TourItem[] = useMemo(
-    () =>
-      toursRaw.map((t) => ({
-        id: t.id,
-        title: t.title,
-        description: t.description,
-        image: t.image,
-        tags: t.tags ?? [],
-        places: (t.places ?? []) as PlaceCompat[],
-        createdAt: t.createdAt,
-      })),
-    [toursRaw]
-  );
-
-  // Build monuments by flattening places from tours
-  const allMonuments: MonumentItem[] = useMemo(() => {
-    const out: MonumentItem[] = [];
-    for (const t of allTours) {
-      for (const p of t.places) {
-        if (isMonumentLike(p)) {
-          out.push({ ...p, _tourId: t.id, _tourTitle: t.title });
-        }
-      }
-    }
-    return out;
-  }, [allTours]);
-
-  // Fake partition into "bookmarks" vs "visited"
-  const bookmarkedTours: TourItem[] = allTours.filter((_, i) => i % 2 === 0);
-  const visitedTours: TourItem[] = allTours.filter((_, i) => i % 2 === 1);
-  const bookmarkedMonuments: MonumentItem[] = allMonuments.filter((_, i) => i % 2 === 0);
-  const visitedMonuments: MonumentItem[] = allMonuments.filter((_, i) => i % 2 === 1);
-
-  // Tabs state (controlled so we can show dynamic counts in the banner)
   const [topTab, setTopTab] = useState<"bookmarks" | "visited">("bookmarks");
   const [innerTab, setInnerTab] = useState<"monuments" | "tours">("monuments");
 
-  const currentCounts = useMemo(() => {
-    const bk = {
-      mon: bookmarkedMonuments.length,
-      tou: bookmarkedTours.length,
-    };
-    const vs = {
-      mon: visitedMonuments.length,
-      tou: visitedTours.length,
-    };
-    const active =
-      topTab === "bookmarks" ? { mon: bk.mon, tou: bk.tou } : { mon: vs.mon, tou: vs.tou };
-    const total = active.mon + active.tou;
-    return { ...active, total };
-  }, [
-    topTab,
-    bookmarkedMonuments.length,
-    bookmarkedTours.length,
-    visitedMonuments.length,
-    visitedTours.length,
-  ]);
+  const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [visits, setVisits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const dataset =
+  // ✅ Separate pagination states for each combination
+  const [page, setPage] = useState({
+    bookmarkedMonuments: 1,
+    bookmarkedTours: 1,
+    visitedMonuments: 1,
+    visitedTours: 1,
+  });
+
+  const limit = 6;
+
+  /* -------------------- Modal States -------------------- */
+  const [open, setOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [selectedMonument, setSelectedMonument] = useState<any | null>(null);
+
+  /* -------------------- Fetch Bookmarks -------------------- */
+  useEffect(() => {
+    const loadBookmarks = async () => {
+      setLoading(true);
+      try {
+        const res = await apiGetBookmarks();
+        setBookmarks(res.bookmarks.results || []);
+      } catch (err) {
+        console.error("Failed to fetch bookmarks:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadBookmarks();
+  }, []);
+
+  /* -------------------- Fetch Visit Histories -------------------- */
+  useEffect(() => {
+    const loadVisits = async () => {
+      try {
+        const res = await apiGetVisitHistories();
+        setVisits(res.visithistories.results || []);
+      } catch (err) {
+        console.error("Failed to fetch visit histories:", err);
+      }
+    };
+    loadVisits();
+  }, []);
+
+  /* -------------------- Mapped Data -------------------- */
+  const bookmarkedMonuments = useMemo(
+    () =>
+      bookmarks
+        .filter((b) => b.marktype === "monument" && b.monument)
+        .map((b) => ({
+          _id: b.monument._id,
+          name: b.monument.title,
+          image: b.monument.image?.secure_url || b.monument.image?.url,
+          tourTitle: b.tour?.title,
+          description:
+            b.monument.content?.brief || b.monument.content?.extended || "",
+        })),
+    [bookmarks]
+  );
+
+  const bookmarkedTours = useMemo(
+    () =>
+      bookmarks
+        .filter((b) => b.marktype === "tour" && b.tour)
+        .map((b) => ({
+          _id: b.tour._id,
+          title: b.tour.title,
+          description: b.tour.content?.brief,
+          image: b.tour.image?.secure_url || b.tour.image?.url,
+          tourpoints: b.tour.monuments ?? [],
+        })),
+    [bookmarks]
+  );
+
+  const visitedMonuments = useMemo(
+    () =>
+      visits
+        .filter((v) => v.historytype === "monument" && v.monument)
+        .map((v) => ({
+          _id: v.monument._id,
+          name: v.monument.title,
+          image: v.monument.image?.secure_url || v.monument.image?.url,
+          description:
+            v.monument.content?.brief || v.monument.content?.extended || "",
+        })),
+    [visits]
+  );
+
+  const visitedTours = useMemo(
+    () =>
+      visits
+        .filter((v) => v.historytype === "tour" && v.tour)
+        .map((v) => ({
+          _id: v.tour._id,
+          title: v.tour.title,
+          description: v.tour.content?.brief,
+          image: v.tour.image?.secure_url || v.tour.image?.url,
+          tourpoints: v.tour.monuments ?? [],
+        })),
+    [visits]
+  );
+
+  /* -------------------- Pagination Helpers -------------------- */
+  const getPageKey = () => {
+    if (topTab === "bookmarks" && innerTab === "monuments") return "bookmarkedMonuments";
+    if (topTab === "bookmarks" && innerTab === "tours") return "bookmarkedTours";
+    if (topTab === "visited" && innerTab === "monuments") return "visitedMonuments";
+    return "visitedTours";
+  };
+
+  const handlePageChange = (p: number) => {
+    const key = getPageKey();
+    setPage((prev) => ({ ...prev, [key]: p }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const currentPage = page[getPageKey()];
+  const dataList =
     topTab === "bookmarks"
       ? innerTab === "monuments"
         ? bookmarkedMonuments
@@ -136,415 +182,286 @@ export default function LibraryPage() {
         ? visitedMonuments
         : visitedTours;
 
-  const hasData = dataset.length > 0;
+  const totalPages = Math.ceil(dataList.length / limit) || 1;
+  const currentData = dataList.slice((currentPage - 1) * limit, currentPage * limit);
 
+  /* -------------------- Handle Monument Detail -------------------- */
+  const handleOpenMonument = async (id: string) => {
+    setModalLoading(true);
+    try {
+      const thunk = dispatch(fetchMonumentDetails(id));
+      const data = await thunk.unwrap();
+      setSelectedMonument(data);
+      setOpen(true);
+    } catch (err) {
+      console.error("Failed to fetch monument details:", err);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleOpenAnother = async (id: string) => {
+    setModalLoading(true);
+    try {
+      const thunk = dispatch(fetchMonumentDetails(id));
+      const data = await thunk.unwrap();
+      setSelectedMonument(data);
+    } catch (err) {
+      console.error("Failed to open another monument:", err);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const details =
+    selectedMonument && monumentDetail?._id === selectedMonument._id
+      ? monumentDetail
+      : selectedMonument;
+
+  /* -------------------------------------------------------------------------- */
   return (
-    <div className="space-y-8">
-      {/* ===== Banner (vivid, readable) ===== */}
+    <div className="space-y-10">
+      {/* ===== HEADER ===== */}
       <div className="relative overflow-hidden rounded-2xl border">
-        {/* Gradient blobs */}
         <div className="pointer-events-none absolute -top-20 -right-8 h-72 w-72 rounded-full bg-gradient-to-tr from-sky-400 via-indigo-400 to-fuchsia-400 opacity-60 blur-3xl dark:opacity-40" />
-        <div className="pointer-events-none absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-gradient-to-tr from-emerald-400 via-teal-400 to-cyan-400 opacity-60 blur-3xl dark:opacity-40" />
-        {/* Mesh wash */}
-        <div
-          className="
-            absolute inset-0
-            [background:
-              radial-gradient(120%_80%_at_0%_0%,rgba(99,102,241,.20),transparent_60%),
-              radial-gradient(120%_80%_at_100%_0%,rgba(56,189,248,.18),transparent_60%),
-              radial-gradient(100%_120%_at_50%_100%,rgba(16,185,129,.16),transparent_55%)
-            ]
-            dark:[background:
-              radial-gradient(120%_80%_at_0%_0%,rgba(99,102,241,.40),transparent_60%),
-              radial-gradient(120%_80%_at_100%_0%,rgba(56,189,248,.36),transparent_60%),
-              radial-gradient(100%_120%_at_50%_100%,rgba(16,185,129,.30),transparent_55%)
-            ]
-          "
-        />
-        {/* Veil for light-mode contrast */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/60 to-white/20 dark:from-transparent dark:via-transparent dark:to-transparent" />
-        {/* Dot texture */}
-        <div className="pointer-events-none absolute inset-0 opacity-[0.05] bg-[radial-gradient(circle_at_1px_1px,#000_1px,transparent_1px)] [background-size:12px_12px] dark:opacity-[0.08]" />
-
-        <div className="relative p-6 sm:p-7">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow ring-1 ring-white/10 backdrop-blur dark:bg-black/60">
-                <Sparkles className="h-3.5 w-3.5" />
-                {t("Personal Library") || "Personal Library"}
-              </div>
-              <h1 className="mt-2 text-2xl font-semibold text-gray-900 drop-shadow-sm dark:text-white">
-                {t("Bookmarks & Visited Places") || "Bookmarks & Visited Places"}
-              </h1>
-              <p className="text-sm text-gray-700/85 dark:text-white/90">
-                {t(
-                  "mylist-description"
-                ) ||
-                  "Quickly jump back to saved spots or review places you’ve explored. Switch tabs to view Monuments or full Tours."}
-              </p>
-            </div>
-
-            {/* Live counters for the active tab */}
-            <div className="mt-2 flex flex-wrap gap-2 sm:mt-0">
-              <Chip label={t("Total") || "Total"} value={currentCounts.total} />
-              <Chip label={t("Monuments") || "Monuments"} value={currentCounts.mon} />
-              <Chip label={t("Tours") || "Tours"} value={currentCounts.tou} />
-            </div>
+        <div className="relative p-6 sm:p-7 text-center">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow ring-1 ring-white/10 backdrop-blur">
+            <Sparkles className="h-3.5 w-3.5" />
+            {t("Personal Library")}
           </div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mt-3">
+            {t("Bookmarks & Visited Places")}
+          </h1>
         </div>
       </div>
 
-      {/* ===== Top Tabs: Bookmarks / Visited ===== */}
+      {/* ===== MAIN TABS ===== */}
       <Tabs
         value={topTab}
         onValueChange={(v) => setTopTab(v as typeof topTab)}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger
-            value="bookmarks"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-sky-500 data-[state=active]:text-white"
-          >
+        <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted/70 p-1 shadow ring-1 ring-border">
+          <TabsTrigger value="bookmarks">
             <Bookmark className="mr-2 h-4 w-4" />
-            {t("Bookmarks") || "Bookmarks"}
+            {t("Bookmarks")}
           </TabsTrigger>
-          <TabsTrigger
-            value="visited"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-lime-500 data-[state=active]:text-white"
-          >
+          <TabsTrigger value="visited">
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            {t("Visited") || "Visited"}
+            {t("Visited")}
           </TabsTrigger>
         </TabsList>
 
-        {/* ===== Inner Tabs: Monuments / Tours (inside the active top tab) ===== */}
-        <TabsContent value="bookmarks" className="space-y-6">
+        {/* CONTENT */}
+        <TabsContent value={topTab}>
           <InnerTabs
+            key={`${topTab}-${innerTab}`}
             value={innerTab}
-            onChange={(v) => setInnerTab(v)}
-            monuments={bookmarkedMonuments}
-            tours={bookmarkedTours}
-          />
-        </TabsContent>
-
-        <TabsContent value="visited" className="space-y-6">
-          <InnerTabs
-            value={innerTab}
-            onChange={(v) => setInnerTab(v)}
-            monuments={visitedMonuments}
-            tours={visitedTours}
+            onChange={setInnerTab}
+            data={currentData}
+            totalPages={totalPages}
+            page={currentPage}
+            onPageChange={handlePageChange}
+            t={t}
+            onOpenMonument={handleOpenMonument}
+            topTab={topTab}
           />
         </TabsContent>
       </Tabs>
+
+      {/* Monument Detail Modal */}
+      {details && (
+        <MonumentDetailModal
+          open={open}
+          onClose={() => setOpen(false)}
+          loading={modalLoading || loadingState}
+          details={details}
+          onOpenAnother={handleOpenAnother}
+        />
+      )}
     </div>
   );
 }
 
-/* ------------------------- Inner Tabs Section ------------------------- */
-
-function InnerTabs({
-  value,
-  onChange,
-  monuments,
-  tours,
-}: {
-  value: "monuments" | "tours";
-  onChange: (v: "monuments" | "tours") => void;
-  monuments: MonumentItem[];
-  tours: TourItem[];
-}) {
-  const hasMon = monuments.length > 0;
-  const hasTours = tours.length > 0;
-
-  const { t } = useLocale();
+/* -------------------------------------------------------------------------- */
+/* INNER TABS */
+/* -------------------------------------------------------------------------- */
+function InnerTabs({ value, onChange, data, totalPages, page, onPageChange, t, onOpenMonument, topTab }: any) {
+  const hasData = data.length > 0;
+  const isMonument = value === "monuments";
 
   return (
-    <Tabs value={value} onValueChange={(v) => onChange(v as typeof value)} className="space-y-5">
-      {/* centered equal-width pill tabs */}
+    <Tabs
+      value={value}
+      onValueChange={(v) => {
+        onChange(v as typeof value);
+        onPageChange(1);
+      }}
+      className="space-y-6"
+    >
       <div className="flex justify-center">
-        <TabsList
-          className="
-            mx-auto flex w-[440px] max-w-full items-center justify-center
-            overflow-hidden rounded-full bg-muted/70 p-1 shadow-sm
-            ring-1 ring-border
-          "
-        >
-          <TabsTrigger
-            value="monuments"
-            className="
-              flex-1 rounded-full px-4 py-2 text-sm
-              data-[state=active]:bg-background data-[state=active]:text-foreground
-              data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border
-            "
-          >
+        <TabsList className="mx-auto flex w-[420px] max-w-full items-center justify-center rounded-full bg-gradient-to-r from-indigo-100 via-white to-indigo-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 shadow ring-1 ring-border p-1">
+          <TabsTrigger value="monuments">
             <Landmark className="mr-2 h-4 w-4" />
-            {t("Monuments") || "Monuments"}
+            {t("Monuments")}
           </TabsTrigger>
-          <TabsTrigger
-            value="tours"
-            className="
-              flex-1 rounded-full px-4 py-2 text-sm
-              data-[state=active]:bg-background data-[state=active]:text-foreground
-              data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border
-            "
-          >
+          <TabsTrigger value="tours">
             <Compass className="mr-2 h-4 w-4" />
-            {t("Tours") || "Tours"}
+            {t("Tours")}
           </TabsTrigger>
         </TabsList>
       </div>
 
-      {/* Monuments grid */}
-      <TabsContent value="monuments">
-        {!hasMon ? (
+      <TabsContent value={value}>
+        {!hasData ? (
           <EmptyState
-            icon={<Landmark className="h-8 w-8" />}
-            title={t("No monuments here yet") || "No monuments here yet"}
+            icon={isMonument ? <Landmark className="h-8 w-8" /> : <Compass className="h-8 w-8" />}
+            title={isMonument ? t("No monuments found") : t("No tours found")}
             subtitle={
-              t(
-                "Save some places as bookmarks or mark them visited to see them here."
-              ) || "Save some places as bookmarks or mark them visited to see them here."
+              isMonument
+                ? t("Bookmark or visit some monuments to see them here.")
+                : t("Bookmark or visit some tours to see them here.")
             }
           />
         ) : (
-          <div className="grid items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {monuments.map((m) => (
-              <MonumentCard key={`${m._tourId}:${m.id}`} m={m} />
-            ))}
-          </div>
-        )}
-      </TabsContent>
-
-      {/* Tours grid */}
-      <TabsContent value="tours">
-        {!hasTours ? (
-          <EmptyState
-            icon={<Compass className="h-8 w-8" />}
-            title={t("No tours yet") || "No tours yet"}
-            subtitle={t("When you bookmark or complete tours, they’ll appear here.") || "When you bookmark or complete tours, they’ll appear here."}
-          />
-        ) : (
-          <div className="grid items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {(() => {
-              const maxStopsForGrid = Math.max(1, ...tours.map((tt) => tt.places?.length ?? 0));
-              return tours.map((t) => <TourCard key={t.id} t={t} maxStops={maxStopsForGrid} />);
-            })()}
-          </div>
+          <>
+            <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
+              {data.map((item: any, idx: number) =>
+                isMonument ? (
+                  <MonumentCard key={`mon-${item._id}-${idx}`} m={item} onOpen={onOpenMonument} />
+                ) : (
+                  <TourCard key={`tour-${item._id}-${idx}`} t={item} />
+                )
+              )}
+            </div>
+            <PageNavigator totalPages={totalPages} page={page} onPageChange={onPageChange} t={t} />
+          </>
         )}
       </TabsContent>
     </Tabs>
   );
 }
 
-/* ------------------------------ Cards ------------------------------ */
-
-function MonumentCard({ m }: { m: MonumentItem }) {
+/* -------------------------------------------------------------------------- */
+/* CARD COMPONENTS */
+/* -------------------------------------------------------------------------- */
+function MonumentCard({ m, onOpen }: { m: MonumentItem; onOpen: (id: string) => void }) {
   const { t } = useLocale();
-
   return (
-    <Card className="group overflow-hidden rounded-[22px] border pt-0 shadow-sm transition-transform hover:-translate-y-0.5">
-      {/* Media (unified size) */}
-      <div className="relative h-44 w-full overflow-hidden rounded-t-[22px]">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm">
+      <div className="relative h-48 w-full overflow-hidden">
         {m.image ? (
-          <img
-            src={m.image}
-            alt={m.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-          />
+          <img src={m.image} alt={m.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
         ) : (
           <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
             <ImageIcon className="h-8 w-8" />
           </div>
         )}
-
-        {/* Bottom-right overlay pill */}
-        <div className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-xs text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:bg-black/55 dark:text-white dark:ring-white/10">
-          <Landmark className="h-3.5 w-3.5" />
-          {t("Monument") || "Monument"}
-        </div>
       </div>
-
-      <CardHeader className="px-4 pt-3">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-1 text-base font-semibold">{m.name}</h3>
-        </div>
-        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-          {t("From tour:") || "From tour:"} <span className="font-medium text-foreground">{m._tourTitle}</span>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4 px-4 pb-4">
-        {m.blurb && <p className="line-clamp-2 text-sm text-muted-foreground">{m.blurb}</p>}
-
-        {!!m.tags?.length && (
-          <div className="flex flex-wrap gap-1.5">
-            {m.tags.slice(0, 4).map((tg, i) => (
-              <span
-                key={tg + i}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                style={{
-                  background:
-                    i % 4 === 0
-                      ? "linear-gradient(180deg, rgba(99,102,241,.10), rgba(56,189,248,.10))"
-                      : i % 4 === 1
-                        ? "linear-gradient(180deg, rgba(244,63,94,.10), rgba(251,146,60,.10))"
-                        : i % 4 === 2
-                          ? "linear-gradient(180deg, rgba(16,185,129,.10), rgba(20,184,166,.10))"
-                          : "linear-gradient(180deg, rgba(217,70,239,.10), rgba(139,92,246,.10))",
-                  color:
-                    i % 4 === 0 ? "#1f3a8a" : i % 4 === 1 ? "#7f1d1d" : i % 4 === 2 ? "#065f46" : "#6d28d9",
-                }}
-              >
-                {tg}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <Button asChild variant="secondary" className="rounded-full">
-            <Link href={`/tours/detail?id=${encodeURIComponent(m._tourId)}#timeline`}>{t("Details") || "Details"}</Link>
-          </Button>
-          <Button
-            asChild
-            className="rounded-full text-white shadow"
-            style={{
-              background: "linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%)",
-            }}
-          >
-            <Link href={`/tours/detail/navigation?id=${encodeURIComponent(m._tourId)}`}>
-              <Navigation className="mr-1 h-4 w-4" />
-              {t("Navigate") || "Navigate"}
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function TourCard({ t, maxStops }: { t: TourItem; maxStops: number }) {
-  const { t: tr } = useLocale();
-  const stops = t.places?.length ?? 0;
-  const progress = Math.min(100, Math.round((stops / Math.max(1, maxStops)) * 100));
-
-  return (
-    <Card className="group overflow-hidden rounded-[22px] border pt-0 shadow-sm transition-transform hover:-translate-y-0.5">
-      {/* Media with bottom-right overlay pill (stops only) */}
-      <div className="relative h-44 w-full overflow-hidden rounded-t-[22px]">
-        {t.image ? (
-          <img src={t.image} alt={t.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
-        ) : (
-          <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
-            <ImageIcon className="h-8 w-8" />
-          </div>
-        )}
-
-        <div className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-xs text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:bg-black/55 dark:text-white dark:ring-white/10">
-          <MapPin className="h-3.5 w-3.5" />
-          {stops} {stops === 1 ? (tr("stop") || "stop") : (tr("mylist-stops") || "mylist-stops")}
-        </div>
-      </div>
-
-      <CardHeader className="px-4 pt-3">
-        <h3 className="line-clamp-1 text-base font-semibold">{t.title}</h3>
-      </CardHeader>
-
-      <CardContent className="space-y-4 px-4 pb-4">
-        {t.description && <p className="line-clamp-3 text-sm text-muted-foreground">{t.description}</p>}
-
-        {!!t.tags?.length && (
-          <div className="flex flex-wrap gap-1.5">
-            {t.tags.slice(0, 6).map((tg, i) => (
-              <span
-                key={tg + i}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                style={{
-                  background:
-                    i % 4 === 0
-                      ? "linear-gradient(180deg, rgba(99,102,241,.10), rgba(56,189,248,.10))"
-                      : i % 4 === 1
-                        ? "linear-gradient(180deg, rgba(244,63,94,.10), rgba(251,146,60,.10))"
-                        : i % 4 === 2
-                          ? "linear-gradient(180deg, rgba(16,185,129,.10), rgba(20,184,166,.10))"
-                          : "linear-gradient(180deg, rgba(217,70,239,.10), rgba(139,92,246,.10))",
-                  color: i % 4 === 0 ? "#1f3a8a" : i % 4 === 1 ? "#7f1d1d" : i % 4 === 2 ? "#065f46" : "#6d28d9",
-                }}
-              >
-                {tg}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Gradient progress */}
+      <div className="flex flex-1 flex-col justify-between p-4">
         <div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${progress}%`,
-                background: "linear-gradient(90deg, #6366f1 0%, #38bdf8 50%, #34d399 100%)",
-              }}
-            />
-          </div>
-          <div className="mt-1 text-[11px] text-muted-foreground">{tr("Stops relative to this page’s busiest tour") || "Stops relative to this page’s busiest tour"}</div>
+          <h3 className="line-clamp-1 text-base font-semibold">{m.name}</h3>
+          {m.tourTitle && <p className="text-xs text-muted-foreground mt-1">{t("From tour")}: {m.tourTitle}</p>}
         </div>
-
-        {/* Buttons */}
-        <div className="grid grid-cols-2 gap-3">
-          <Button asChild variant="secondary" className="rounded-full">
-            <Link href={`/tours/detail?id=${encodeURIComponent(t.id)}`}>{tr("Details") || "Details"}</Link>
-          </Button>
-          <Button
-            asChild
-            className="rounded-full text-white shadow"
-            style={{
-              background: "linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%)",
-            }}
-          >
-            <Link href={`/tours/detail/navigation?id=${encodeURIComponent(t.id)}`}>
-              <Navigation className="mr-1 h-4 w-4" />
-              {tr("Navigate") || "Navigate"}
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-/* ------------------------------ Bits ------------------------------ */
-
-function Chip({ label, value }: { label: string; value: string | number }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-medium text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:bg-black/60 dark:text-white/90 dark:ring-white/10">
-      {label}
-      <span className="rounded bg-black/5 px-1.5 text-[10px] font-semibold dark:bg-white/10">{value}</span>
-    </span>
-  );
-}
-
-function EmptyState({
-  icon,
-  title,
-  subtitle,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-}) {
-  const { t } = useLocale();
-  return (
-    <div className="grid place-items-center rounded-xl border p-10 text-center">
-      <div className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">{icon}</div>
-      <div className="text-sm font-semibold">{title}</div>
-      <div className="mt-1 max-w-md text-xs text-muted-foreground">{subtitle}</div>
-      <div className="mt-4">
-        <Button asChild variant="secondary" className="rounded-full">
-          <Link href="/tours">{t("Browse tours") || "Browse tours"}</Link>
+        <Button variant="secondary" className="mt-3" onClick={() => onOpen(m._id)}>
+          {t("Details")}
         </Button>
       </div>
+    </div>
+  );
+}
+
+function TourCard({ t }: { t: TourItem }) {
+  const { t: tr } = useLocale();
+  return (
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm">
+      <div className="relative h-48 w-full overflow-hidden">
+        {t.image ? (
+          <img src={t.image} alt={t.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+        ) : (
+          <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
+            <ImageIcon className="h-8 w-8" />
+          </div>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col justify-between space-y-3 p-4">
+        <h3 className="line-clamp-1 text-base font-semibold">{t.title}</h3>
+        <Button asChild variant="secondary">
+          <Link href={`/tours/detail?id=${encodeURIComponent(t._id)}`}>{tr("Details")}</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* PAGINATION HELPERS */
+/* -------------------------------------------------------------------------- */
+function PageNavigator({ totalPages, page, onPageChange, t }: any) {
+  return (
+    <div className="flex items-center justify-between gap-3 pt-4">
+      <div className="text-xs text-muted-foreground">
+        {t("Page {{current}} of {{total}}", { current: page, total: totalPages })}
+      </div>
+      <div className="flex items-center gap-1">
+        <Button variant="outline" size="sm" className="h-8" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page <= 1}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          {t("Prev")}
+        </Button>
+        <div className="hidden sm:flex items-center gap-1">
+          {rangeAround(page, totalPages, 2).map((n, i) =>
+            n === "…" ? (
+              <span key={`dots-${i}`} className="px-2 text-sm text-muted-foreground">…</span>
+            ) : (
+              <button
+                key={`page-${n}-${i}`}
+                onClick={() => onPageChange(n)}
+                className={[
+                  "cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm",
+                  n === page ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                ].join(" ")}
+              >
+                {n}
+              </button>
+            )
+          )}
+        </div>
+        <Button variant="outline" size="sm" className="h-8" onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>
+          {t("Next")}
+          <ChevronRight className="ml-1 h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function rangeAround(current: number, total: number, radius: number): (number | "…")[] {
+  const out: (number | "…")[] = [];
+  const start = Math.max(1, current - radius);
+  const end = Math.min(total, current + radius);
+  if (start > 1) {
+    out.push(1);
+    if (start > 2) out.push("…");
+  }
+  for (let i = start; i <= end; i++) out.push(i);
+  if (end < total) {
+    if (end < total - 1) out.push("…");
+    out.push(total);
+  }
+  return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/* EMPTY STATE */
+/* -------------------------------------------------------------------------- */
+function EmptyState({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+  return (
+    <div className="grid place-items-center rounded-3xl border border-white/10 bg-gradient-to-br from-white/60 to-indigo-50/40 dark:from-gray-900/50 dark:to-gray-800/50 p-10 text-center shadow-inner">
+      <div className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-muted text-muted-foreground shadow">
+        {icon}
+      </div>
+      <div className="text-base font-semibold text-gray-800 dark:text-white">{title}</div>
+      <div className="mt-1 max-w-md text-xs text-gray-600 dark:text-gray-400">{subtitle}</div>
     </div>
   );
 }

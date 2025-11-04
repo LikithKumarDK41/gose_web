@@ -3,7 +3,7 @@
 export type PlaceKind = 'start' | 'place' | 'end';
 
 /** How you move from the previous stop to this stop */
-export type TravelMode = 'walk' | 'drive' | 'cycle' | 'transit' | 'other';
+export type TravelMode = 'walk' | 'drive' | 'cycle' | 'transit' | 'train' | 'other';
 
 export type LegMeta = {
     /** Movement type between the previous stop and this stop */

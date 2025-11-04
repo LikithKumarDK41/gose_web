@@ -3,13 +3,11 @@
 import {
     createContext,
     useContext,
-    useEffect,
-    useMemo,
     useRef,
     useState,
-    startTransition,
+    useCallback,
+    useEffect,
 } from "react";
-import { usePathname } from "next/navigation";
 import { FullScreenLoader } from "../components/system/FullScreenLoader";
 
 type Ctx = { visible: boolean; show: () => void; hide: () => void };
@@ -23,49 +21,25 @@ export function useGlobalLoader() {
 
 export default function LoaderProvider({ children }: { children: React.ReactNode }) {
     const [visible, setVisible] = useState(false);
-    const pathname = usePathname();
     const raf = useRef<number | null>(null);
 
-    // Utility to safely schedule state
     const schedule = (fn: () => void) => {
         if (raf.current) cancelAnimationFrame(raf.current);
-        raf.current = requestAnimationFrame(() => {
-            // startTransition keeps it low priority, avoids warnings in strict cases
-            startTransition(fn);
-        });
+        raf.current = requestAnimationFrame(fn);
     };
 
-    // Hide shortly after the route actually changed (deferred)
-    useEffect(() => {
-        const t = setTimeout(() => schedule(() => setVisible(false)), 150);
-        return () => clearTimeout(t);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pathname]);
+    // ✅ stable callbacks
+    const show = useCallback(() => schedule(() => setVisible(true)), []);
+    const hide = useCallback(() => schedule(() => setVisible(false)), []);
 
-    // Optional: show during browser back/forward (deferred)
-    useEffect(() => {
-        const onPopState = () => schedule(() => setVisible(true));
-        window.addEventListener("popstate", onPopState);
-        return () => window.removeEventListener("popstate", onPopState);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
+    // Cleanup RAF on unmount
     useEffect(() => {
         return () => {
-            if (raf.current) {
-                cancelAnimationFrame(raf.current);
-            }
+            if (raf.current) cancelAnimationFrame(raf.current);
         };
     }, []);
 
-    const value = useMemo<Ctx>(
-        () => ({
-            visible,
-            show: () => schedule(() => setVisible(true)),
-            hide: () => schedule(() => setVisible(false)),
-        }),
-        [visible]
-    );
+    const value: Ctx = { visible, show, hide };
 
     return (
         <LoaderCtx.Provider value={value}>
