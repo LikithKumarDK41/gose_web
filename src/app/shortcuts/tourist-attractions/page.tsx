@@ -65,7 +65,7 @@ export default function MonumentsPage() {
         const data = await apiFetchAllMonumentsWithQuery({
           filter: selectedFilter
             ? ({ theme: selectedFilter } as Record<string, any>)
-            : ({ theme :activeThemeId}),
+            : ({ theme: activeThemeId }),
           sort: selectedSort ?? undefined,
         });
         if (mounted) setMonuments(data);
@@ -228,10 +228,11 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
           <h3 className="line-clamp-1 text-base font-semibold text-fuchsia-700 dark:text-pink-300">
             {m.title || m.name}
           </h3>
-          {m.region?.title && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {t("Region")}: {m.region.title}
-            </p>
+          {m.content?.brief && (
+            <p
+              className="text-xs text-muted-foreground mt-1 line-clamp-2"
+              dangerouslySetInnerHTML={{ __html: m.content.brief }}
+            />
           )}
         </div>
         <Button
@@ -278,11 +279,10 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
               <button
                 key={`page-${n}-${i}`}
                 onClick={() => onPageChange(n)}
-                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${
-                  n === page
+                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${n === page
                     ? "bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white"
                     : "hover:bg-fuchsia-50 dark:hover:bg-slate-800 text-fuchsia-700 dark:text-fuchsia-300"
-                }`}
+                  }`}
               >
                 {n}
               </button>
@@ -369,7 +369,7 @@ function MonumentsToolbar({
   onFilterSelect: (v: string) => void;
   selectedSort?: string | null;
   selectedFilter?: string | null;
-  activeThemeId?:string | null;
+  activeThemeId?: string | null;
 }) {
   const { t } = useLocale();
   const [sortOptions, setSortOptions] = useState<MonumentSort[]>([]);
@@ -467,11 +467,10 @@ function MonumentsToolbar({
           {/* ✅ All Option */}
           <DropdownMenuItem
             onClick={() => onFilterSelect("")}
-            className={`flex items-center gap-2 ${
-              !selectedFilter
+            className={`flex items-center gap-2 ${!selectedFilter
                 ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                 : ""
-            }`}
+              }`}
           >
             <Filter className="h-4 w-4 text-muted-foreground" />
             <span>{t("all")}</span>
@@ -487,11 +486,10 @@ function MonumentsToolbar({
                 <DropdownMenuItem
                   key={f._id}
                   onClick={() => onFilterSelect(themeId)}
-                  className={`flex items-center gap-2 ${
-                    selectedFilter === themeId
+                  className={`flex items-center gap-2 ${selectedFilter === themeId
                       ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                       : ""
-                  }`}
+                    }`}
                 >
                   {f.icon ? (
                     <img
@@ -531,11 +529,10 @@ function MonumentsToolbar({
               <DropdownMenuItem
                 key={s._id}
                 onClick={() => onSortSelect(s.link || s.name || "")}
-                className={`text-black dark:text-white  flex items-center gap-2 ${
-                  selectedSort == s.link
+                className={`text-black dark:text-white  flex items-center gap-2 ${selectedSort == s.link
                     ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                     : ""
-                }`}
+                  }`}
               >
                 {s.icon?.secure_url ? (
                   <img

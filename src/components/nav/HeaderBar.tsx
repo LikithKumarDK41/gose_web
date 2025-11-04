@@ -56,12 +56,6 @@ export default function HeaderBar({ onOpenSidebar }: { onOpenSidebar?: () => voi
           <BrandLogo />
         </div>
 
-        <div className="hidden md:flex items-center">
-          <span className="rounded-full bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-            {title}
-          </span>
-        </div>
-
         <div className="ml-auto flex items-center gap-3">
           <div className="hidden lg:block">
             <NavigationMenu>

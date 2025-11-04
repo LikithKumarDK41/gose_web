@@ -140,12 +140,6 @@ export default function ToursDashboardPage() {
               key={tour._id}
               className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm"
             >
-              {tour.featured && (
-                <div className="absolute right-3 top-3 z-10 rounded-full bg-yellow-400/90 px-3 py-1 text-xs font-semibold text-yellow-900 backdrop-blur-sm shadow-md">
-                  {t("actions.featured")}
-                </div>
-              )}
-
               <div className="relative h-48 w-full overflow-hidden">
                 {tour.image?.secure_url ? (
                   <img
