@@ -7,37 +7,19 @@ export default function CityPromotionPage() {
 
   return (
     <div className="w-full min-h-screen">
-      {/* ==== HERO CARD ==== */}
-      <div className="w-full px-4 md:px-24 flex justify-center pt-10">
-        <div
-          className="
-            relative w-full max-w-[1100px] rounded-[28px] px-8 md:px-16 py-14 text-center shadow-xl
-            border backdrop-blur-xl transition-all duration-300
-            bg-white/80 border-slate-200
-            dark:bg-slate-900/50 dark:border-slate-700
-        "
-        >
-          <h1
-            className="
-              text-3xl md:text-4xl font-extrabold mb-3
-             text-black dark:text-white
-               bg-clip-text
-            "
-          >
+
+       <section className="relative w-full mx-auto bg-gradient-to-r from-purple-800 via-indigo-800 to-blue-700 text-white rounded-2xl shadow-xl mt-4 mb-10">
+        <div className="max-w-5xl mx-auto py-16 px-6 text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
             {t("city_promotion")}
           </h1>
-
-          <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl font-medium opacity-90">
             {t("city_promotion_desc")}
           </p>
-
-          <div className="absolute inset-0 pointer-events-none rounded-[28px] overflow-hidden">
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-white dark:to-slate-900"></div>
-          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="px-4 md:px-32 mt-10 mb-20">
+      <div className="px-4 md:px-10 lg:px-24 mt-10 pb-16">
         <div className="animate-fade-slide rounded-2xl bg-white/70 dark:bg-white/10 backdrop-blur border border-gray-200 dark:border-gray-700 p-6 md:p-10 shadow-xl">
           <div className="rounded-xl overflow-hidden shadow-md mb-6 w-full aspect-video">
             <iframe
