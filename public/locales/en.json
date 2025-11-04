@@ -232,7 +232,9 @@
     "facility": "Facilities",
     "facility_desc": "Discover essential facilities and services available for visitors.",
     "mt_title": "Mt. Kongo & Mt. Katsuragi",
-    "mt_desc": "Explore the sacred mountain region blessed with lush nature, hiking trails, shrines, and breathtaking views of the Nara and Osaka plains."
+    "mt_desc": "Explore the sacred mountain region blessed with lush nature, hiking trails, shrines, and breathtaking views of the Nara and Osaka plains.",
+    "gourmet_products": "Gourmet products",
+    "gourmet_products_desc": "Discover unique flavors and regional delicacies made with traditional craftsmanship. Enjoy premium gourmet products that showcase the rich culture and natural ingredients of the region."
   },
   "filter": "Filter",
   "sort": "Sort",
