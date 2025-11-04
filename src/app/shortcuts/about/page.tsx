@@ -35,7 +35,7 @@ export default function AboutGosePage() {
   const item = abouts.find((a) => a.name === activeTab);
 
   return (
-    <div className="min-h-screen">
+    <div>
       {/* ==== HERO SECTION ==== */}
       <section className="relative w-full mx-auto bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white rounded-2xl shadow-lg mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
