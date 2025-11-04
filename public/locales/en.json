@@ -228,7 +228,11 @@
     "about_desc": "Gose City — a place where history and nature live in harmony. A land full of charm, enriched by ancient culture and beautiful scenery.",
     "about_tab_1": "Location of Gose City",
     "about_tab_2": "History of Gose City",
-    "about_tab_3": "Chronology of Gose City"
+    "about_tab_3": "Chronology of Gose City",
+    "facility": "Facilities",
+    "facility_desc": "Discover essential facilities and services available for visitors.",
+    "mt_title": "Mt. Kongo & Mt. Katsuragi",
+    "mt_desc": "Explore the sacred mountain region blessed with lush nature, hiking trails, shrines, and breathtaking views of the Nara and Osaka plains."
   },
   "filter": "Filter",
   "sort": "Sort",
