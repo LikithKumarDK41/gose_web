@@ -7,14 +7,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Landmark,
-  Filter,
   ArrowUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 import {
-  apiFetchAllMonuments,
   apiFetchAllMonumentsWithQuery,
   apiFetchMonumentDetails,
   apiFetchMonumentSorts,
@@ -30,20 +28,18 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
-import { apiFetchSubthemesWithQuery } from "@/services/userGlobalservice";
 import { useSelector } from "react-redux";
 
 /* =========================================================
    🏛️ Monuments Page
 ========================================================= */
-export default function MonumentsPage() {
+export default function MtKongoKatsuragiPage() {
   const { t } = useLocale();
   const { show, hide } = useGlobalLoader();
   const activeThemeId = useSelector((state: any) => state.global.activeThemeId);
 
   const [monuments, setMonuments] = useState<Monument[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
   const [selectedSort, setSelectedSort] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
@@ -63,9 +59,7 @@ export default function MonumentsPage() {
       try {
         show();
         const data = await apiFetchAllMonumentsWithQuery({
-          filter: selectedFilter
-            ? ({ theme: selectedFilter } as Record<string, any>)
-            : ({ theme: activeThemeId }),
+          filter: activeThemeId ? { theme: activeThemeId } : undefined,
           sort: selectedSort ?? undefined,
         });
         if (mounted) setMonuments(data);
@@ -80,7 +74,7 @@ export default function MonumentsPage() {
     return () => {
       mounted = false;
     };
-  }, [selectedFilter, selectedSort, show, hide]);
+  }, [selectedSort, show, hide]);
 
   /* -------------------- Filtering -------------------- */
   useEffect(() => setPage(1), [query]);
@@ -137,13 +131,13 @@ export default function MonumentsPage() {
   return (
     <div className="space-y-10">
       {/* ===== HERO SECTION ===== */}
-      <section className="relative w-full mx-auto bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white rounded-2xl shadow-xl mt-4 mb-10">
+      <section className="relative w-full mx-auto bg-gradient-to-r from-green-700 via-green-600 to-green-400 text-white rounded-2xl shadow-xl mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
-            {t("shortcut.tourist_attraction")}
+            {t("shortcut.mt_title")}
           </h1>
           <p className="text-lg md:text-xl font-medium opacity-90">
-            {t("shortcut.tourist_attraction_desc")}
+            {t("shortcut.mt_desc")}
           </p>
         </div>
       </section>
@@ -154,9 +148,6 @@ export default function MonumentsPage() {
         setQuery={setQuery}
         onSortSelect={(v) => setSelectedSort(v)}
         selectedSort={selectedSort}
-        onFilterSelect={(v) => setSelectedFilter(v)}
-        selectedFilter={selectedFilter}
-        activeThemeId={activeThemeId}
       />
 
       {/* ===== EMPTY STATE ===== */}
@@ -225,18 +216,17 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
       </div>
       <div className="flex flex-1 flex-col justify-between p-4">
         <div>
-          <h3 className="line-clamp-1 text-base font-semibold text-fuchsia-700 dark:text-pink-300">
+          <h3 className="line-clamp-1 text-base font-semibold text-green-700 dark:text-green-300">
             {m.title || m.name}
           </h3>
-          {m.content?.brief && (
-            <p
-              className="text-xs text-muted-foreground mt-1 line-clamp-2"
-              dangerouslySetInnerHTML={{ __html: m.content.brief }}
-            />
+          {m.region?.title && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("Region")}: {m.region.title}
+            </p>
           )}
         </div>
         <Button
-          className="cursor-pointer mt-3 bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white hover:opacity-90"
+          className="cursor-pointer mt-3 bg-gradient-to-r from-green-700 via-green-600 to-green-400 text-white hover:opacity-90"
           onClick={onOpen}
         >
           {t("tourDetails.viewDetails")}
@@ -259,7 +249,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+          className="h-8 text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
         >
@@ -279,10 +269,11 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
               <button
                 key={`page-${n}-${i}`}
                 onClick={() => onPageChange(n)}
-                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${n === page
-                    ? "bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white"
-                    : "hover:bg-fuchsia-50 dark:hover:bg-slate-800 text-fuchsia-700 dark:text-fuchsia-300"
-                  }`}
+                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${
+                  n === page
+                    ? "bg-gradient-to-r from-green-700 via-green-600 to-green-400 text-white"
+                    : "hover:bg-green-50 dark:hover:bg-slate-800 text-green-700 dark:text-green-300"
+                }`}
               >
                 {n}
               </button>
@@ -292,7 +283,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+          className="h-8 text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
         >
@@ -338,7 +329,7 @@ function EmptyState({
 }) {
   return (
     <div className="grid place-items-center rounded-3xl bg-gradient-to-br from-white/60 to-pink-50/40 dark:from-gray-900/50 dark:to-gray-800/50 p-10 text-center shadow-inner">
-      <div className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white shadow">
+      <div className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-green-700 via-green-600 to-green-400 text-white shadow">
         {icon}
       </div>
       <div className="text-base font-semibold text-gray-800 dark:text-white">
@@ -358,24 +349,16 @@ function MonumentsToolbar({
   query,
   setQuery,
   onSortSelect,
-  onFilterSelect,
   selectedSort,
-  selectedFilter,
-  activeThemeId
 }: {
   query: string;
   setQuery: (v: string) => void;
   onSortSelect: (v: string) => void;
-  onFilterSelect: (v: string) => void;
   selectedSort?: string | null;
-  selectedFilter?: string | null;
-  activeThemeId?: string | null;
 }) {
   const { t } = useLocale();
   const [sortOptions, setSortOptions] = useState<MonumentSort[]>([]);
   const [loadingSorts, setLoadingSorts] = useState(false);
-  const [filterOptions, setFilterOptions] = useState<any[]>([]);
-  const [loadingFilters, setLoadingFilters] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -404,25 +387,6 @@ function MonumentsToolbar({
     };
   }, []);
 
-  useEffect(() => {
-    const loadFilters = async () => {
-      try {
-        setLoadingFilters(true);
-        const data = await apiFetchSubthemesWithQuery({
-          filter: activeThemeId ? { theme: activeThemeId } : undefined,
-          sort: "sortOrder",
-        });
-        setFilterOptions(data);
-      } catch (err) {
-        console.error("Failed to fetch monument filters", err);
-      } finally {
-        setLoadingFilters(false);
-      }
-    };
-
-    loadFilters();
-  }, []);
-
   return (
     <div className="flex justify-end items-center gap-2 mb-6">
       <DropdownMenu>
@@ -430,7 +394,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+            className="rounded-full text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
           >
             <Search className="h-4 w-4" />
           </Button>
@@ -454,67 +418,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuLabel>{t("filter")}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-
-          {/* ✅ All Option */}
-          <DropdownMenuItem
-            onClick={() => onFilterSelect("")}
-            className={`flex items-center gap-2 ${!selectedFilter
-                ? "bg-gray-100 dark:bg-gray-900 font-semibold"
-                : ""
-              }`}
-          >
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span>{t("all")}</span>
-          </DropdownMenuItem>
-
-          {/* ------- Other Filters ------- */}
-          {loadingFilters ? (
-            <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-          ) : filterOptions.length > 0 ? (
-            filterOptions.map((f) => {
-              const themeId = f.theme?.[0]?._id;
-              return (
-                <DropdownMenuItem
-                  key={f._id}
-                  onClick={() => onFilterSelect(themeId)}
-                  className={`flex items-center gap-2 ${selectedFilter === themeId
-                      ? "bg-gray-100 dark:bg-gray-900 font-semibold"
-                      : ""
-                    }`}
-                >
-                  {f.icon ? (
-                    <img
-                      src={f.icon}
-                      className="h-4 w-4 object-contain rounded-sm"
-                    />
-                  ) : (
-                    <Filter className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span>{f.title}</span>
-                </DropdownMenuItem>
-              );
-            })
-          ) : (
-            <DropdownMenuItem disabled>No Filters</DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+            className="rounded-full text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
           >
             <ArrowUpDown className="h-4 w-4" />
           </Button>
@@ -529,10 +433,11 @@ function MonumentsToolbar({
               <DropdownMenuItem
                 key={s._id}
                 onClick={() => onSortSelect(s.link || s.name || "")}
-                className={`text-black dark:text-white  flex items-center gap-2 ${selectedSort == s.link
+                className={`text-black dark:text-white  flex items-center gap-2 ${
+                  selectedSort == s.link
                     ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                     : ""
-                  }`}
+                }`}
               >
                 {s.icon?.secure_url ? (
                   <img
