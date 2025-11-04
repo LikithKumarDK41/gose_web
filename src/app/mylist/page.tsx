@@ -224,10 +224,10 @@ export default function LibraryPage() {
       <section className="relative w-full mx-auto bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white rounded-2xl shadow-xl mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
-            {t("Bookmarks & Visited Places")}
+            {t("personal_library")}
           </h1>
           <p className="text-lg md:text-xl font-medium opacity-90">
-            {t("Your personal collection of favorite spots and tours")}
+            {t("personal_library_subtitle")}
           </p>
         </div>
       </section>
@@ -316,11 +316,11 @@ function InnerTabs({ value, onChange, data, totalPages, page, onPageChange, t, o
         {!hasData ? (
           <EmptyState
             icon={isMonument ? <Landmark className="h-8 w-8" /> : <Compass className="h-8 w-8" />}
-            title={isMonument ? t("No monuments found") : t("No tours found")}
+            title={isMonument ? t("no_monuments_found") : t("no_tours_found")}
             subtitle={
               isMonument
-                ? t("Bookmark or visit some monuments to see them here.")
-                : t("Bookmark or visit some tours to see them here.")
+                ? t("bookmark_or_visit_monuments_to_see_them_here")
+                : t("bookmark_or_visit_tours_to_see_them_here")
             }
           />
         ) : (

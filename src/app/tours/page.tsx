@@ -253,7 +253,7 @@ function ToursToolbar({
                 : ""
             }
           >
-            A → Z
+            {t("sort_asc")}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setSortOrder("desc")}
@@ -263,7 +263,7 @@ function ToursToolbar({
                 : ""
             }
           >
-            Z → A
+            {t("sort_desc")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

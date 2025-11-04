@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
-
+import { useLocale } from "@/providers/LocaleProvider";
 /* ------------------------------------------------------------
    🌅 Events Page (Sunrise Rose–Amber–Lime Theme)
 ------------------------------------------------------------ */
@@ -23,7 +23,7 @@ export default function EventsPage() {
   const [open, setOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [activeMonument, setActiveMonument] = useState<any | null>(null);
-
+const { t } = useLocale();
   /* -------------------- Fetch Events -------------------- */
   useEffect(() => {
     let alive = true;
@@ -93,10 +93,10 @@ export default function EventsPage() {
       <section className="relative w-full mx-auto bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 text-white rounded-3xl shadow-xl mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
-            イベント・行祭事
+             {t("events.title")}
           </h1>
           <p className="text-lg md:text-xl font-medium opacity-90">
-            御所市の季節行事を見つけよう
+            {t("events.subtitle")}
           </p>
         </div>
       </section>
@@ -143,7 +143,7 @@ export default function EventsPage() {
         </section>
       ) : (
         <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-          イベント情報が見つかりません。
+          {t("events.no_events")}
         </div>
       )}
 
@@ -167,6 +167,7 @@ export default function EventsPage() {
    🎴 Event Card
 ------------------------------------------------------------ */
 function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: () => void }) {
+const { t } = useLocale();
   return (
     <Card className="overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/50 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all py-0">
       <div className="relative">
@@ -178,11 +179,11 @@ function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: () => void }) {
           />
         ) : (
           <div className="w-full h-40 bg-gray-200 dark:bg-gray-800 grid place-items-center">
-            <span className="text-gray-400 text-xs">No Image</span>
+            <span className="text-gray-400 text-xs">{t("events.no_image")}</span>
           </div>
         )}
         <div className="absolute top-2 left-2 bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 text-white text-[11px] font-bold py-0.5 px-2 rounded-md shadow-sm">
-          {ev.displaydate || "日付未定"}
+          {ev.displaydate || t("events.date_tbd")}
         </div>
       </div>
 
@@ -205,7 +206,7 @@ function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: () => void }) {
           className="mt-3 w-full h-8 text-[13px] text-white bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 hover:opacity-90 transition flex justify-center items-center gap-1"
           onClick={onOpen}
         >
-          詳細を見る
+          {t("actions.details")}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-3.5 w-3.5"

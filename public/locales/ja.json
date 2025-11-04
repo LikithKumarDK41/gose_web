@@ -240,5 +240,49 @@
   "sort": "並び替え",
   "pagination_left": "ページ {current} / {total}",
   "no_data": "データがありません",
-  "all": "すべて"
+  "all": "すべて",
+  "errors": {
+    "failed_to_fetch_monuments": "遺跡の取得に失敗しました",
+    "failed_to_fetch_tours": "ツアーの取得に失敗しました"
+  },
+  "loading": "読み込み中...",
+  "monument": {
+    "monument_image_alt": "遺跡の画像",
+    "gallery": "ギャラリー",
+    "gallery_image_alt": "ギャラリー画像 {i}",
+    "related_tours": "関連ツアー",
+    "view_tour_button": "ツアーを見る",
+    "nearby_monuments": "近くの遺跡",
+    "view_monument_button": "遺跡を見る"
+  },
+  "mt_kongo_and_katsuragi": {
+    "no_results_title": "該当する遺跡が見つかりません",
+    "no_results_subtitle": "別のキーワードで検索してみてください。",
+    "region": "地域",
+    "no_sort_options": "並び替え項目なし"
+  },
+  "tourist_attractions": {
+    "no_results_title": "該当する遺跡が見つかりません",
+    "no_results_subtitle": "別のキーワードで検索してみてください。",
+    "no_filters": "フィルターなし"
+  },
+  "tourist_map": {
+    "no_description": "ルートマップの詳細をご覧ください。",
+    "no_maps_available": "現在、観光マップは利用できません。",
+    "close_image_viewer": "画像ビューアを閉じる",
+    "tour_image_alt": "ツアー画像"
+  },
+  "meetings": {
+    "title": "会議ページ"
+  },
+  "personal_library": "ブックマークと訪問済みの場所",
+  "personal_library_subtitle": "お気に入りのスポットとツアーの個人コレクション",
+  "explore_places": "スポットを探検",
+  "Places": "スポット",
+  "pagination_info":"ページ",
+  "prev":"前へ",
+  "next":"次へ",
+  "sort_asc": "昇順",
+  "sort_desc": "降順"
 }
+
