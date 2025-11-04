@@ -102,10 +102,11 @@ function TourPointsModal({
   onClose: () => void;
   tour: Tour;
 }) {
+   const { t } = useLocale();
   if (!open) return null;
 
   const points = tour?.tourpoints ?? [];
- const { t } = useLocale();
+
   return (
     
     <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center">

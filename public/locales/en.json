@@ -283,5 +283,62 @@
       "prev": "Prev",
     "next": "Next",
     "sort_asc":"Sort Asc",
-    "sort_desc":"Sort Desc"
+    "sort_desc":"Sort Desc",
+      "privacyPolicy": "Privacy Policy",
+  "common": {
+    "back": "Back"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "updated": "Updated on",
+    "rights": "All rights reserved",
+
+    "intro": "We respect your personal information and are committed to protecting your privacy. By using our products, you agree to the collection, use, disclosure, and processing of your personal information as described in this Privacy Policy.\nThis Privacy Policy is intended solely for the specific purpose of supporting your travel experience through our product. We assure you that we do not collect, store, use, or disclose personal information from individuals using our applications or websites, nor from individuals using our products or services, except in the limited context of using the applications we provide, and only within our product environment.",
+
+    "general": {
+      "title": "General Information",
+      "desc": "Personal information refers to identifiable sensitive information such as your name, address, or telephone number. Except for email addresses used as usernames, we do not collect or store such information."
+    },
+
+    "jurisdiction": {
+      "title": "Jurisdiction of Processing",
+      "desc": "Your personal information may be processed in the country where it was collected or in other countries. Laws governing personal information in such countries may be less strict than those in your own country."
+    },
+
+    "account": {
+      "title": "Account",
+      "desc": "To use certain parts of our products or sites, you may be required to create an account. When registering, you will be asked to provide an email address and, in some cases, to set a password."
+    },
+
+    "features": {
+      "title": "Products and Websites",
+      "desc": "By using our products, you can access features within the application such as searching for historical and cultural sites, map display, route guidance, augmented reality, object recognition, itinerary planning, photo capturing, and photo storage, enhancing your travel experience and related activities. Stories within the application may be created by us or by third parties. Some features may include links to other websites for additional information. When you open these links, external websites may open, but no browsing history or similar data is stored there. We do not provide personally identifiable information to these external websites.\nIf a third-party website requests your personal information and you choose to provide it, or if you grant permission for access to your user information, the operator of that site may access the user information you consented to share. We do not allow third parties to view or associate stories you create. Answers you input while using our application are collected and used solely to improve story quality."
+    },
+
+    "analytics": {
+      "title": "Advertising, Analytics Partners, and Tracking Choices",
+      "desc": "We may share anonymous data with advertising networks, analytics providers, and other third parties (“advertising partners”) to analyze usage of our sites and products, and to develop and deliver targeted advertisements or promotional content on our site or on third-party sites. Collected information may be used to deliver targeted ads, send promotional messages, personalize your experience by increasing the likelihood that promoted products and services appeal to you, and perform analytics such as analyzing traffic or user activity to improve your experience."
+    },
+
+    "usage": {
+      "title": "Use of Information",
+      "desc": "Generally, we collect, store, and disclose information in order to provide our site and products, create your account, identify you as a user, respond to inquiries and emails, improve our site and products, send administrative and service-related communications, and deliver newsletters, surveys, offers, and other promotional materials.\nWe may also use anonymous (non-personally identifiable) data to analyze demand and usage patterns, improve site navigation and product functionality, identify and optimize features, and for advertising purposes. We reserve the right to use and disclose anonymous information at our sole discretion for any purpose and to third parties."
+    },
+
+    "security": {
+      "title": "Security",
+      "desc": "Protecting your personal information is important to us. We make commercially reasonable efforts to store, use, and maintain your personal information using procedures designed to minimize the risk of loss, theft, unauthorized access, misuse, alteration, copying, or disclosure. However, no security measures can completely eliminate all risks. You are also responsible for safeguarding your personal information — for example, by keeping passwords confidential and locking your mobile device when not in use."
+    },
+
+    "location": {
+      "title": "Access to Location Information",
+      "desc": "Our app may access your location to send notifications when you approach monuments or points of interest, even when the app is closed or not actively in use.\nWhen you start a course, geofences are created for locations within the route. As you move and approach these locations, notifications may be sent. When you tap a notification, details about that location are displayed in the app, allowing you to check in and track your course progress."
+    },
+
+    "contact": {
+      "title": "Contact Us",
+      "desc": "If you have questions, comments, complaints, or suggestions, or if you believe your information is incorrect, please feel free to contact us. If you wish to access your personal information, you may contact us using the same contact details. We take privacy compliance seriously, and if a complaint regarding compliance is justified, we will investigate and take appropriate action.\n\n[Publisher]\nNara Ruins Cultural Property Conservation and Revitalization Foundation\n1-6-25 Mamigaoka, Kashiba-shi, Nara 639-0223 Japan\n\n[Developer]\nNDR Co., Ltd.\n2-1-1 Awaza, Osaka-shi, Osaka\nOsaka Honmachi West First Building 2F\nWebsite: https://ndr.co.jp/"
+    }
+  }
 }
+

@@ -64,6 +64,12 @@ export default function FooterBar() {
         {/* Copyright */}
         <div className="mt-6 flex items-center justify-between border-t pt-4 text-xs text-muted-foreground">
           <div>{t('footer.copyright', { year: new Date().getFullYear() })}</div>
+           <Link
+    href="/privacy-policy"
+    className="hover:text-foreground transition"
+  >
+    {t('privacyPolicy')}
+  </Link>
         </div>
       </div>
     </footer>
