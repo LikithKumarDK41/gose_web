@@ -236,7 +236,7 @@
   },
   "filter": "フィルター",
   "sort": "並び替え",
-  "pagination_left": "ページ {{current}} / {{total}}",
+  "pagination_left": "ページ {current} / {total}",
   "no_data": "データがありません",
   "all": "すべて"
 }

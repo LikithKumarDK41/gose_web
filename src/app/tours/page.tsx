@@ -5,9 +5,9 @@ import { useMemo, useState, useEffect } from "react";
 import {
   ImageIcon,
   Search,
+  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  ArrowUpDown,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -109,7 +109,7 @@ export default function ToursPage() {
      💠 Render
   ========================================================= */
   return (
-    <div className="space-y-8">
+    <div className="t-8">
       {/* ===== HERO SECTION ===== */}
       <section className="relative w-full mx-auto bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white rounded-2xl shadow-xl mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
@@ -183,62 +183,13 @@ export default function ToursPage() {
             ))}
           </div>
 
-          {/* ===== Pagination ===== */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6">
-            <div className="text-xs text-muted-foreground text-center sm:text-left">
-              ページ {current} / {totalPages}
-            </div>
-
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-sky-600 hover:text-sky-700 dark:text-cyan-400 dark:hover:text-cyan-300"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={current <= 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                前へ
-              </Button>
-
-              <div className="flex items-center gap-1">
-                {rangeAround(current, totalPages, 2).map((n, i) =>
-                  n === "…" ? (
-                    <span
-                      key={`dots-${i}`}
-                      className="px-2 text-sm text-muted-foreground"
-                    >
-                      …
-                    </span>
-                  ) : (
-                    <button
-                      key={n}
-                      onClick={() => setPage(n)}
-                      className={[
-                        "cursor-pointer h-8 min-w-[2rem] rounded-md px-2 text-sm font-medium transition-all",
-                        n === current
-                          ? "bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white shadow-md scale-105"
-                          : "text-sky-600 hover:bg-sky-50 dark:text-cyan-400 dark:hover:bg-cyan-900/30",
-                      ].join(" ")}
-                    >
-                      {n}
-                    </button>
-                  )
-                )}
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-sky-600 hover:text-sky-700 dark:text-cyan-400 dark:hover:text-cyan-300"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={current >= totalPages}
-              >
-                次へ
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
+          {/* ===== Pagination (Component) ===== */}
+          <PageNavigator
+            totalPages={totalPages}
+            page={page}
+            onPageChange={setPage}
+            t={t}
+          />
         </>
       )}
 
@@ -316,6 +267,82 @@ function ToursToolbar({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    </div>
+  );
+}
+
+/* =========================================================
+   🌿 Pagination Component (Sky / Cyan / Emerald Theme)
+========================================================= */
+function PageNavigator({
+  totalPages,
+  page,
+  onPageChange,
+  t,
+}: {
+  totalPages: number;
+  page: number;
+  onPageChange: (n: number) => void;
+  t: any;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 pt-4">
+      {/* Left Info */}
+      <div className="text-xs text-muted-foreground">
+        {t("pagination_left", { current: page, total: totalPages })}
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center gap-1">
+        {/* Prev Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+        >
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          {t("tours.prev")}
+        </Button>
+
+        {/* Page Numbers */}
+        <div className="hidden sm:flex items-center gap-1">
+          {rangeAround(page, totalPages, 2).map((n, i) =>
+            n === "…" ? (
+              <span
+                key={`dots-${i}`}
+                className="px-2 text-sm text-muted-foreground"
+              >
+                …
+              </span>
+            ) : (
+              <button
+                key={`page-${n}-${i}`}
+                onClick={() => onPageChange(n)}
+                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${n === page
+                  ? "bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white shadow-sm"
+                  : "hover:bg-sky-50 dark:hover:bg-slate-800 text-sky-700 dark:text-cyan-300"
+                  }`}
+              >
+                {n}
+              </button>
+            )
+          )}
+        </div>
+
+        {/* Next Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+        >
+          {t("tours.next")}
+          <ChevronRight className="ml-1 h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

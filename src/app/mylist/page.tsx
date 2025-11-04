@@ -219,7 +219,7 @@ export default function LibraryPage() {
 
   /* -------------------------------------------------------------------------- */
   return (
-    <div className="space-y-10">
+    <div className="t-8">
       {/* ===== HERO ===== */}
       <section className="relative w-full mx-auto bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white rounded-2xl shadow-xl mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
