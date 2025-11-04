@@ -33,7 +33,7 @@ import { useSelector } from "react-redux";
 /* =========================================================
    🏛️ Monuments Page
 ========================================================= */
-export default function FacilityPage() {
+export default function MtKongoKatsuragiPage() {
   const { t } = useLocale();
   const { show, hide } = useGlobalLoader();
   const activeThemeId = useSelector((state: any) => state.global.activeThemeId);
@@ -131,13 +131,13 @@ export default function FacilityPage() {
   return (
     <div className="space-y-10">
       {/* ===== HERO SECTION ===== */}
-      <section className="relative w-full mx-auto bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400 text-white rounded-2xl shadow-xl mt-4 mb-10">
+      <section className="relative w-full mx-auto bg-gradient-to-r from-green-700 via-green-600 to-green-400 text-white rounded-2xl shadow-xl mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
-            {t("shortcut.facility")}
+            {t("shortcut.mt_title")}
           </h1>
           <p className="text-lg md:text-xl font-medium opacity-90">
-            {t("shortcut.facility_desc")}
+            {t("shortcut.mt_desc")}
           </p>
         </div>
       </section>
@@ -216,7 +216,7 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
       </div>
       <div className="flex flex-1 flex-col justify-between p-4">
         <div>
-          <h3 className="line-clamp-1 text-base font-semibold text-blue-700 dark:text-blue-300">
+          <h3 className="line-clamp-1 text-base font-semibold text-green-700 dark:text-green-300">
             {m.title || m.name}
           </h3>
           {m.region?.title && (
@@ -226,7 +226,7 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
           )}
         </div>
         <Button
-          className="cursor-pointer mt-3 bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400 text-white hover:opacity-90"
+          className="cursor-pointer mt-3 bg-gradient-to-r from-green-700 via-green-600 to-green-400 text-white hover:opacity-90"
           onClick={onOpen}
         >
           {t("tourDetails.viewDetails")}
@@ -249,7 +249,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+          className="h-8 text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
         >
@@ -271,8 +271,8 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
                 onClick={() => onPageChange(n)}
                 className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${
                   n === page
-                    ? "bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400 text-white"
-                    : "hover:bg-blue-50 dark:hover:bg-slate-800 text-blue-700 dark:text-blue-300"
+                    ? "bg-gradient-to-r from-green-700 via-green-600 to-green-400 text-white"
+                    : "hover:bg-green-50 dark:hover:bg-slate-800 text-green-700 dark:text-green-300"
                 }`}
               >
                 {n}
@@ -283,7 +283,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+          className="h-8 text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
         >
@@ -329,7 +329,7 @@ function EmptyState({
 }) {
   return (
     <div className="grid place-items-center rounded-3xl bg-gradient-to-br from-white/60 to-pink-50/40 dark:from-gray-900/50 dark:to-gray-800/50 p-10 text-center shadow-inner">
-      <div className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400 text-white shadow">
+      <div className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-green-700 via-green-600 to-green-400 text-white shadow">
         {icon}
       </div>
       <div className="text-base font-semibold text-gray-800 dark:text-white">
@@ -394,7 +394,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+            className="rounded-full text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
           >
             <Search className="h-4 w-4" />
           </Button>
@@ -418,7 +418,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+            className="rounded-full text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
           >
             <ArrowUpDown className="h-4 w-4" />
           </Button>
