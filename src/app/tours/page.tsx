@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import {
   ImageIcon,
-  Sparkles,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -22,10 +21,10 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
-import { fetchTours, selectTours } from "@/lib/store/slices/touristSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
+import { apiFetchTours } from "@/services/userTourService";
+import type { Tour } from "@/services/userTourService";
 
 /* =========================================================
    🧹 Safe HTML Sanitizer
@@ -43,11 +42,10 @@ function sanitizeHTML(input: string): string {
 ========================================================= */
 export default function ToursPage() {
   const { t } = useLocale();
-  const dispatch = useAppDispatch();
-  const tours = useAppSelector(selectTours);
-  const hasTours = (tours?.length ?? 0) > 0;
   const { show, hide } = useGlobalLoader();
 
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [perPage, setPerPage] = useState(6);
@@ -55,26 +53,32 @@ export default function ToursPage() {
 
   useEffect(() => setPage(1), [query, perPage]);
 
+  /* -------------------- Fetch Tours -------------------- */
   useEffect(() => {
     let mounted = true;
-    const fetchData = async () => {
+    const fetchToursData = async () => {
       try {
         show();
-        await dispatch(fetchTours());
+        const data = await apiFetchTours();
+        if (mounted) setTours(data);
+      } catch (err) {
+        console.error("Failed to fetch tours:", err);
       } finally {
-        if (mounted) hide();
+        if (mounted) {
+          hide();
+          setLoading(false);
+        }
       }
     };
-    fetchData();
+    fetchToursData();
     return () => {
       mounted = false;
     };
-  }, [dispatch, show, hide]);
+  }, [show, hide]);
 
-  /* ---------- Search + Sort ---------- */
+  /* -------------------- Search + Sort -------------------- */
   const filtered = useMemo(() => {
-    let arr = [...(tours ?? [])];
-
+    let arr = [...tours];
     if (query.trim()) {
       const q = query.toLowerCase();
       arr = arr.filter(
@@ -98,6 +102,8 @@ export default function ToursPage() {
   const current = Math.min(page, totalPages);
   const startIdx = (current - 1) * perPage;
   const pageItems = filtered.slice(startIdx, startIdx + perPage);
+
+  const hasTours = tours.length > 0;
 
   /* =========================================================
      💠 Render
@@ -125,7 +131,7 @@ export default function ToursPage() {
       />
 
       {/* ===== Tours Grid ===== */}
-      {hasTours && total > 0 && (
+      {!loading && hasTours && total > 0 && (
         <>
           <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
             {pageItems.map((tour) => (
@@ -234,6 +240,14 @@ export default function ToursPage() {
             </div>
           </div>
         </>
+      )}
+
+      {!loading && (!hasTours || total === 0) && (
+        <div className="rounded-xl border p-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            {t("no_tours_available")}
+          </p>
+        </div>
       )}
     </div>
   );

@@ -14,7 +14,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
-import { fetchTours, selectTours } from "@/lib/store/slices/touristSlice";
 import {
   fetchShortcuts,
   selectShortcuts,
@@ -30,28 +29,47 @@ import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useRouter } from "next/navigation";
+import { apiFetchTours } from "@/services/userTourService";
+import type { Tour } from "@/services/userTourService";
 
+/* =========================================================
+   🧭 Tours Dashboard Page
+========================================================= */
 export default function ToursDashboardPage() {
   const { t } = useLocale();
   const dispatch = useAppDispatch();
   const { show, hide } = useGlobalLoader();
+  const router = useRouter();
 
-  const tours = useAppSelector(selectTours);
-  const nav = useAppSelector(selectNav);
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const shortcuts = useAppSelector(selectShortcuts);
   const globalLoading = useAppSelector(selectGlobalLoading);
 
+  /* -------------------- Fetch Tours + Shortcuts -------------------- */
   useEffect(() => {
     let mounted = true;
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
         show();
-        await Promise.all([dispatch(fetchTours()), dispatch(fetchShortcuts())]);
+        const [tourData] = await Promise.all([
+          apiFetchTours(),
+          dispatch(fetchShortcuts()),
+        ]);
+        if (mounted) {
+          setTours(tourData);
+        }
+      } catch (err) {
+        console.error("Failed to load tours:", err);
       } finally {
-        if (mounted) hide();
+        if (mounted) {
+          hide();
+          setLoading(false);
+        }
       }
     };
-    fetchData();
+    loadData();
     return () => {
       mounted = false;
     };
@@ -59,7 +77,7 @@ export default function ToursDashboardPage() {
 
   const hasTours = (tours?.length ?? 0) > 0;
 
-  // ✅ Priority placement
+  /* -------------------- Priority Placement -------------------- */
   function placeByPriority(list: any[]) {
     const ordered: any[] = [];
     const nullZero: any[] = [];
@@ -93,6 +111,7 @@ export default function ToursDashboardPage() {
     })
   );
 
+  /* -------------------- Render -------------------- */
   return (
     <div className="space-y-12">
       {/* ===== Shortcuts by Priority ===== */}
@@ -133,7 +152,7 @@ export default function ToursDashboardPage() {
       </div>
 
       {/* ===== Tours grid (Updated Design) ===== */}
-      {hasTours && (
+      {!loading && hasTours && (
         <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
           {tours.slice(0, 6).map((tour) => (
             <div
@@ -196,7 +215,7 @@ export default function ToursDashboardPage() {
         </div>
       )}
 
-      {!hasTours && (
+      {!loading && !hasTours && (
         <div className="rounded-xl border p-10 text-center">
           <p className="text-sm text-muted-foreground">
             {t("no_tours_available")}
@@ -207,7 +226,9 @@ export default function ToursDashboardPage() {
   );
 }
 
-/* ---------- 🔘 Confirmation Popup Wrapper ---------- */
+/* =========================================================
+   🔘 Confirmation Popup Wrapper
+========================================================= */
 function ConfirmPopupButton({
   label,
   href,
@@ -293,7 +314,9 @@ function ConfirmPopupButton({
   );
 }
 
-/* ---------- Reusable Shortcuts Grid ---------- */
+/* =========================================================
+   🌈 Reusable Shortcuts Grid
+========================================================= */
 function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
   const gradients = [
     "from-indigo-400 to-sky-400",
