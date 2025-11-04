@@ -219,7 +219,7 @@ export default function LibraryPage() {
 
   /* -------------------------------------------------------------------------- */
   return (
-    <div className="space-y-10">
+    <div className="t-8">
       {/* ===== HERO ===== */}
       <section className="relative w-full mx-auto bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white rounded-2xl shadow-xl mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
@@ -361,7 +361,7 @@ function MonumentCard({ m, onOpen }: { m: MonumentItem; onOpen: (id: string) => 
       <div className="flex flex-1 flex-col justify-between p-4">
         <div>
           <h3 className="line-clamp-1 text-base font-semibold text-sky-700 dark:text-cyan-300">{m.name}</h3>
-          {m.description && <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{m.description}</p>}
+          {m.description && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{m.description}</p>}
         </div>
         <Button
           className="mt-3 h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90 transition-all"
@@ -390,7 +390,7 @@ function TourCard({ t }: { t: TourItem }) {
       <div className="flex flex-1 flex-col justify-between p-4 space-y-3">
         <div>
           <h3 className="line-clamp-1 text-base font-semibold text-sky-700 dark:text-cyan-300">{t.title}</h3>
-          {t.description && <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{t.description}</p>}
+          {t.description && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{t.description}</p>}
         </div>
         <Button
           asChild

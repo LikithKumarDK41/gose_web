@@ -236,7 +236,7 @@
   },
   "filter": "Filter",
   "sort": "Sort",
-  "pagination_left": "Page {{current}} of {{total}}",
+  "pagination_left": "Page {current} of {total}",
   "no_data": "No Data",
   "all": "All"
 }
