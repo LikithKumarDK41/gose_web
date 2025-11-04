@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Compass,
   ImageIcon,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -41,7 +40,7 @@ type TourItem = {
 };
 
 /* -------------------------------------------------------------------------- */
-/* COMPONENT */
+/* MAIN COMPONENT */
 /* -------------------------------------------------------------------------- */
 export default function LibraryPage() {
   const { t } = useLocale();
@@ -55,18 +54,14 @@ export default function LibraryPage() {
   const [bookmarks, setBookmarks] = useState<any[]>([]);
   const [visits, setVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // ✅ Separate pagination states for each combination
   const [page, setPage] = useState({
     bookmarkedMonuments: 1,
     bookmarkedTours: 1,
     visitedMonuments: 1,
     visitedTours: 1,
   });
-
   const limit = 6;
 
-  /* -------------------- Modal States -------------------- */
   const [open, setOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [selectedMonument, setSelectedMonument] = useState<any | null>(null);
@@ -87,7 +82,7 @@ export default function LibraryPage() {
     loadBookmarks();
   }, []);
 
-  /* -------------------- Fetch Visit Histories -------------------- */
+  /* -------------------- Fetch Visits -------------------- */
   useEffect(() => {
     const loadVisits = async () => {
       try {
@@ -100,7 +95,15 @@ export default function LibraryPage() {
     loadVisits();
   }, []);
 
-  /* -------------------- Mapped Data -------------------- */
+  /* -------------------- Data Mapping -------------------- */
+  const cleanText = (html: string) =>
+    (html || "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;|&#160;/gi, " ")
+      .replace(/\u00A0/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
   const bookmarkedMonuments = useMemo(
     () =>
       bookmarks
@@ -110,8 +113,7 @@ export default function LibraryPage() {
           name: b.monument.title,
           image: b.monument.image?.secure_url || b.monument.image?.url,
           tourTitle: b.tour?.title,
-          description:
-            b.monument.content?.brief || b.monument.content?.extended || "",
+          description: cleanText(b.monument.content?.brief || ""),
         })),
     [bookmarks]
   );
@@ -123,9 +125,8 @@ export default function LibraryPage() {
         .map((b) => ({
           _id: b.tour._id,
           title: b.tour.title,
-          description: b.tour.content?.brief,
           image: b.tour.image?.secure_url || b.tour.image?.url,
-          tourpoints: b.tour.monuments ?? [],
+          description: cleanText(b.tour.content?.brief || ""),
         })),
     [bookmarks]
   );
@@ -138,8 +139,7 @@ export default function LibraryPage() {
           _id: v.monument._id,
           name: v.monument.title,
           image: v.monument.image?.secure_url || v.monument.image?.url,
-          description:
-            v.monument.content?.brief || v.monument.content?.extended || "",
+          description: cleanText(v.monument.content?.brief || ""),
         })),
     [visits]
   );
@@ -151,14 +151,13 @@ export default function LibraryPage() {
         .map((v) => ({
           _id: v.tour._id,
           title: v.tour.title,
-          description: v.tour.content?.brief,
           image: v.tour.image?.secure_url || v.tour.image?.url,
-          tourpoints: v.tour.monuments ?? [],
+          description: cleanText(v.tour.content?.brief || ""),
         })),
     [visits]
   );
 
-  /* -------------------- Pagination Helpers -------------------- */
+  /* -------------------- Pagination -------------------- */
   const getPageKey = () => {
     if (topTab === "bookmarks" && innerTab === "monuments") return "bookmarkedMonuments";
     if (topTab === "bookmarks" && innerTab === "tours") return "bookmarkedTours";
@@ -185,7 +184,7 @@ export default function LibraryPage() {
   const totalPages = Math.ceil(dataList.length / limit) || 1;
   const currentData = dataList.slice((currentPage - 1) * limit, currentPage * limit);
 
-  /* -------------------- Handle Monument Detail -------------------- */
+  /* -------------------- Monument Detail -------------------- */
   const handleOpenMonument = async (id: string) => {
     setModalLoading(true);
     try {
@@ -221,38 +220,36 @@ export default function LibraryPage() {
   /* -------------------------------------------------------------------------- */
   return (
     <div className="space-y-10">
-      {/* ===== HEADER ===== */}
-      <div className="relative overflow-hidden rounded-2xl border">
-        <div className="pointer-events-none absolute -top-20 -right-8 h-72 w-72 rounded-full bg-gradient-to-tr from-sky-400 via-indigo-400 to-fuchsia-400 opacity-60 blur-3xl dark:opacity-40" />
-        <div className="relative p-6 sm:p-7 text-center">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow ring-1 ring-white/10 backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5" />
-            {t("Personal Library")}
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mt-3">
+      {/* ===== HERO ===== */}
+      <section className="relative w-full mx-auto bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white rounded-2xl shadow-xl mt-4 mb-10">
+        <div className="max-w-5xl mx-auto py-16 px-6 text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
             {t("Bookmarks & Visited Places")}
           </h1>
+          <p className="text-lg md:text-xl font-medium opacity-90">
+            {t("Your personal collection of favorite spots and tours")}
+          </p>
         </div>
-      </div>
+      </section>
 
       {/* ===== MAIN TABS ===== */}
-      <Tabs
-        value={topTab}
-        onValueChange={(v) => setTopTab(v as typeof topTab)}
-        className="space-y-6"
-      >
+      <Tabs value={topTab} onValueChange={(v) => setTopTab(v as typeof topTab)} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted/70 p-1 shadow ring-1 ring-border">
-          <TabsTrigger value="bookmarks">
-            <Bookmark className="mr-2 h-4 w-4" />
-            {t("Bookmarks")}
-          </TabsTrigger>
-          <TabsTrigger value="visited">
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-            {t("Visited")}
-          </TabsTrigger>
+          {[
+            { val: "bookmarks", icon: <Bookmark className="mr-2 h-4 w-4" />, label: t("Bookmarks") },
+            { val: "visited", icon: <CheckCircle2 className="mr-2 h-4 w-4" />, label: t("Visited") },
+          ].map(({ val, icon, label }) => (
+            <TabsTrigger
+              key={val}
+              value={val}
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-sky-500 data-[state=active]:via-cyan-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white transition-all"
+            >
+              {icon}
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        {/* CONTENT */}
         <TabsContent value={topTab}>
           <InnerTabs
             key={`${topTab}-${innerTab}`}
@@ -264,12 +261,10 @@ export default function LibraryPage() {
             onPageChange={handlePageChange}
             t={t}
             onOpenMonument={handleOpenMonument}
-            topTab={topTab}
           />
         </TabsContent>
       </Tabs>
 
-      {/* Monument Detail Modal */}
       {details && (
         <MonumentDetailModal
           open={open}
@@ -286,7 +281,7 @@ export default function LibraryPage() {
 /* -------------------------------------------------------------------------- */
 /* INNER TABS */
 /* -------------------------------------------------------------------------- */
-function InnerTabs({ value, onChange, data, totalPages, page, onPageChange, t, onOpenMonument, topTab }: any) {
+function InnerTabs({ value, onChange, data, totalPages, page, onPageChange, t, onOpenMonument }: any) {
   const hasData = data.length > 0;
   const isMonument = value === "monuments";
 
@@ -300,15 +295,20 @@ function InnerTabs({ value, onChange, data, totalPages, page, onPageChange, t, o
       className="space-y-6"
     >
       <div className="flex justify-center">
-        <TabsList className="mx-auto flex w-[420px] max-w-full items-center justify-center rounded-full bg-gradient-to-r from-indigo-100 via-white to-indigo-100 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 shadow ring-1 ring-border p-1">
-          <TabsTrigger value="monuments">
-            <Landmark className="mr-2 h-4 w-4" />
-            {t("Monuments")}
-          </TabsTrigger>
-          <TabsTrigger value="tours">
-            <Compass className="mr-2 h-4 w-4" />
-            {t("Tours")}
-          </TabsTrigger>
+        <TabsList className="mx-auto flex w-[420px] max-w-full items-center justify-center rounded-full bg-muted/50 p-1 shadow ring-1 ring-border">
+          {[
+            { val: "monuments", icon: <Landmark className="mr-2 h-4 w-4" />, label: t("Monuments") },
+            { val: "tours", icon: <Compass className="mr-2 h-4 w-4" />, label: t("Tours") },
+          ].map(({ val, icon, label }) => (
+            <TabsTrigger
+              key={val}
+              value={val}
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-sky-500 data-[state=active]:via-cyan-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white transition-all"
+            >
+              {icon}
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </div>
 
@@ -348,10 +348,10 @@ function InnerTabs({ value, onChange, data, totalPages, page, onPageChange, t, o
 function MonumentCard({ m, onOpen }: { m: MonumentItem; onOpen: (id: string) => void }) {
   const { t } = useLocale();
   return (
-    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border">
       <div className="relative h-48 w-full overflow-hidden">
         {m.image ? (
-          <img src={m.image} alt={m.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+          <img src={m.image} alt={m.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]" />
         ) : (
           <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
             <ImageIcon className="h-8 w-8" />
@@ -360,10 +360,13 @@ function MonumentCard({ m, onOpen }: { m: MonumentItem; onOpen: (id: string) => 
       </div>
       <div className="flex flex-1 flex-col justify-between p-4">
         <div>
-          <h3 className="line-clamp-1 text-base font-semibold">{m.name}</h3>
-          {m.tourTitle && <p className="text-xs text-muted-foreground mt-1">{t("From tour")}: {m.tourTitle}</p>}
+          <h3 className="line-clamp-1 text-base font-semibold text-sky-700 dark:text-cyan-300">{m.name}</h3>
+          {m.description && <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{m.description}</p>}
         </div>
-        <Button variant="secondary" className="mt-3" onClick={() => onOpen(m._id)}>
+        <Button
+          className="mt-3 h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90 transition-all"
+          onClick={() => onOpen(m._id)}
+        >
           {t("Details")}
         </Button>
       </div>
@@ -374,19 +377,25 @@ function MonumentCard({ m, onOpen }: { m: MonumentItem; onOpen: (id: string) => 
 function TourCard({ t }: { t: TourItem }) {
   const { t: tr } = useLocale();
   return (
-    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border">
       <div className="relative h-48 w-full overflow-hidden">
         {t.image ? (
-          <img src={t.image} alt={t.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+          <img src={t.image} alt={t.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]" />
         ) : (
           <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
             <ImageIcon className="h-8 w-8" />
           </div>
         )}
       </div>
-      <div className="flex flex-1 flex-col justify-between space-y-3 p-4">
-        <h3 className="line-clamp-1 text-base font-semibold">{t.title}</h3>
-        <Button asChild variant="secondary">
+      <div className="flex flex-1 flex-col justify-between p-4 space-y-3">
+        <div>
+          <h3 className="line-clamp-1 text-base font-semibold text-sky-700 dark:text-cyan-300">{t.title}</h3>
+          {t.description && <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{t.description}</p>}
+        </div>
+        <Button
+          asChild
+          className="h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90 transition-all"
+        >
           <Link href={`/tours/detail?id=${encodeURIComponent(t._id)}`}>{tr("Details")}</Link>
         </Button>
       </div>
@@ -395,39 +404,64 @@ function TourCard({ t }: { t: TourItem }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* PAGINATION HELPERS */
+/* PAGINATION (Library Theme — Sky / Cyan / Emerald) */
 /* -------------------------------------------------------------------------- */
 function PageNavigator({ totalPages, page, onPageChange, t }: any) {
   return (
     <div className="flex items-center justify-between gap-3 pt-4">
+      {/* Left Info */}
       <div className="text-xs text-muted-foreground">
-        {t("Page {{current}} of {{total}}", { current: page, total: totalPages })}
+        {t("pagination_left", { current: page, total: totalPages })}
       </div>
+
+      {/* Pagination Controls */}
       <div className="flex items-center gap-1">
-        <Button variant="outline" size="sm" className="h-8" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page <= 1}>
+        {/* Prev Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+        >
           <ChevronLeft className="mr-1 h-4 w-4" />
-          {t("Prev")}
+          {t("tours.prev")}
         </Button>
+
+        {/* Page Numbers */}
         <div className="hidden sm:flex items-center gap-1">
           {rangeAround(page, totalPages, 2).map((n, i) =>
             n === "…" ? (
-              <span key={`dots-${i}`} className="px-2 text-sm text-muted-foreground">…</span>
+              <span
+                key={`dots-${i}`}
+                className="px-2 text-sm text-muted-foreground"
+              >
+                …
+              </span>
             ) : (
               <button
                 key={`page-${n}-${i}`}
                 onClick={() => onPageChange(n)}
-                className={[
-                  "cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm",
-                  n === page ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-                ].join(" ")}
+                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${n === page
+                  ? "bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white shadow-sm"
+                  : "hover:bg-sky-50 dark:hover:bg-slate-800 text-sky-700 dark:text-cyan-300"
+                  }`}
               >
                 {n}
               </button>
             )
           )}
         </div>
-        <Button variant="outline" size="sm" className="h-8" onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>
-          {t("Next")}
+
+        {/* Next Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+        >
+          {t("tours.next")}
           <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
@@ -456,8 +490,8 @@ function rangeAround(current: number, total: number, radius: number): (number | 
 /* -------------------------------------------------------------------------- */
 function EmptyState({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="grid place-items-center rounded-3xl border border-white/10 bg-gradient-to-br from-white/60 to-indigo-50/40 dark:from-gray-900/50 dark:to-gray-800/50 p-10 text-center shadow-inner">
-      <div className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-muted text-muted-foreground shadow">
+    <div className="grid place-items-center rounded-3xl border border-white/10 bg-gradient-to-br from-sky-50 to-cyan-100 dark:from-gray-900/50 dark:to-gray-800/50 p-10 text-center shadow-inner">
+      <div className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white shadow">
         {icon}
       </div>
       <div className="text-base font-semibold text-gray-800 dark:text-white">{title}</div>

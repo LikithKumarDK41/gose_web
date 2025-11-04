@@ -39,6 +39,7 @@ export default function HeaderBar({ onOpenSidebar }: { onOpenSidebar?: () => voi
       <div className="h-[2px] w-full bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500" />
 
       <div className="mx-auto flex h-14 items-center gap-3 px-4">
+        {/* Left: logo + mobile toggle */}
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -56,10 +57,12 @@ export default function HeaderBar({ onOpenSidebar }: { onOpenSidebar?: () => voi
           <BrandLogo />
         </div>
 
+        {/* Right: nav + toggles */}
         <div className="ml-auto flex items-center gap-3">
+          {/* Desktop Nav */}
           <div className="hidden lg:block">
             <NavigationMenu>
-              <NavigationMenuList>
+              <NavigationMenuList className="flex items-center gap-1">
                 {NAV_ITEMS.map((item) => {
                   const Icon = item.icon;
 
@@ -70,20 +73,12 @@ export default function HeaderBar({ onOpenSidebar }: { onOpenSidebar?: () => voi
                         <Link
                           href={item.href}
                           className={[
-                            "relative group inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                            "relative inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-300",
                             active
-                              ? "text-white"
-                              : "text-muted-foreground hover:text-foreground",
+                              ? "text-white bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 shadow-sm"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted",
                           ].join(" ")}
                         >
-                          <span
-                            className={[
-                              "pointer-events-none absolute inset-0 -z-10 rounded-md transition-all duration-300",
-                              active
-                                ? "opacity-100 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 shadow-sm"
-                                : "opacity-0 group-hover:opacity-100 bg-muted",
-                            ].join(" ")}
-                          />
                           <Icon className="h-4 w-4" />
                           <span>{t(item.labelKey)}</span>
                         </Link>
@@ -91,13 +86,13 @@ export default function HeaderBar({ onOpenSidebar }: { onOpenSidebar?: () => voi
                     );
                   }
 
-                  // item.type === "action"
+                  // Action items (like Logout)
                   return (
                     <NavigationMenuItem key={item.action}>
                       <button
                         type="button"
                         onClick={() => handleItemClick(item)}
-                        className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors text-muted-foreground hover:text-foreground"
+                        className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                       >
                         <Icon className="h-4 w-4" />
                         <span>{t(item.labelKey)}</span>
