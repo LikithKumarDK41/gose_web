@@ -65,7 +65,7 @@ export default function PlacesPage() {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const currentData = filtered.slice((page - 1) * limit, page * limit);
 
-  if (loading) return <div className="text-center mt-10">Loading...</div>;
+  if (loading) return <div className="text-center mt-10">{t("loading")}</div>;
 
   return (
     <div className="space-y-10">
@@ -78,7 +78,7 @@ export default function PlacesPage() {
             {t("Places")}
           </div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mt-3">
-            {t("Explore Places in Gose")}
+            {t("explore_places")}
           </h1>
         </div>
       </div>
@@ -108,6 +108,7 @@ export default function PlacesPage() {
    📦 Place Card
 ========================================================= */
 function PlaceCard({ p }: { p: PlaceItem }) {
+  const { t } = useLocale();
   return (
     <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm hover:shadow-md transition-all">
       <div className="relative h-48 w-full overflow-hidden">
@@ -134,7 +135,7 @@ function PlaceCard({ p }: { p: PlaceItem }) {
         )}
       </div>
                       <Button variant="secondary" className="mt-3" >
-                          Details
+                          {t("actions.details")}
                       </Button>
     </div>
   );
@@ -150,6 +151,7 @@ function PlacesToolbar({
   query: string;
   setQuery: (v: string) => void;
 }) {
+  const { t } = useLocale();
   return (
     <div className="flex justify-end items-center gap-2 mb-6">
       <DropdownMenu>
@@ -159,10 +161,10 @@ function PlacesToolbar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64 p-2">
-          <DropdownMenuLabel>Search Places</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("gourmet.search_places")}</DropdownMenuLabel>
           <Input
             autoFocus
-            placeholder="Search places..."
+            placeholder={t("gourmet.search_placeholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="mt-2"
@@ -200,7 +202,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
   return (
     <div className="flex items-center justify-between gap-3 pt-4">
       <div className="text-xs text-muted-foreground">
-        Page {page} of {totalPages}
+        {t("pagination_left", { current: page, total: totalPages })}
       </div>
       <div className="flex items-center gap-1">
         <Button
@@ -210,7 +212,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
         >
-          <ChevronLeft className="mr-1 h-4 w-4" /> {t("Prev")}
+          <ChevronLeft className="mr-1 h-4 w-4" /> {t("prev")}
         </Button>
                         <div className="hidden sm:flex items-center gap-1">
                     {rangeAround(page, totalPages, 2).map((n, i) =>
@@ -244,7 +246,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
         >
-          {t("Next")}
+          {t("next")}
           <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>

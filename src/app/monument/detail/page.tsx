@@ -30,7 +30,7 @@ export default function MonumentDetailPage() {
   if (loading || !detailsToShow)
     return (
       <div className="flex justify-center items-center h-[70vh] text-muted-foreground">
-        Loading...
+        {t("loading")}
       </div>
     );
 
@@ -41,7 +41,7 @@ export default function MonumentDetailPage() {
         {detailsToShow.image?.secure_url ? (
           <Image
             src={detailsToShow.image.secure_url}
-            alt={detailsToShow.title || "Monument Image"}
+            alt={detailsToShow.title || t("monument.monument_image_alt")}
             fill
             sizes="(max-width: 768px) 100vw, 1024px"
             className="object-cover"
@@ -76,13 +76,13 @@ export default function MonumentDetailPage() {
       {/* 🖼️ Gallery */}
       {!!detailsToShow.gallery?.length && (
         <div>
-          <h3 className="text-base font-semibold mb-3">Gallery</h3>
+          <h3 className="text-base font-semibold mb-3">{t("monument.gallery")}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {detailsToShow.gallery.map((img: any, i: number) => (
               <div key={i} className="relative h-40 rounded-md overflow-hidden bg-muted">
                 <Image
                   src={img.secure_url || "/placeholder.png"}
-                  alt={`Gallery ${i}`}
+                  alt={`${t("monument.gallery_image_alt")} ${i}`}
                   fill
                   className="object-cover"
                 />
@@ -95,7 +95,7 @@ export default function MonumentDetailPage() {
       {/* 🔗 Related Tours */}
       {!!detailsToShow.relatedtours?.length && (
         <div className="pt-4 border-t border-border">
-          <h3 className="text-base font-semibold mb-3">Related Tours</h3>
+          <h3 className="text-base font-semibold mb-3">{t("monument.related_tours")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {detailsToShow.relatedtours.map((tour: any) => (
               <div
@@ -133,7 +133,7 @@ export default function MonumentDetailPage() {
                       window.open(`/tours/detail?id=${tour._id}`, "_self")
                     }
                   >
-                    View Tour
+                    {t("monument.view_tour_button")}
                   </Button>
                 </div>
               </div>
@@ -145,7 +145,7 @@ export default function MonumentDetailPage() {
       {/* 🏛️ Nearby Monuments */}
       {!!detailsToShow.nearbymonuments?.length && (
         <div className="pt-6 border-t border-border">
-          <h3 className="text-base font-semibold mb-3">Nearby Monuments</h3>
+          <h3 className="text-base font-semibold mb-3">{t("monument.nearby_monuments")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {detailsToShow.nearbymonuments.map((monument: any) => (
               <div
@@ -190,7 +190,7 @@ export default function MonumentDetailPage() {
                       window.open(`/monument/detail?id=${monument._id}`, "_self")
                     }
                   >
-                    View Monument
+                    {t("monument.view_monument_button")}
                   </Button>
                 </div>
               </div>

@@ -65,7 +65,7 @@ export default function MtKongoKatsuragiPage() {
         if (mounted) setMonuments(data);
       } catch (err: any) {
         console.error("Failed to fetch monuments:", err);
-        setError(err.message || "Failed to fetch monuments");
+        setError(err.message || t("errors.failed_to_fetch_monuments"));
       } finally {
         if (mounted) hide();
       }
@@ -154,8 +154,8 @@ export default function MtKongoKatsuragiPage() {
       {filtered.length === 0 && (
         <EmptyState
           icon={<Landmark className="h-8 w-8" />}
-          title="該当する遺跡が見つかりません"
-          subtitle="別のキーワードで検索してみてください。"
+          title={t("mt_kongo_and_katsuragi.no_results_title")}
+          subtitle={t("mt_kongo_and_katsuragi.no_results_subtitle")}
         />
       )}
 
@@ -427,7 +427,7 @@ function MonumentsToolbar({
           <DropdownMenuLabel>{t("sort")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {loadingSorts ? (
-            <DropdownMenuItem disabled>読み込み中...</DropdownMenuItem>
+            <DropdownMenuItem disabled>{t("loading")}</DropdownMenuItem>
           ) : sortOptions.length > 0 ? (
             sortOptions.map((s) => (
               <DropdownMenuItem
@@ -452,7 +452,7 @@ function MonumentsToolbar({
               </DropdownMenuItem>
             ))
           ) : (
-            <DropdownMenuItem disabled>並び替え項目なし</DropdownMenuItem>
+            <DropdownMenuItem disabled>{t("mt_kongo_and_katsuragi.no_sort_options")}</DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

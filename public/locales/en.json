@@ -238,5 +238,48 @@
   "sort": "Sort",
   "pagination_left": "Page {current} of {total}",
   "no_data": "No Data",
-  "all": "All"
+  "all": "All",
+  "errors": {
+    "failed_to_fetch_monuments": "Failed to fetch monuments",
+    "failed_to_fetch_tours": "Failed to fetch tours"
+  },
+  "loading": "Loading...",
+  "monument": {
+    "monument_image_alt": "Monument Image",
+    "gallery": "Gallery",
+    "gallery_image_alt": "Gallery Image {i}",
+    "related_tours": "Related Tours",
+    "view_tour_button": "View Tour",
+    "nearby_monuments": "Nearby Monuments",
+    "view_monument_button": "View Monument"
+  },
+  "mt_kongo_and_katsuragi": {
+    "no_results_title": "No matching ruins found",
+    "no_results_subtitle": "Try searching with a different keyword.",
+    "region": "Region",
+    "no_sort_options": "No sort options"
+  },
+  "tourist_attractions": {
+    "no_results_title": "No matching ruins found",
+    "no_results_subtitle": "Try searching with a different keyword.",
+    "no_filters": "No Filters"
+  },
+  "tourist_map": {
+    "no_description": "See the route map for details.",
+    "no_maps_available": "Tourist maps are currently unavailable.",
+    "close_image_viewer": "Close image viewer",
+    "tour_image_alt": "Tour Image"
+  },
+  "meetings": {
+    "title": "Meetings Page"
+  },
+  "personal_library": "Bookmarks & Visited Places",
+  "personal_library_subtitle":"Your personal collection of favorite spots and tours",
+  "explore_places": "Explore Places",
+  "Places": "Places",
+  "pagination_info":"Page",
+      "prev": "Prev",
+    "next": "Next",
+    "sort_asc":"Sort Asc",
+    "sort_desc":"Sort Desc"
 }

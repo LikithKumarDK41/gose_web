@@ -18,7 +18,6 @@ import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useLocale } from "@/providers/LocaleProvider";
 import { X } from "lucide-react";
 import MapTimelineRight from "@/components/tour/MapTimelineRight";
-
 export default function NavigationPage() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -26,7 +25,7 @@ export default function NavigationPage() {
   const { locale } = useLocale();
   const dispatch = useAppDispatch();
   const { show, hide } = useGlobalLoader();
-
+ const { t } = useLocale();
   // NEW: list modal open state
   const [listOpen, setListOpen] = useState(false);
 
@@ -64,7 +63,7 @@ export default function NavigationPage() {
   if (!id || !tour?._id) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading map…</div>
+        <div className="text-sm text-muted-foreground">{t("loading_map")}</div>
       </div>
     );
   }
@@ -106,8 +105,9 @@ function TourPointsModal({
   if (!open) return null;
 
   const points = tour?.tourpoints ?? [];
-
+ const { t } = useLocale();
   return (
+    
     <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center">
       {/* Panel */}
       <div className="relative w-full h-[100vh] bg-background shadow-2xl overflow-hidden flex flex-col border">
@@ -117,8 +117,8 @@ function TourPointsModal({
           <button
             onClick={onClose}
             className="rounded-full p-2 hover:bg-muted"
-            aria-label="Close"
-            title="Close"
+            aria-label={t("close")}
+            title={t("close")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -128,7 +128,7 @@ function TourPointsModal({
         <div className="flex-1 overflow-y-auto px-4 py-6">
           {points.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center">
-              No tour points available.
+              {t("no_tour_points_available")}
             </div>
           ) : (
             <MapTimelineRight tourpoints={points} />

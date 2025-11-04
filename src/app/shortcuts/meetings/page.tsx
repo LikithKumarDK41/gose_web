@@ -1,3 +1,8 @@
+"use client";
+
+import { useLocale } from "@/providers/LocaleProvider";
+
 export default function MeetingsPage() {
-    return <div>Meetings Page</div>;
+  const { t } = useLocale();
+  return <div>{t("meetings.title")}</div>;
 }

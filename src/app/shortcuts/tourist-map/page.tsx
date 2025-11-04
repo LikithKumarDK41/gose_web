@@ -30,7 +30,7 @@ export default function ToursPage() {
         if (mounted) setTours(data);
       } catch (err: any) {
         console.error("Failed to fetch tours:", err);
-        if (mounted) setError(err.message || "Failed to fetch tours");
+        if (mounted) setError(err.message || t("errors.failed_to_fetch_tours"));
       } finally {
         if (mounted) hide();
       }
@@ -99,7 +99,7 @@ export default function ToursPage() {
                   {/* Description */}
                   <div className="px-4 py-4">
                     <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2">
-                      {tour.description || "ルートマップの詳細をご覧ください。"}
+                      {tour.description || t("tourist_map.no_description")}
                     </p>
                   </div>
 
@@ -138,7 +138,7 @@ export default function ToursPage() {
           )
         ) : (
           <div className="text-center text-lg text-slate-600 dark:text-slate-300 col-span-full">
-            現在、観光マップは利用できません。
+            {t("tourist_map.no_maps_available")}
           </div>
         )}
       </div>
@@ -155,14 +155,14 @@ export default function ToursPage() {
                        dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700
                        transition-all duration-200 focus:outline-none
                        focus-visible:ring-2 focus-visible:ring-violet-500"
-            aria-label="Close image viewer"
+            aria-label={t("tourist_map.close_image_viewer")}
           >
             <X className="h-5 w-5" />
           </button>
 
           <img
             src={selectedImage}
-            alt="Tour Image"
+            alt={t("tourist_map.tour_image_alt")}
             className="max-w-full max-h-full object-contain cursor-zoom-out"
             onClick={() => setSelectedImage(null)}
           />

@@ -154,8 +154,8 @@ export default function FacilityPage() {
       {filtered.length === 0 && (
         <EmptyState
           icon={<Landmark className="h-8 w-8" />}
-          title="該当する遺跡が見つかりません"
-          subtitle="別のキーワードで検索してみてください。"
+          title={t("facility.no_results_title")}
+          subtitle={t("facility.no_results_subtitle")}
         />
       )}
 
@@ -221,7 +221,7 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
           </h3>
           {m.region?.title && (
             <p className="text-xs text-muted-foreground mt-1">
-              {t("Region")}: {m.region.title}
+              {t("mt_kongo_and_katsuragi.region")}: {m.region.title}
             </p>
           )}
         </div>
@@ -427,7 +427,7 @@ function MonumentsToolbar({
           <DropdownMenuLabel>{t("sort")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {loadingSorts ? (
-            <DropdownMenuItem disabled>読み込み中...</DropdownMenuItem>
+            <DropdownMenuItem disabled>{t("loading")}</DropdownMenuItem>
           ) : sortOptions.length > 0 ? (
             sortOptions.map((s) => (
               <DropdownMenuItem
@@ -452,7 +452,7 @@ function MonumentsToolbar({
               </DropdownMenuItem>
             ))
           ) : (
-            <DropdownMenuItem disabled>並び替え項目なし</DropdownMenuItem>
+            <DropdownMenuItem disabled>{t("facility.no_sort_options")}</DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

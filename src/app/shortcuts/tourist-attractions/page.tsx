@@ -71,7 +71,7 @@ export default function MonumentsPage() {
         if (mounted) setMonuments(data);
       } catch (err: any) {
         console.error("Failed to fetch monuments:", err);
-        setError(err.message || "Failed to fetch monuments");
+        setError(err.message || t("errors.failed_to_fetch_monuments"));
       } finally {
         if (mounted) hide();
       }
@@ -163,8 +163,8 @@ export default function MonumentsPage() {
       {filtered.length === 0 && (
         <EmptyState
           icon={<Landmark className="h-8 w-8" />}
-          title="該当する遺跡が見つかりません"
-          subtitle="別のキーワードで検索してみてください。"
+          title={t("tourist_attractions.no_results_title")}
+          subtitle={t("tourist_attractions.no_results_subtitle")}
         />
       )}
 
@@ -478,7 +478,7 @@ function MonumentsToolbar({
 
           {/* ------- Other Filters ------- */}
           {loadingFilters ? (
-            <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+            <DropdownMenuItem disabled>{t("loading")}</DropdownMenuItem>
           ) : filterOptions.length > 0 ? (
             filterOptions.map((f) => {
               const themeId = f.theme?.[0]?._id;
@@ -504,7 +504,7 @@ function MonumentsToolbar({
               );
             })
           ) : (
-            <DropdownMenuItem disabled>No Filters</DropdownMenuItem>
+            <DropdownMenuItem disabled>{t("tourist_attractions.no_filters")}</DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -523,7 +523,7 @@ function MonumentsToolbar({
           <DropdownMenuLabel>{t("sort")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {loadingSorts ? (
-            <DropdownMenuItem disabled>読み込み中...</DropdownMenuItem>
+            <DropdownMenuItem disabled>{t("loading")}</DropdownMenuItem>
           ) : sortOptions.length > 0 ? (
             sortOptions.map((s) => (
               <DropdownMenuItem
@@ -547,7 +547,7 @@ function MonumentsToolbar({
               </DropdownMenuItem>
             ))
           ) : (
-            <DropdownMenuItem disabled>並び替え項目なし</DropdownMenuItem>
+            <DropdownMenuItem disabled>{t("tourist_attractions.no_sort_options")}</DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

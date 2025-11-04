@@ -249,7 +249,7 @@ function ConfirmPopupButton({
   const dispatch = useAppDispatch();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-
+const { t } = useLocale();
   const handleClick = (e: React.MouseEvent) => {
     const currentDetailId = tourist?.detail?._id;
 
@@ -297,17 +297,16 @@ function ConfirmPopupButton({
 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Confirm Action</DialogTitle>
+          <DialogTitle>{t("confirm_action")}</DialogTitle>
           <DialogDescription>
-            A different tour is currently active. Do you want to stop it and
-            continue?
+            {t("confirm_action_description")}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="sm:justify-end mt-4">
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+            {t("cancel")}
           </Button>
-          <Button onClick={handleConfirm}>Yes, Continue</Button>
+          <Button onClick={handleConfirm}>{t("yes_continue")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
