@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ImageIcon, Navigation } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
   fetchShortcuts,
   selectShortcuts,
   selectGlobalLoading,
+  setActiveTheme,
 } from "@/lib/store/slices/globalSlice";
 import {
   selectNav,
@@ -29,7 +30,6 @@ import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useRouter } from "next/navigation";
-import { setActiveTheme } from "@/lib/store/slices/globalSlice";
 
 export default function ToursDashboardPage() {
   const { t } = useLocale();
@@ -132,20 +132,21 @@ export default function ToursDashboardPage() {
         )}
       </div>
 
-      {/* ===== Tours grid ===== */}
+      {/* ===== Tours grid (Updated Design) ===== */}
       {hasTours && (
         <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
           {tours.slice(0, 6).map((tour) => (
             <div
               key={tour._id}
-              className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm"
+              className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border"
             >
+              {/* Image Section */}
               <div className="relative h-48 w-full overflow-hidden">
                 {tour.image?.secure_url ? (
                   <img
                     src={tour.image.secure_url}
                     alt={tour.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                   />
                 ) : (
                   <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
@@ -154,39 +155,33 @@ export default function ToursDashboardPage() {
                 )}
               </div>
 
-              <div className="flex flex-1 flex-col justify-between space-y-3 p-4">
+              {/* Content Section */}
+              <div className="flex flex-1 flex-col justify-between p-4">
                 <div>
-                  <h3 className="line-clamp-1 text-base font-semibold">
+                  <h3 className="line-clamp-1 text-base font-semibold text-sky-700 dark:text-cyan-300">
                     {tour.title}
                   </h3>
                   {tour.content?.brief && (
-                    <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
-                      {(tour?.content?.brief || "")
-                        .replace(/<[^>]+>/g, "")
-                        .replace(/&nbsp;|&#160;/gi, " ")
-                        .replace(/\u00A0/g, " ")
-                        .replace(/\s+/g, " ")
-                        .trim() || null}
-                    </p>
+                    <p
+                      className="text-xs text-muted-foreground mt-1 line-clamp-2"
+                      dangerouslySetInnerHTML={{
+                        __html: (tour.content.brief ?? "")
+                          .replace(/<[^>]+>/g, "")
+                          .replace(/&nbsp;|&#160;/gi, " ")
+                          .trim(),
+                      }}
+                    />
                   )}
                 </div>
 
-                {/* ✅ Buttons with confirmation */}
-                <div className="grid grid-cols-2 gap-2">
-                  <ConfirmPopupButton
-                    label={t("actions.details")}
-                    href={`/tours/detail?id=${tour._id}`}
-                    variant="secondary"
-                    tourId={tour._id}
-                  />
-                  <ConfirmPopupButton
-                    label={t("actions.navigate")}
-                    href={`/tours/detail/navigation?id=${tour._id}`}
-                    icon={<Navigation className="mr-1 h-4 w-4" />}
-                    gradient="bg-gradient-to-r from-indigo-600 to-sky-600 text-white"
-                    tourId={tour._id}
-                  />
-                </div>
+                <Button
+                  onClick={() =>
+                    (window.location.href = `/tours/detail?id=${tour._id}`)
+                  }
+                  className="cursor-pointer mt-3 h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90 transition-all"
+                >
+                  {t("actions.details")}
+                </Button>
               </div>
             </div>
           ))}
@@ -195,7 +190,7 @@ export default function ToursDashboardPage() {
 
       {tours.length > 6 && (
         <div className="mt-6 flex justify-center">
-          <Button asChild className="rounded-full">
+          <Button asChild className="rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90">
             <Link href="/tours">{t("actions.show_more")}</Link>
           </Button>
         </div>
@@ -229,7 +224,7 @@ function ConfirmPopupButton({
   tourId: string;
 }) {
   const nav = useAppSelector(selectNav);
-  const tourist = useAppSelector((state) => state.tourist); // ✅ has detail._id
+  const tourist = useAppSelector((state) => state.tourist);
   const dispatch = useAppDispatch();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -237,27 +232,23 @@ function ConfirmPopupButton({
   const handleClick = (e: React.MouseEvent) => {
     const currentDetailId = tourist?.detail?._id;
 
-    // ✅ Case 1: No active tour — just navigate normally
     if (nav.status === "idle" || !nav.activeTourId) {
       e.preventDefault();
       router.push(href);
       return;
     }
 
-    // ✅ Case 2: Same tour running → directly navigate (no popup)
     if (nav.activeTourId === tourId || currentDetailId === tourId) {
       e.preventDefault();
       router.push(href);
       return;
     }
 
-    // 🚫 Case 3: Different tour running → ask confirmation
     e.preventDefault();
     setOpen(true);
   };
 
   const handleConfirm = async () => {
-    // ✅ Reset both slices before continuing
     dispatch(resetGeofence());
     dispatch(stopTour());
     dispatch(setActiveTour(null));
@@ -272,7 +263,10 @@ function ConfirmPopupButton({
       <DialogTrigger asChild>
         <Button
           variant={variant}
-          className={gradient}
+          className={
+            gradient ||
+            "bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90"
+          }
           onClick={handleClick}
         >
           {icon}
@@ -313,20 +307,15 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  // ✅ Handle shortcut click
   const handleShortcutClick = (shortcut: any) => {
     try {
-      // 1️⃣ Check if link is a JSON string and parse only if needed
       if (shortcut.link && shortcut.link.trim().startsWith("{")) {
         const parsedLink = JSON.parse(shortcut.link);
-
-        // 2️⃣ If theme key exists, dispatch to Redux
         if (parsedLink.theme) {
           dispatch(setActiveTheme(parsedLink.theme));
         }
       }
 
-      // 3️⃣ Navigate based on priority
       const priority = shortcut.priority ?? null;
 
       switch (priority) {
@@ -401,5 +390,3 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
     </div>
   );
 }
-
-

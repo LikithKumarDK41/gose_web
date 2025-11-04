@@ -4,51 +4,39 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import {
   ImageIcon,
-  Navigation,
   Sparkles,
   Search,
   ChevronLeft,
   ChevronRight,
+  ArrowUpDown,
 } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
-import {
-  fetchTourById,
-  fetchTours,
-  selectTours,
-} from "@/lib/store/slices/touristSlice";
-import {
-  selectNav,
-  stopTour,
-  setActiveTour,
-} from "@/lib/store/slices/navSlice";
-import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
-
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-
+import { fetchTours, selectTours } from "@/lib/store/slices/touristSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
-import { useRouter } from "next/navigation";
+
+/* =========================================================
+   🧹 Safe HTML Sanitizer
+========================================================= */
+function sanitizeHTML(input: string): string {
+  if (!input) return "";
+  return input
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "");
+}
 
 /* =========================================================
    🗺️ Tours Page
@@ -60,8 +48,8 @@ export default function ToursPage() {
   const hasTours = (tours?.length ?? 0) > 0;
   const { show, hide } = useGlobalLoader();
 
-  /* ---------- Filters + Pagination ---------- */
   const [query, setQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [perPage, setPerPage] = useState(6);
   const [page, setPage] = useState(1);
 
@@ -83,8 +71,10 @@ export default function ToursPage() {
     };
   }, [dispatch, show, hide]);
 
+  /* ---------- Search + Sort ---------- */
   const filtered = useMemo(() => {
     let arr = [...(tours ?? [])];
+
     if (query.trim()) {
       const q = query.toLowerCase();
       arr = arr.filter(
@@ -93,8 +83,15 @@ export default function ToursPage() {
           (t.description ?? "").toLowerCase().includes(q)
       );
     }
+
+    arr.sort((a, b) =>
+      sortOrder === "asc"
+        ? a.title.localeCompare(b.title)
+        : b.title.localeCompare(a.title)
+    );
+
     return arr;
-  }, [tours, query]);
+  }, [tours, query, sortOrder]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -102,98 +99,30 @@ export default function ToursPage() {
   const startIdx = (current - 1) * perPage;
   const pageItems = filtered.slice(startIdx, startIdx + perPage);
 
-  /* ---------- Banner Stats ---------- */
-  const stats = useMemo(() => {
-    const totalTours = tours?.length ?? 0;
-    const totalStops = (tours ?? []).reduce(
-      (s, t) => s + (t.tourpoints?.length ?? 0),
-      0
-    );
-    const avgStops = totalTours ? +(totalStops / totalTours).toFixed(1) : 0;
-    return { totalTours, totalStops, avgStops };
-  }, [tours]);
-
   /* =========================================================
      💠 Render
   ========================================================= */
   return (
     <div className="space-y-8">
-      {/* ===== Banner ===== */}
-      <div className="relative overflow-hidden rounded-2xl border">
-        <div className="pointer-events-none absolute -top-20 -right-8 h-72 w-72 rounded-full bg-gradient-to-tr from-sky-400 via-indigo-400 to-fuchsia-400 opacity-60 blur-3xl dark:opacity-40" />
-        <div className="relative p-6 sm:p-7">
-          <div className="flex flex-col gap-3">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow ring-1 ring-white/10 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("tours.liveTours")}
-            </div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              {t("tours.exploreTours")}
-            </h1>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Chip label={t("tours.stats.tours")} value={stats.totalTours} />
-          </div>
+      {/* ===== HERO SECTION ===== */}
+      <section className="relative w-full mx-auto bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white rounded-2xl shadow-xl mt-4 mb-10">
+        <div className="max-w-5xl mx-auto py-16 px-6 text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
+            {t("tours.exploreTours")}
+          </h1>
+          <p className="text-lg md:text-xl font-medium opacity-90">
+            {t("tours.liveTours")}
+          </p>
         </div>
-      </div>
+      </section>
 
-      {/* ===== Search / Filter ===== */}
-      <Card className="border bg-card/70 backdrop-blur">
-        <CardContent className="p-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="col-span-2">
-              <Label
-                htmlFor="q"
-                className="mb-1 block text-xs text-muted-foreground"
-              >
-                {t("tours.search")}
-              </Label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="q"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={t("tours.searchPlaceholder")}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="mb-1 block text-xs text-muted-foreground">
-                {t("tours.perPage")}
-              </Label>
-              <Select
-                value={String(perPage)}
-                onValueChange={(v) => setPerPage(Number(v))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[6, 9, 12, 18].map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ===== Empty State ===== */}
-      {hasTours && total === 0 && (
-        <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
-          {t("tours.noMatches")}
-        </div>
-      )}
-      {!hasTours && (
-        <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
-          {t("tours.noToursYet")}
-        </div>
-      )}
+      {/* ===== Toolbar (Search + Sort) ===== */}
+      <ToursToolbar
+        query={query}
+        setQuery={setQuery}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
+      />
 
       {/* ===== Tours Grid ===== */}
       {hasTours && total > 0 && (
@@ -202,19 +131,15 @@ export default function ToursPage() {
             {pageItems.map((tour) => (
               <div
                 key={tour._id}
-                className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-sm"
+                className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border"
               >
-                {tour.featured && (
-                  <div className="absolute right-3 top-3 z-10 rounded-full bg-yellow-400/90 px-3 py-1 text-xs font-semibold text-yellow-900 backdrop-blur-sm shadow-md">
-                    {t("actions.featured")}
-                  </div>
-                )}
+                {/* ===== Image Section ===== */}
                 <div className="relative h-48 w-full overflow-hidden">
                   {tour.image?.secure_url ? (
                     <img
                       src={tour.image.secure_url}
                       alt={tour.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                     />
                   ) : (
                     <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
@@ -223,53 +148,54 @@ export default function ToursPage() {
                   )}
                 </div>
 
-                <div className="flex flex-1 flex-col justify-between space-y-3 p-4">
+                {/* ===== Content Section ===== */}
+                <div className="flex flex-1 flex-col justify-between p-4">
                   <div>
-                    <h3 className="line-clamp-1 text-base font-semibold">
+                    <h3 className="line-clamp-1 text-base font-semibold text-sky-700 dark:text-cyan-300">
                       {tour.title}
                     </h3>
+                    {tour.content?.brief && (
+                      <p
+                        className="text-xs text-muted-foreground mt-1 line-clamp-2"
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHTML(tour.content.brief),
+                        }}
+                      />
+                    )}
                   </div>
 
-                  {/* ✅ Smart Popup Buttons */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <ConfirmPopupButton
-                      label={t("actions.details")}
-                      href={`/tours/detail?id=${tour._id}`}
-                      variant="secondary"
-                      tourId={tour._id}
-                    />
-                    <ConfirmPopupButton
-                      label={t("actions.navigate")}
-                      href={`/tours/detail/navigation?id=${tour._id}`}
-                      icon={<Navigation className="mr-1 h-4 w-4" />}
-                      gradient="bg-gradient-to-r from-indigo-600 to-sky-600 text-white"
-                      tourId={tour._id}
-                    />
-                  </div>
+                  <Button
+                    onClick={() =>
+                      (window.location.href = `/tours/detail?id=${tour._id}`)
+                    }
+                    className="cursor-pointer mt-3 h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90 transition-all"
+                  >
+                    {t("actions.details")}
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
 
           {/* ===== Pagination ===== */}
-          <div className="flex items-center justify-between gap-3 pt-4">
-            <div className="text-xs text-muted-foreground">
-              {t("tours.pageOf", { current, total: totalPages })}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6">
+            <div className="text-xs text-muted-foreground text-center sm:text-left">
+              ページ {current} / {totalPages}
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-center gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-8"
+                className="text-sky-600 hover:text-sky-700 dark:text-cyan-400 dark:hover:text-cyan-300"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={current <= 1}
               >
-                <ChevronLeft className="mr-1 h-4 w-4" />
-                {t("tours.prev")}
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                前へ
               </Button>
 
-              <div className="hidden sm:flex items-center gap-1">
+              <div className="flex items-center gap-1">
                 {rangeAround(current, totalPages, 2).map((n, i) =>
                   n === "…" ? (
                     <span
@@ -283,10 +209,10 @@ export default function ToursPage() {
                       key={n}
                       onClick={() => setPage(n)}
                       className={[
-                        "cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm",
+                        "cursor-pointer h-8 min-w-[2rem] rounded-md px-2 text-sm font-medium transition-all",
                         n === current
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted",
+                          ? "bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white shadow-md scale-105"
+                          : "text-sky-600 hover:bg-sky-50 dark:text-cyan-400 dark:hover:bg-cyan-900/30",
                       ].join(" ")}
                     >
                       {n}
@@ -296,14 +222,14 @@ export default function ToursPage() {
               </div>
 
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-8"
+                className="text-sky-600 hover:text-sky-700 dark:text-cyan-400 dark:hover:text-cyan-300"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={current >= totalPages}
               >
-                {t("tours.next")}
-                <ChevronRight className="ml-1 h-4 w-4" />
+                次へ
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </div>
@@ -314,103 +240,75 @@ export default function ToursPage() {
 }
 
 /* =========================================================
-   🔘 Confirmation Popup Component
+   🔎 Toolbar (Search + Sort)
 ========================================================= */
-function ConfirmPopupButton({
-  label,
-  href,
-  variant,
-  icon,
-  gradient,
-  tourId,
+function ToursToolbar({
+  query,
+  setQuery,
+  sortOrder,
+  setSortOrder,
 }: {
-  label: string;
-  href: string;
-  variant?: "secondary" | "outline" | "default";
-  icon?: React.ReactNode;
-  gradient?: string;
-  tourId: string;
+  query: string;
+  setQuery: (v: string) => void;
+  sortOrder: "asc" | "desc";
+  setSortOrder: (v: "asc" | "desc") => void;
 }) {
-  const nav = useAppSelector(selectNav);
-  const tourist = useAppSelector((state) => state.tourist);
-  const dispatch = useAppDispatch();
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-
-  const handleClick = (e: React.MouseEvent) => {
-    const currentDetailId = tourist?.detail?._id;
-
-    // ✅ Case 1: No active tour
-    if (nav.status === "idle" || !nav.activeTourId) {
-      e.preventDefault();
-      router.push(href);
-      return;
-    }
-
-    // ✅ Case 2: Same tour running
-    if (nav.activeTourId === tourId || currentDetailId === tourId) {
-      e.preventDefault();
-      router.push(href);
-      return;
-    }
-
-    // 🚫 Case 3: Different tour active
-    e.preventDefault();
-    setOpen(true);
-  };
-
-  const handleConfirm = async () => {
-    dispatch(resetGeofence());
-    dispatch(stopTour());
-    dispatch(setActiveTour(null));
-    localStorage.removeItem("navState");
-
-    setOpen(false);
-    router.push(href);
-  };
+  const { t } = useLocale();
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant={variant} className={gradient} onClick={handleClick}>
-          {icon}
-          {label}
-        </Button>
-      </DialogTrigger>
+    <div className="flex justify-end items-center gap-2 mb-6">
+      <div className="relative w-64">
+        <Input
+          placeholder={t("tours.searchPlaceholder")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="pl-8"
+        />
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      </div>
 
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Confirm Action</DialogTitle>
-          <DialogDescription>
-            A different tour is currently active. Do you want to stop it and
-            continue?
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="sm:justify-end mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800"
+          >
+            <ArrowUpDown className="h-4 w-4" />
           </Button>
-          <Button onClick={handleConfirm}>Yes, Continue</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuLabel>{t("sort")}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => setSortOrder("asc")}
+            className={
+              sortOrder === "asc"
+                ? "bg-gray-100 dark:bg-gray-900 font-semibold"
+                : ""
+            }
+          >
+            A → Z
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setSortOrder("desc")}
+            className={
+              sortOrder === "desc"
+                ? "bg-gray-100 dark:bg-gray-900 font-semibold"
+                : ""
+            }
+          >
+            Z → A
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
 /* =========================================================
    📎 Helpers
 ========================================================= */
-function Chip({ label, value }: { label: string; value: string | number }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-medium text-gray-900 shadow ring-1 ring-black/10 backdrop-blur dark:bg-black/60 dark:text-white/90 dark:ring-white/10">
-      {label}
-      <span className="rounded bg-black/5 px-1.5 text-[10px] font-semibold dark:bg-white/10">
-        {value}
-      </span>
-    </span>
-  );
-}
-
 function rangeAround(
   current: number,
   total: number,

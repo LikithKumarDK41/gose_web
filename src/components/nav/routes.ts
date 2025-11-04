@@ -19,7 +19,7 @@ export type NavActionItem = {
 export type NavItem = NavLinkItem | NavActionItem;
 
 export const NAV_ITEMS: NavItem[] = [
-  { type: "link", href: "/", labelKey: "nav.home", icon: Home },
+  // { type: "link", href: "/", labelKey: "nav.home", icon: Home },
   { type: "link", href: "/tours", labelKey: "nav.tours", icon: List },
   { type: "link", href: "/mylist", labelKey: "nav.myList", icon: BookmarkCheck },
   { type: "action", action: "logout", labelKey: "nav.logout", icon: LogOut },
