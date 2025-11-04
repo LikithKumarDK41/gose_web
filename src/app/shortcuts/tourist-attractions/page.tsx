@@ -235,7 +235,7 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
           )}
         </div>
         <Button
-          className="mt-3 bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white hover:opacity-90"
+          className="cursor-pointer mt-3 bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white hover:opacity-90"
           onClick={onOpen}
         >
           {t("tourDetails.viewDetails")}
