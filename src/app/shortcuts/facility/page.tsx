@@ -219,10 +219,11 @@ function MonumentCard({ m, onOpen }: { m: Monument; onOpen: () => void }) {
           <h3 className="line-clamp-1 text-base font-semibold text-blue-700 dark:text-blue-300">
             {m.title || m.name}
           </h3>
-          {m.region?.title && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {t("mt_kongo_and_katsuragi.region")}: {m.region.title}
-            </p>
+          {m.content?.brief && (
+            <p
+              className="text-xs text-muted-foreground mt-1 line-clamp-2"
+              dangerouslySetInnerHTML={{ __html: m.content.brief }}
+            />
           )}
         </div>
         <Button
