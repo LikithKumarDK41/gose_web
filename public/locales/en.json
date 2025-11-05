@@ -273,18 +273,23 @@
     "tour_image_alt": "Tour Image"
   },
   "meetings": {
-    "title": "Meetings Page"
+    "title": "Meetings",
+    "desc": "A city where history and nature meet — the perfect place for memorable meetings and warm connections.",
+    "special_products": "Local Specialty Products",
+    "photo_contest": "Photo Contest",
+    "bus_katsuragi": "Community Bus & Mount Katsuragi",
+    "gosen_character": "Gosen-chan Info & Goods"
   },
   "personal_library": "Bookmarks & Visited Places",
-  "personal_library_subtitle":"Your personal collection of favorite spots and tours",
+  "personal_library_subtitle": "Your personal collection of favorite spots and tours",
   "explore_places": "Explore Places",
   "Places": "Places",
-  "pagination_info":"Page",
-      "prev": "Prev",
-    "next": "Next",
-    "sort_asc":"Sort Asc",
-    "sort_desc":"Sort Desc",
-      "privacyPolicy": "Privacy Policy",
+  "pagination_info": "Page",
+  "prev": "Prev",
+  "next": "Next",
+  "sort_asc": "Sort Asc",
+  "sort_desc": "Sort Desc",
+  "privacyPolicy": "Privacy Policy",
   "common": {
     "back": "Back"
   },
@@ -339,6 +344,29 @@
       "title": "Contact Us",
       "desc": "If you have questions, comments, complaints, or suggestions, or if you believe your information is incorrect, please feel free to contact us. If you wish to access your personal information, you may contact us using the same contact details. We take privacy compliance seriously, and if a complaint regarding compliance is justified, we will investigate and take appropriate action.\n\n[Publisher]\nNara Ruins Cultural Property Conservation and Revitalization Foundation\n1-6-25 Mamigaoka, Kashiba-shi, Nara 639-0223 Japan\n\n[Developer]\nNDR Co., Ltd.\n2-1-1 Awaza, Osaka-shi, Osaka\nOsaka Honmachi West First Building 2F\nWebsite: https://ndr.co.jp/"
     }
+  },
+  "gosen": {
+    "title": "Gose City Mascot Character — Gosen-chan",
+    "description_1": "This is “Gosen-chan,” the mascot character of Gose City in Nara Prefecture.",
+    "description_2": "She is cheerful, stylish, and full of energy. It is said that she is a “messenger of the gods,” and she might grant one wish to those she meets!",
+    "description_3": "Her hairstyle is inspired by Mt. Katsuragi and Mt. Kongō, with an azalea hair ornament — the city flower — and a sacred-rope style headband that represents the many shrines and temples in Gose.",
+    "description_4": "She works with a bright smile to promote Gose City and bring happiness to everyone. Thank you for your support!",
+    "gosechan_logo_top_desc": "Gose City Mascot Character — Gosen-chan",
+    "gosechan_logo_bottom_desc": "Gosen-chan, the mascot character of Gose City, was born on March 31, 2013, to celebrate the 55th anniversary of Gose City.",
+    "goods_title": "Gosen-chan Goods Available",
+    "goods_desc": "New pens and sketch notebooks have arrived! Please take a look♪",
+    "goods_link": "View Gosen-chan Goods",
+    "line_title": "Gosen-chan LINE Stickers",
+    "line_desc": "Cute stickers with many of Gosen-chan’s expressions!",
+    "line_link": "LINE Stickers",
+    "line_footer": "Give them a try!"
+  },
+  "bus": {
+    "title": "Timetables",
+    "himawari_header": "Gose City Community Bus “Himawari”",
+    "community_timetable": "Community Bus Timetable (PDF)",
+    "sunflower_about": "About the Himawari Bus (Route Map • PDF)",
+    "katsuragi_ropeway_header": "Mt. Katsuragi Ropeway",
+    "kinetsu_bus_ropeway": "Kintetsu / Nara Kotsu / Katsuragi Ropeway Connection Timetables (Website)"
   }
 }
-
