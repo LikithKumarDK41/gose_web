@@ -360,5 +360,10 @@
     "sunflower_about": "コミュニティバスひまわり号について（ルート図）",
     "katsuragi_ropeway_header": "葛城山ロープウェイ",
     "kinetsu_bus_ropeway": "近鉄電車・奈良交通バス・葛城索道線連絡時刻表"
+  },
+  "events": {
+    "title": "イベント・行祭事",
+    "subtitle": "御所市で開催される季節のイベントや行事をご紹介します。",
+    "no_events": "現在、予定されているイベントはありません"
   }
 }

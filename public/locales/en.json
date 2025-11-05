@@ -368,5 +368,10 @@
     "sunflower_about": "About the Himawari Bus (Route Map • PDF)",
     "katsuragi_ropeway_header": "Mt. Katsuragi Ropeway",
     "kinetsu_bus_ropeway": "Kintetsu / Nara Kotsu / Katsuragi Ropeway Connection Timetables (Website)"
+  },
+  "events": {
+    "title": "Events & Fests",
+    "subtitle": "Discover upcoming seasonal events and traditional festivals in Gose City.",
+    "no_events": "There are no scheduled events at the moment."
   }
 }
