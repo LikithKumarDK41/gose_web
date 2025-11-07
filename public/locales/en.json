@@ -373,5 +373,6 @@
     "title": "Events & Fests",
     "subtitle": "Discover upcoming seasonal events and traditional festivals in Gose City.",
     "no_events": "There are no scheduled events at the moment."
-  }
+  },
+  "event_header": "Events"
 }
