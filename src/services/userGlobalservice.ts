@@ -394,7 +394,7 @@ export async function apiRemoveBookmark(refId: string): Promise<void> {
   }
 
   try {
-    await api.put(`/v1/bookmarks/${refId}`, { status: "remove" });
+    await api.patch(`/v1/bookmarks/${refId}`, { status: "remove" });
   } catch (err: any) {
     throw new Error(parseAxiosError(err, "Failed to remove bookmark"));
   }
