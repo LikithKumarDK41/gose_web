@@ -21,9 +21,11 @@ import {
     Globe,
     Info,
     X,
+    CalendarDays,
 } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import { apiFetchEventsByMonument, EventItem } from "@/services/userGlobalservice";
 
 /* ------------------------------------------------------------------ */
 interface MonumentDetailModalProps {
@@ -45,6 +47,24 @@ export default function MonumentDetailModal({
     const { t } = useLocale();
     const router = useRouter();
     const contentRef = useRef<HTMLDivElement>(null);
+    const [events, setEvents] = useState<EventItem[]>([]);
+
+useEffect(() => {
+  if (details?._id) {
+    (async () => {
+      try {
+        const data = await apiFetchEventsByMonument(details._id);
+
+        setEvents(data);
+      } catch (err) {
+        console.error("Failed to load events:", err);
+      }
+    })();
+  }
+}, [details]);
+
+
+
 
     // Scroll to top whenever new monument details are loaded
     useEffect(() => {
@@ -211,17 +231,15 @@ export default function MonumentDetailModal({
                                             <Star className="h-4 w-4 text-gray-500" /> {t("shortcut.tourist_attraction_details.classification")}
                                         </h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {details.theme?.map((th: any) => (
-                                                <Badge
-                                                    key={th._id}
+                                            {details.theme?.map((th: any, i: number) => (
+                                                <Badge key={th._id || `theme-${i}`}
                                                     className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                                                 >
                                                     {safeText(th.title || th.name)}
                                                 </Badge>
                                             ))}
-                                            {details.subtheme?.map((sth: any) => (
-                                                <Badge
-                                                    key={sth._id}
+                                            {details.subtheme?.map((sth: any, i: number) => (
+                                                <Badge key={sth._id || `subtheme-${i}`}
                                                     className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                                                 >
                                                     {safeText(sth.title || sth.name)}
@@ -238,11 +256,9 @@ export default function MonumentDetailModal({
                                             <ImageIcon className="h-5 w-5 text-gray-500" /> {t("shortcut.tourist_attraction_details.gallery")}
                                         </h3>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                            {details.gallery.map(
-                                                (img: any) =>
-                                                    img.secure_url && (
-                                                        <div
-                                                            key={img.secure_url}
+                                            {details.gallery.map((img: any, i: number) =>
+  img.secure_url && (
+    <div key={img.secure_url || `gallery-${i}`}
                                                             className="relative h-40 overflow-hidden rounded-md shadow-sm"
                                                         >
                                                             <Image
@@ -321,7 +337,7 @@ export default function MonumentDetailModal({
                                         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
                                             {details.relatedtours.map((tour: any) => (
                                                 <div
-                                                    key={tour._id}
+                                                    key={tour._id }
                                                     className="overflow-hidden rounded-xl border bg-card flex flex-col h-full shadow-sm hover:shadow-md transition"
                                                 >
                                                     {tour.image?.secure_url ? (
@@ -380,6 +396,7 @@ export default function MonumentDetailModal({
                                             {details.nearbyservices.map((srv: any) => (
                                                 <div
                                                     key={srv._id || srv.name}
+
                                                     className="p-4 rounded-xl border bg-card shadow-sm hover:shadow-md transition flex flex-col gap-2"
                                                 >
                                                     {srv.image?.secure_url && (
@@ -405,6 +422,73 @@ export default function MonumentDetailModal({
                                         </div>
                                     </section>
                                 )}
+                                {/* 📅 Events linked to this Monument */}
+{!!events.length && (
+  <section>
+    <h3 className="mb-3 flex items-center gap-2 font-semibold text-lg text-foreground">
+      <CalendarDays className="h-5 w-5 text-gray-500" />
+      {t("event_header")}
+    </h3>
+
+    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+      {events.map((ev, i) => (
+        <div
+          key={ev._id || `event-${i}`}
+          className="overflow-hidden rounded-xl border bg-card flex flex-col h-full shadow-sm hover:shadow-md transition"
+        >
+          {/* 🖼 Image */}
+          {ev.image?.secure_url ? (
+            <div className="relative h-40">
+              <Image
+                src={ev.image.secure_url}
+                alt={ev.title}
+                fill
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div className="grid h-40 place-items-center bg-muted">
+              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+            </div>
+          )}
+
+          {/* 📄 Event Info */}
+          <div className="flex flex-col justify-between h-full p-4 space-y-2">
+            <h4 className="text-sm font-semibold text-foreground">{ev.title}</h4>
+
+            {/* {ev.displaydate && (
+              <p className="text-xs text-muted-foreground">
+                <CalendarDays className="inline h-3 w-3 mr-1 text-gray-500" />
+                {ev.displaydate}
+              </p>
+            )} */}
+
+            {ev.description && (
+              <p className="text-sm text-muted-foreground line-clamp-3">
+                {ev.description || ""}
+              </p>
+            )}
+
+<Button
+  size="sm"
+  className="w-full rounded-full mt-2 bg-gray-100 text-gray-900 hover:bg-gray-200 
+    dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 
+    border border-gray-300 dark:border-gray-700"
+  onClick={() => {
+    router.push(`/shortcuts/events/?id=${ev._id}`);
+  }}
+>
+  {t("tourDetails.viewDetails")}
+</Button>
+
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+)}
+
+
                             </>
                         )
                     )}

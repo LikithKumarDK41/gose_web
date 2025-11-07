@@ -12,6 +12,9 @@ import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useLocale } from "@/providers/LocaleProvider";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useRef } from "react";
+
 /* ------------------------------------------------------------
    🌅 Events Page (Sunrise Rose–Amber–Lime Theme)
 ------------------------------------------------------------ */
@@ -23,7 +26,36 @@ export default function EventsPage() {
   const [open, setOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [activeMonument, setActiveMonument] = useState<any | null>(null);
-const { t } = useLocale();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const eventIdFromURL = searchParams.get("id");
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const eventRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const { t } = useLocale();
+  useEffect(() => {
+    if (eventIdFromURL && events.length > 0) {
+      const found = events.find((ev) => ev._id === eventIdFromURL);
+      if (found) {
+        const month = (found.eventmonth || "その他").trim();
+        setSelectedMonth(month);
+
+        // Small delay to ensure tab content is rendered before scrolling
+        setTimeout(() => {
+          const target = eventRefs.current[found._id];
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+            target.classList.add("ring-2", "ring-amber-400");
+            setTimeout(
+              () => target.classList.remove("ring-2", "ring-amber-400"),
+              2000
+            );
+          }
+        }, 400);
+      }
+    }
+  }, [eventIdFromURL, events]);
+
   /* -------------------- Fetch Events -------------------- */
   useEffect(() => {
     let alive = true;
@@ -93,7 +125,7 @@ const { t } = useLocale();
       <section className="relative w-full mx-auto bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 text-white rounded-3xl shadow-xl mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
-             {t("events.title")}
+            {t("events.title")}
           </h1>
           <p className="text-lg md:text-xl font-medium opacity-90">
             {t("events.subtitle")}
@@ -105,7 +137,8 @@ const { t } = useLocale();
       {events.length > 0 ? (
         <section className="mt-8">
           <Tabs
-            defaultValue={groupedEvents.sortedKeys[0]}
+            value={selectedMonth || groupedEvents.sortedKeys[0]}
+            onValueChange={(val) => setSelectedMonth(val)}
             className="w-full"
           >
             {/* Scrollable Tabs */}
@@ -131,11 +164,14 @@ const { t } = useLocale();
                 className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-fadeIn"
               >
                 {groupedEvents.map[monthKey].map((ev) => (
-                  <EventCard
+                  <div
+                    ref={(el) => {
+                      eventRefs.current[ev._id] = el;
+                    }}
                     key={ev._id}
-                    ev={ev}
-                    onOpen={() => handleOpenMonument(ev)}
-                  />
+                  >
+                    <EventCard ev={ev} onOpen={() => handleOpenMonument(ev)} />
+                  </div>
                 ))}
               </TabsContent>
             ))}
@@ -167,7 +203,7 @@ const { t } = useLocale();
    🎴 Event Card
 ------------------------------------------------------------ */
 function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: () => void }) {
-const { t } = useLocale();
+  const { t } = useLocale();
   return (
     <Card className="overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/50 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all py-0">
       <div className="relative">
@@ -179,7 +215,9 @@ const { t } = useLocale();
           />
         ) : (
           <div className="w-full h-40 bg-gray-200 dark:bg-gray-800 grid place-items-center">
-            <span className="text-gray-400 text-xs">{t("events.no_image")}</span>
+            <span className="text-gray-400 text-xs">
+              {t("events.no_image")}
+            </span>
           </div>
         )}
         <div className="absolute top-2 left-2 bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 text-white text-[11px] font-bold py-0.5 px-2 rounded-md shadow-sm">

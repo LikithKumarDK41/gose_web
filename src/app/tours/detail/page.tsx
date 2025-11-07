@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo, useCallback, useState, Suspense } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useCallback,
+  useState,
+  Suspense,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import MapboxTourMap from "@/components/map/MapboxTourMap";
@@ -41,7 +47,8 @@ export default function TourDetailsClientPage() {
     thunk
       .unwrap()
       .catch((err: any) => {
-        if (err?.name !== "AbortError") console.error("fetchTourById failed", err);
+        if (err?.name !== "AbortError")
+          console.error("fetchTourById failed", err);
       })
       .finally(() => setTimeout(() => hide(), 400));
     return () => thunk.abort();
@@ -54,11 +61,14 @@ export default function TourDetailsClientPage() {
     }
   }, [id, tour, dispatch]);
 
-  const onJumpTimeline = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    const el = document.getElementById("timeline");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
+  const onJumpTimeline = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      const el = document.getElementById("timeline");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    []
+  );
 
   const toggleBookmark = () => setBookmarked((p) => !p);
 
@@ -119,7 +129,9 @@ export default function TourDetailsClientPage() {
 
         {/* Title + Subtitle (Centered Vertically) */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-6">
-          <h1 className="text-4xl sm:text-5xl font-bold drop-shadow-lg">{tour.title}</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold drop-shadow-lg">
+            {tour.title}
+          </h1>
           {tour.content?.brief && (
             <p className="mt-4 text-sm sm:text-base text-gray-200 max-w-2xl mx-auto leading-relaxed">
               {tour.content.brief.replace(/<[^>]+>/g, "").trim()}
@@ -143,7 +155,10 @@ export default function TourDetailsClientPage() {
             viewBox="0 0 500 50"
             preserveAspectRatio="none"
           >
-            <path d="M0,0 C150,60 350,-20 500,40 L500,0 L0,0 Z" fill="currentColor" />
+            <path
+              d="M0,0 C150,60 350,-20 500,40 L500,0 L0,0 Z"
+              fill="currentColor"
+            />
           </svg>
 
           {/* Bottom Curved Divider (mirrored) */}
@@ -152,7 +167,10 @@ export default function TourDetailsClientPage() {
             viewBox="0 0 500 50"
             preserveAspectRatio="none"
           >
-            <path d="M0,0 C150,60 350,-20 500,40 L500,0 L0,0 Z" fill="currentColor" />
+            <path
+              d="M0,0 C150,60 350,-20 500,40 L500,0 L0,0 Z"
+              fill="currentColor"
+            />
           </svg>
 
           {/* Inner Content */}
@@ -221,7 +239,9 @@ export default function TourDetailsClientPage() {
                 text-white font-semibold shadow-md hover:shadow-xl transition-all hover:scale-[1.04]"
                 asChild
               >
-                <NavLink href={`/tours/detail/navigation?id=${encodeURIComponent(id)}`}>
+                <NavLink
+                  href={`/tours/detail/navigation?id=${encodeURIComponent(id)}`}
+                >
                   {t("tourDetails.startNavigation")}
                 </NavLink>
               </Button>
@@ -251,7 +271,7 @@ export default function TourDetailsClientPage() {
                   hover:shadow-[0_0_14px_rgba(139,92,246,0.35)] transition-all duration-300"
                 >
                   <span className="text-sm leading-none">⭐</span>
-                  <span className="capitalize">{t("tourDetails.featured")}</span>
+                  <span className="capitalize">{t("actions.featured")}</span>
                 </div>
               )}
 
