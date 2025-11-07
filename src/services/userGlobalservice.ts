@@ -355,3 +355,64 @@ export async function apiFetchEventsByMonument(monumentId: string): Promise<Even
     throw new Error(parseAxiosError(err, "Failed to load events for monument"));
   }
 }
+
+// Bookmark API
+export interface BookmarkPayload {
+  marktype: string;
+  user: string;
+  monument?: string;
+  place?: string;
+  tour?: string;
+  status: string;
+}
+
+export interface BookmarkResponse {
+  success: boolean;
+  message?: string;
+  data?: { _id: string };
+}
+/* ------------ API Methods ------------ */
+
+/** ✅ Create Bookmark */
+export async function apiCreateBookmark(
+  payload: BookmarkPayload
+): Promise<BookmarkResponse> {
+  try {
+    const { data } = await api.post<BookmarkResponse>("/v1/bookmarks", payload);
+    return data;
+  } catch (err: any) {
+    throw new Error(parseAxiosError(err, "Failed to create bookmark"));
+  }
+}
+
+/** ✅ Remove Bookmark (by monument ID, not bookmark ID) */
+export async function apiRemoveBookmark(refId: string): Promise<void> {
+  if (!refId) {
+    // extra safety guard in case someone calls it with null/empty
+    console.warn("apiRemoveBookmark called with empty refId");
+    return;
+  }
+
+  try {
+    await api.put(`/v1/bookmarks/${refId}`, { status: "remove" });
+  } catch (err: any) {
+    throw new Error(parseAxiosError(err, "Failed to remove bookmark"));
+  }
+}
+
+/** ✅ Fetch Bookmark by user + marktype + ref ID */
+export async function apiFetchBookmarkByRef(
+  userId: string,
+  marktype: "monument" | "place" | "tour",
+  refId: string
+): Promise<{ _id?: string } | null> {
+  try {
+    const { data } = await api.get(`/v1/bookmarks`, {
+      params: { user: userId, marktype, ref: refId },
+    });
+    const result = Array.isArray(data?.results) ? data.results[0] : data;
+    return result || null;
+  } catch {
+    return null;
+  }
+}
