@@ -34,6 +34,7 @@ import {
   apiRemoveBookmark,
   apiCreateBookmark,
 } from "@/services/userGlobalservice";
+import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */
 interface MonumentDetailModalProps {
@@ -157,35 +158,38 @@ export default function MonumentDetailModal({
   }, [details?._id, userId]);
 
   const handleBookmarkToggle = async () => {
-    if (!userId || !details?._id) return;
+    if (!userId || !details?._id) {
+      toast.error("Please log in to bookmark.");
+      return;
+    }
 
     const marktype: "monument" | "tour" =
       details?.type === "tour" ? "tour" : "monument";
 
     try {
       if (isBookmarked) {
-        // 🔹 Remove bookmark by monument ID
         if (!bookmarkId) {
           console.warn("No bookmark ID found to remove");
           return;
         }
         await apiRemoveBookmark(bookmarkId);
         setIsBookmarked(false);
-        console.log("Bookmark removed successfully");
+        toast.info(t("bookmark_removed"));
       } else {
-        // 🔹 Add new bookmark
         const payload = {
           user: userId,
           marktype,
           [marktype]: details._id,
           status: "active",
         };
-        await apiCreateBookmark(payload);
+        const created: any = await apiCreateBookmark(payload);
         setIsBookmarked(true);
-        console.log("Bookmark added successfully");
+        setBookmarkId(created?._id || created?.data?._id || null);
+        toast.success(t("bookmark_added"));
       }
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
+      toast.error("Failed to update bookmark");
     }
   };
 
@@ -250,12 +254,26 @@ export default function MonumentDetailModal({
                   </div>
                 )}
 
+                {!details.image?.secure_url && (
+                  <button
+                    onClick={handleBookmarkToggle}
+                    className="absolute top-20 right-6 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition"
+                    aria-label="Toggle bookmark"
+                  >
+                    {isBookmarked ? (
+                      <BookmarkCheck className="h-6 w-6 text-yellow-400" />
+                    ) : (
+                      <Bookmark className="h-6 w-6 text-white" />
+                    )}
+                  </button>
+                )}
+
                 {/* 🏛 Title + Region */}
                 <section>
                   <h2 className="text-2xl font-bold tracking-tight text-foreground">
                     {safeText(details.title || details.name)}
                   </h2>
-                  {details.region && (
+                  {details.region && (details.region.title || details.region.name) && (
                     <p className="mt-1 text-sm flex items-center gap-1 text-muted-foreground">
                       <MapPin className="h-4 w-4 text-gray-500" />
                       {safeText(details.region.title || details.region.name)}
