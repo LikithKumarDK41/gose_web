@@ -375,6 +375,13 @@
     "no_events": "There are no scheduled events at the moment."
   },
   "event_header": "Events",
-  "bookmark_removed":"Removed from bookmarks",
-  "bookmark_added":"Added to bookmarks"
+  "bookmark_removed": "Removed from bookmarks",
+  "bookmark_added": "Added to bookmarks",
+  "travel_mode": "Travel mode",
+  "duration": "Duration",
+  "walk": "walk",
+  "car": "car",
+  "train": "train",
+  "lunch_break": "Lunch Break",
+  "lunch": "Lunch"
 }

@@ -4,9 +4,7 @@ import { useState, useEffect, useMemo, Fragment } from "react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/lib/store";
-import {
-  fetchMonumentDetails,
-} from "@/lib/store/slices/touristSlice";
+import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
 import {
   type TourPoint,
   type Monument,
@@ -34,14 +32,20 @@ import { getPersistedUser } from "@/services/userAuthService";
 import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */
-export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] }) {
+export default function TimelineRight({
+  tourpoints,
+}: {
+  tourpoints: TourPoint[];
+}) {
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useLocale();
   const { show, hide } = useGlobalLoader();
-const persisted = getPersistedUser();
-const userId = persisted?.user?._id ?? null;
+  const persisted = getPersistedUser();
+  const userId = persisted?.user?._id ?? null;
 
-const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, string | null>>({});
+  const [bookmarkedIds, setBookmarkedIds] = useState<
+    Record<string, string | null>
+  >({});
 
   const loading = useSelector((s: any) => s.tourist.loading);
   const monumentDetail = useSelector((s: any) => s.tourist.monumentDetail);
@@ -55,97 +59,94 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, string | null>
     () => tourpoints.find((p) => p._id === openId) ?? null,
     [openId, tourpoints]
   );
-useEffect(() => {
-  if (!userId || !tourpoints?.length) return;
-  let cancelled = false;
+  useEffect(() => {
+    if (!userId || !tourpoints?.length) return;
+    let cancelled = false;
 
-  (async () => {
-    const results: Record<string, string | null> = {};
-    try {
-      for (const p of tourpoints) {
-        const m = p.monument;
-        if (!m?._id) continue;
-        const existing = await apiFetchBookmarkByRef(userId, "monument", m._id);
-        if (cancelled) return;
+    (async () => {
+      const results: Record<string, string | null> = {};
+      try {
+        for (const p of tourpoints) {
+          const m = p.monument;
+          if (!m?._id) continue;
+          const existing = await apiFetchBookmarkByRef();
+          if (cancelled) return;
 
-        let found: any = null;
-        if (Array.isArray((existing as any)?.bookmarks?.results)) {
-          found = (existing as any).bookmarks.results.find(
-            (b: any) =>
-              b?.marktype === "monument" &&
-              b?.monument?._id === m._id &&
-              b?.status === "active"
-          );
-        } else if ((existing as any)?.monument?._id === m._id) {
-          found = existing;
+          let found: any = null;
+          if (Array.isArray((existing as any)?.bookmarks?.results)) {
+            found = (existing as any).bookmarks.results.find(
+              (b: any) =>
+                b?.marktype === "monument" &&
+                b?.monument?._id === m._id &&
+                b?.status === "active"
+            );
+          } else if ((existing as any)?.monument?._id === m._id) {
+            found = existing;
+          }
+
+          results[m._id] = found?._id || null;
         }
-
-        results[m._id] = found?._id || null;
+        if (!cancelled) setBookmarkedIds(results);
+      } catch (err) {
+        console.error("Bookmark fetch failed:", err);
       }
-      if (!cancelled) setBookmarkedIds(results);
-    } catch (err) {
-      console.error("Bookmark fetch failed:", err);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tourpoints, userId]);
+  const handleBookmarkToggle = async (monumentId: string) => {
+    if (!userId) {
+      toast.error("Please log in to bookmark.");
+      return;
     }
-  })();
 
-  return () => {
-    cancelled = true;
-  };
-}, [tourpoints, userId]);
-const handleBookmarkToggle = async (monumentId: string) => {
-  if (!userId) {
-    toast.error("Please log in to bookmark.");
-    return;
-  }
+    const existingId = bookmarkedIds[monumentId];
 
-  const existingId = bookmarkedIds[monumentId];
-
-  try {
-    if (existingId) {
-      // 🧩 Remove bookmark
-      await apiRemoveBookmark(existingId);
-      setBookmarkedIds((prev) => {
-        const updated = { ...prev, [monumentId]: null };
-        return { ...updated }; // Force re-render
-      });
-      toast.info(t("bookmark_removed"));
-    } else {
-      // 🧩 Add bookmark
-      const payload = {
-        user: userId,
-        marktype: "monument",
-        monument: monumentId,
-        status: "active",
-      };
-      const created: any = await apiCreateBookmark(payload); // 👈 force `any` for flexible shape
-
-      // ✅ Normalize the possible response formats
-      const newId =
-        created?.data?._id ??
-        created?.data?.data?._id ??
-        created?._id ??
-        created?.bookmark?._id ??
-        null;
-
-      if (newId) {
+    try {
+      if (existingId) {
+        // 🧩 Remove bookmark
+        await apiRemoveBookmark(existingId);
         setBookmarkedIds((prev) => {
-          const updated = { ...prev, [monumentId]: newId };
-          return { ...updated };
+          const updated = { ...prev, [monumentId]: null };
+          return { ...updated }; // Force re-render
         });
-        toast.success(t("bookmark_added"));
+        toast.info(t("bookmark_removed"));
       } else {
-        console.warn("Unexpected response from apiCreateBookmark:", created);
-        toast.warning("Bookmark created, but response was unexpected");
+        // 🧩 Add bookmark
+        const payload = {
+          user: userId,
+          marktype: "monument",
+          monument: monumentId,
+          status: "active",
+        };
+        const created: any = await apiCreateBookmark(payload); // 👈 force `any` for flexible shape
+
+        // ✅ Normalize the possible response formats
+        const newId =
+          created?.data?._id ??
+          created?.data?.data?._id ??
+          created?._id ??
+          created?.bookmark?._id ??
+          null;
+
+        if (newId) {
+          setBookmarkedIds((prev) => {
+            const updated = { ...prev, [monumentId]: newId };
+            return { ...updated };
+          });
+          toast.success(t("bookmark_added"));
+        } else {
+          console.warn("Unexpected response from apiCreateBookmark:", created);
+          toast.warning("Bookmark created, but response was unexpected");
+        }
       }
+    } catch (err) {
+      console.error("Bookmark toggle failed:", err);
+      toast.error("Failed to update bookmark");
     }
-  } catch (err) {
-    console.error("Bookmark toggle failed:", err);
-    toast.error("Failed to update bookmark");
-  }
-};
-
-
-
+  };
 
   useEffect(() => {
     if (loading) show();
@@ -212,7 +213,9 @@ const handleBookmarkToggle = async (monumentId: string) => {
             const accent = dynamicColor(i, p.waypointtype);
             const next = tourpoints[i + 1];
 
-            {/* -------------------- START / END STATION -------------------- */ }
+            {
+              /* -------------------- START / END STATION -------------------- */
+            }
             if (
               (p.waypointtype === "start" || p.waypointtype === "end") &&
               p.pointtype === "station"
@@ -224,28 +227,39 @@ const handleBookmarkToggle = async (monumentId: string) => {
 
               const hideTop = p.waypointtype === "start";
               const hideBottom = p.waypointtype === "end";
+              const travelTitle =
+                p.traveltype?.title ||
+                capitalize(p.traveltype?.name) ||
+                "";
 
               return (
                 <Fragment key={p._id}>
                   <li
-                    className={`grid grid-cols-[90px_1fr] gap-6 ${hideBottom ? "pb-8" : "pb-10"
-                      }`}
+                    className={`grid grid-cols-[90px_1fr] gap-6 ${
+                      hideBottom ? "pb-8" : "pb-10"
+                    }`}
                   >
                     <div className="relative h-full w-[90px]">
+                      {/* vertical line */}
                       <div
-                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${hideTop ? "top-[50%]" : "top-0"
-                          } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
+                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${
+                          hideTop ? "top-[50%]" : "top-0"
+                        } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
                       />
+
+                      {/* station dot with S / E */}
                       <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
                         <div
                           className={`grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ${colorClass}`}
                         >
-                          <Train className="h-6 w-6" />
+                          <span className="text-lg font-bold">
+                            {p.waypointtype === "start" ? "S" : "E"}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* ✅ fixed text colors here */}
+                    {/* Info text */}
                     <div className="flex flex-col justify-center mt-1">
                       <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-50 leading-tight">
                         {p.name ||
@@ -253,9 +267,15 @@ const handleBookmarkToggle = async (monumentId: string) => {
                             ? "Start Station"
                             : "End Station")}
                       </h3>
+                      {/* travel type info */}
+                      {travelTitle && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {t('travel_mode')}: {travelTitle}
+                        </p>
+                      )}
                       {p.traveltime && (
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Duration: {p.traveltime}
+                          {t('duration')}: {p.traveltime}
                         </p>
                       )}
                     </div>
@@ -290,7 +310,7 @@ const handleBookmarkToggle = async (monumentId: string) => {
                       </div>
                       {p.traveltime && (
                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                          Duration: {p.traveltime}
+                          {t('duration')}: {p.traveltime}
                         </p>
                       )}
                     </div>
@@ -318,40 +338,42 @@ const handleBookmarkToggle = async (monumentId: string) => {
                   <TimelineDot index={i} accent={accent} />
 
                   <article className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl">
-<div className="relative w-full h-64 cursor-pointer" onClick={() => handleOpen(p._id)}>
-  {m?.image?.secure_url ? (
-    <Image
-      src={m.image.secure_url}
-      alt={m.name ?? ""}
-      fill
-      className="object-cover opacity-95 hover:opacity-100 transition"
-    />
-  ) : (
-    <div className="grid h-full w-full place-items-center bg-gray-200 dark:bg-gray-800">
-      <ImageIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
-    </div>
-  )}
-  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div
+                      className="relative w-full h-64 cursor-pointer"
+                      onClick={() => handleOpen(p._id)}
+                    >
+                      {m?.image?.secure_url ? (
+                        <Image
+                          src={m.image.secure_url}
+                          alt={m.name ?? ""}
+                          fill
+                          className="object-cover opacity-95 hover:opacity-100 transition"
+                        />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center bg-gray-200 dark:bg-gray-800">
+                          <ImageIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-  {/* 🔖 Bookmark Button */}
-  {m?._id && (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        handleBookmarkToggle(m._id);
-      }}
-      aria-label="Toggle bookmark"
-      className="absolute top-3 right-3 bg-black/40 hover:bg-black/70 p-2 rounded-full transition"
-    >
-      {bookmarkedIds[m._id] ? (
-        <BookmarkCheck className="h-5 w-5 text-yellow-400" />
-      ) : (
-        <Bookmark className="h-5 w-5 text-white" />
-      )}
-    </button>
-  )}
-</div>
-
+                      {/* 🔖 Bookmark Button */}
+                      {m?._id && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBookmarkToggle(m._id);
+                          }}
+                          aria-label="Toggle bookmark"
+                          className="absolute top-3 right-3 bg-black/40 hover:bg-black/70 p-2 rounded-full transition"
+                        >
+                          {bookmarkedIds[m._id] ? (
+                            <BookmarkCheck className="h-5 w-5 text-yellow-400" />
+                          ) : (
+                            <Bookmark className="h-5 w-5 text-white" />
+                          )}
+                        </button>
+                      )}
+                    </div>
 
                     <div className="p-6">
                       <h3
@@ -445,7 +467,7 @@ function TimelineDot({ index, accent }: { index: number; accent: string }) {
           className="grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ring-white/70 dark:ring-gray-800"
           style={{ background: accent }}
         >
-          <span className="text-[13px] font-semibold">{index + 1}</span>
+          <span className="text-[13px] font-semibold">{index}</span>
         </div>
       </div>
     </div>
@@ -466,19 +488,20 @@ function TravelConnector({
   const travelTitle =
     next?.pointtype === "lunch"
       ? "Lunch Break"
-      : info?.title || capitalize(travelMode);
+      : info?.title || travelMode;
   const icon =
     next?.pointtype === "lunch" ? (
       <UtensilsCrossed className="h-6 w-6 text-orange-500" />
     ) : (
       getTravelIcon(travelMode)
     );
+    const { t } = useLocale();
 
   return (
     <div className="flex items-center gap-3 text-base font-medium">
       <div className="flex items-center gap-2">
         {icon}
-        <span>{travelTitle}</span>
+        <span>{t(travelTitle)}</span>
       </div>
       {time && <span className="text-sm opacity-80">• {time}</span>}
     </div>
