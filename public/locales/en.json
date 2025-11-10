@@ -376,5 +376,6 @@
   },
   "event_header": "Events",
   "bookmark_removed":"Removed from bookmarks",
-  "bookmark_added":"Added to bookmarks"
+  "bookmark_added":"Added to bookmarks",
+  "search_faciliy":"Search for facilities..."
 }
