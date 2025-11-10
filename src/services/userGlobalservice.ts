@@ -401,15 +401,9 @@ export async function apiRemoveBookmark(refId: string): Promise<void> {
 }
 
 /** ✅ Fetch Bookmark by user + marktype + ref ID */
-export async function apiFetchBookmarkByRef(
-  userId: string,
-  marktype: "monument" | "place" | "tour",
-  refId: string
-): Promise<{ _id?: string } | null> {
+export async function apiFetchBookmarkByRef(): Promise<{ _id?: string } | null> {
   try {
-    const { data } = await api.get(`/v1/bookmarks`, {
-      params: { user: userId, marktype, ref: refId },
-    });
+    const { data } = await api.get(`/v1/bookmarks`);
     const result = Array.isArray(data?.results) ? data.results[0] : data;
     return result || null;
   } catch {

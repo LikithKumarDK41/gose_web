@@ -34,14 +34,20 @@ import { getPersistedUser } from "@/services/userAuthService";
 import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */
-export default function TimelineRight({ tourpoints }: { tourpoints: TourPoint[] }) {
+export default function TimelineRight({
+  tourpoints,
+}: {
+  tourpoints: TourPoint[];
+}) {
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useLocale();
   const { show, hide } = useGlobalLoader();
-const persisted = getPersistedUser();
-const userId = persisted?.user?._id ?? null;
+  const persisted = getPersistedUser();
+  const userId = persisted?.user?._id ?? null;
 
-const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, string | null>>({});
+  const [bookmarkedIds, setBookmarkedIds] = useState<
+    Record<string, string | null>
+  >({});
 
   const loading = useSelector((s: any) => s.tourist.loading);
   const monumentDetail = useSelector((s: any) => s.tourist.monumentDetail);
@@ -55,97 +61,94 @@ const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, string | null>
     () => tourpoints.find((p) => p._id === openId) ?? null,
     [openId, tourpoints]
   );
-useEffect(() => {
-  if (!userId || !tourpoints?.length) return;
-  let cancelled = false;
+  useEffect(() => {
+    if (!userId || !tourpoints?.length) return;
+    let cancelled = false;
 
-  (async () => {
-    const results: Record<string, string | null> = {};
-    try {
-      for (const p of tourpoints) {
-        const m = p.monument;
-        if (!m?._id) continue;
-        const existing = await apiFetchBookmarkByRef(userId, "monument", m._id);
-        if (cancelled) return;
+    (async () => {
+      const results: Record<string, string | null> = {};
+      try {
+        for (const p of tourpoints) {
+          const m = p.monument;
+          if (!m?._id) continue;
+          const existing = await apiFetchBookmarkByRef();
+          if (cancelled) return;
 
-        let found: any = null;
-        if (Array.isArray((existing as any)?.bookmarks?.results)) {
-          found = (existing as any).bookmarks.results.find(
-            (b: any) =>
-              b?.marktype === "monument" &&
-              b?.monument?._id === m._id &&
-              b?.status === "active"
-          );
-        } else if ((existing as any)?.monument?._id === m._id) {
-          found = existing;
+          let found: any = null;
+          if (Array.isArray((existing as any)?.bookmarks?.results)) {
+            found = (existing as any).bookmarks.results.find(
+              (b: any) =>
+                b?.marktype === "monument" &&
+                b?.monument?._id === m._id &&
+                b?.status === "active"
+            );
+          } else if ((existing as any)?.monument?._id === m._id) {
+            found = existing;
+          }
+
+          results[m._id] = found?._id || null;
         }
-
-        results[m._id] = found?._id || null;
+        if (!cancelled) setBookmarkedIds(results);
+      } catch (err) {
+        console.error("Bookmark fetch failed:", err);
       }
-      if (!cancelled) setBookmarkedIds(results);
-    } catch (err) {
-      console.error("Bookmark fetch failed:", err);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tourpoints, userId]);
+  const handleBookmarkToggle = async (monumentId: string) => {
+    if (!userId) {
+      toast.error("Please log in to bookmark.");
+      return;
     }
-  })();
 
-  return () => {
-    cancelled = true;
-  };
-}, [tourpoints, userId]);
-const handleBookmarkToggle = async (monumentId: string) => {
-  if (!userId) {
-    toast.error("Please log in to bookmark.");
-    return;
-  }
+    const existingId = bookmarkedIds[monumentId];
 
-  const existingId = bookmarkedIds[monumentId];
-
-  try {
-    if (existingId) {
-      // 🧩 Remove bookmark
-      await apiRemoveBookmark(existingId);
-      setBookmarkedIds((prev) => {
-        const updated = { ...prev, [monumentId]: null };
-        return { ...updated }; // Force re-render
-      });
-      toast.info(t("bookmark_removed"));
-    } else {
-      // 🧩 Add bookmark
-      const payload = {
-        user: userId,
-        marktype: "monument",
-        monument: monumentId,
-        status: "active",
-      };
-      const created: any = await apiCreateBookmark(payload); // 👈 force `any` for flexible shape
-
-      // ✅ Normalize the possible response formats
-      const newId =
-        created?.data?._id ??
-        created?.data?.data?._id ??
-        created?._id ??
-        created?.bookmark?._id ??
-        null;
-
-      if (newId) {
+    try {
+      if (existingId) {
+        // 🧩 Remove bookmark
+        await apiRemoveBookmark(existingId);
         setBookmarkedIds((prev) => {
-          const updated = { ...prev, [monumentId]: newId };
-          return { ...updated };
+          const updated = { ...prev, [monumentId]: null };
+          return { ...updated }; // Force re-render
         });
-        toast.success(t("bookmark_added"));
+        toast.info(t("bookmark_removed"));
       } else {
-        console.warn("Unexpected response from apiCreateBookmark:", created);
-        toast.warning("Bookmark created, but response was unexpected");
+        // 🧩 Add bookmark
+        const payload = {
+          user: userId,
+          marktype: "monument",
+          monument: monumentId,
+          status: "active",
+        };
+        const created: any = await apiCreateBookmark(payload); // 👈 force `any` for flexible shape
+
+        // ✅ Normalize the possible response formats
+        const newId =
+          created?.data?._id ??
+          created?.data?.data?._id ??
+          created?._id ??
+          created?.bookmark?._id ??
+          null;
+
+        if (newId) {
+          setBookmarkedIds((prev) => {
+            const updated = { ...prev, [monumentId]: newId };
+            return { ...updated };
+          });
+          toast.success(t("bookmark_added"));
+        } else {
+          console.warn("Unexpected response from apiCreateBookmark:", created);
+          toast.warning("Bookmark created, but response was unexpected");
+        }
       }
+    } catch (err) {
+      console.error("Bookmark toggle failed:", err);
+      toast.error("Failed to update bookmark");
     }
-  } catch (err) {
-    console.error("Bookmark toggle failed:", err);
-    toast.error("Failed to update bookmark");
-  }
-};
-
-
-
+  };
 
   useEffect(() => {
     if (loading) show();
@@ -212,7 +215,9 @@ const handleBookmarkToggle = async (monumentId: string) => {
             const accent = dynamicColor(i, p.waypointtype);
             const next = tourpoints[i + 1];
 
-            {/* -------------------- START / END STATION -------------------- */ }
+            {
+              /* -------------------- START / END STATION -------------------- */
+            }
             if (
               (p.waypointtype === "start" || p.waypointtype === "end") &&
               p.pointtype === "station"
@@ -228,13 +233,15 @@ const handleBookmarkToggle = async (monumentId: string) => {
               return (
                 <Fragment key={p._id}>
                   <li
-                    className={`grid grid-cols-[90px_1fr] gap-6 ${hideBottom ? "pb-8" : "pb-10"
-                      }`}
+                    className={`grid grid-cols-[90px_1fr] gap-6 ${
+                      hideBottom ? "pb-8" : "pb-10"
+                    }`}
                   >
                     <div className="relative h-full w-[90px]">
                       <div
-                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${hideTop ? "top-[50%]" : "top-0"
-                          } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
+                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${
+                          hideTop ? "top-[50%]" : "top-0"
+                        } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
                       />
                       <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
                         <div
@@ -318,40 +325,42 @@ const handleBookmarkToggle = async (monumentId: string) => {
                   <TimelineDot index={i} accent={accent} />
 
                   <article className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl">
-<div className="relative w-full h-64 cursor-pointer" onClick={() => handleOpen(p._id)}>
-  {m?.image?.secure_url ? (
-    <Image
-      src={m.image.secure_url}
-      alt={m.name ?? ""}
-      fill
-      className="object-cover opacity-95 hover:opacity-100 transition"
-    />
-  ) : (
-    <div className="grid h-full w-full place-items-center bg-gray-200 dark:bg-gray-800">
-      <ImageIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
-    </div>
-  )}
-  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div
+                      className="relative w-full h-64 cursor-pointer"
+                      onClick={() => handleOpen(p._id)}
+                    >
+                      {m?.image?.secure_url ? (
+                        <Image
+                          src={m.image.secure_url}
+                          alt={m.name ?? ""}
+                          fill
+                          className="object-cover opacity-95 hover:opacity-100 transition"
+                        />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center bg-gray-200 dark:bg-gray-800">
+                          <ImageIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-  {/* 🔖 Bookmark Button */}
-  {m?._id && (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        handleBookmarkToggle(m._id);
-      }}
-      aria-label="Toggle bookmark"
-      className="absolute top-3 right-3 bg-black/40 hover:bg-black/70 p-2 rounded-full transition"
-    >
-      {bookmarkedIds[m._id] ? (
-        <BookmarkCheck className="h-5 w-5 text-yellow-400" />
-      ) : (
-        <Bookmark className="h-5 w-5 text-white" />
-      )}
-    </button>
-  )}
-</div>
-
+                      {/* 🔖 Bookmark Button */}
+                      {m?._id && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBookmarkToggle(m._id);
+                          }}
+                          aria-label="Toggle bookmark"
+                          className="absolute top-3 right-3 bg-black/40 hover:bg-black/70 p-2 rounded-full transition"
+                        >
+                          {bookmarkedIds[m._id] ? (
+                            <BookmarkCheck className="h-5 w-5 text-yellow-400" />
+                          ) : (
+                            <Bookmark className="h-5 w-5 text-white" />
+                          )}
+                        </button>
+                      )}
+                    </div>
 
                     <div className="p-6">
                       <h3
