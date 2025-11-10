@@ -410,3 +410,146 @@ export async function apiFetchBookmarkByRef(): Promise<{ _id?: string } | null> 
     return null;
   }
 }
+
+/* ========= Search Filters Types ========= */
+export interface SearchFilter {
+  _id: string;
+  title: string;
+  icon?: {
+    public_id?: string;
+    secure_url?: string;
+    url?: string;
+  };
+  link?: string;
+  sortby?: string;
+  content?: {
+    brief?: string;
+    extended?: string;
+  };
+  priority?: number;
+}
+
+export interface SearchFiltersEnvelope {
+  searchfilters?: {
+    total: number;
+    results: SearchFilter[];
+  };
+  results?: SearchFilter[];
+}
+
+/** Normalize /v1/searchfilters response */
+function extractSearchFilters(data: any): SearchFilter[] {
+  if (Array.isArray(data)) return data;
+
+  if (data?.searchfilters?.results && Array.isArray(data.searchfilters.results)) {
+    return data.searchfilters.results;
+  }
+
+  if (Array.isArray(data?.results)) {
+    return data.results;
+  }
+
+  return [];
+}
+
+/* ========= Search Filters API ========= */
+/**
+ * 🔹 Fetch all search filters
+ * GET /v1/searchfilters
+ */
+export async function apiFetchSearchFilters(): Promise<SearchFilter[]> {
+  try {
+    const { data } = await api.get<SearchFiltersEnvelope>("/v1/searchfilters");
+    return extractSearchFilters(data);
+  } catch (err: any) {
+    throw new Error(parseAxiosError(err, "Failed to load search filters"));
+  }
+}
+
+/* ========= Search Suggestions Advanced ========= */
+/**
+ * 🔹 Fetch advanced search suggestions by keyword
+ * Example:
+ *   const suggestions = await apiFetchSearchSuggestionsAdv("temple");
+ *
+ * Endpoint:
+ *   GET /v1/searchsuggestionsadv?keyword=temple
+ */
+export interface SearchSuggestion {
+  key: string;
+  count: number;
+  endpoint: string;
+  filters: Record<string, any>;
+}
+
+export interface SearchSuggestionsEnvelope {
+  suggestions?: SearchSuggestion[];
+}
+
+/** Normalize /v1/searchsuggestionsadv response */
+function extractSearchSuggestions(data: any): SearchSuggestion[] {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.suggestions)) return data.suggestions;
+  return [];
+}
+
+/* ========= API ========= */
+export async function apiFetchSearchSuggestionsAdv(
+  keyword: string
+): Promise<SearchSuggestion[]> {
+  if (!keyword || !keyword.trim()) return [];
+
+  try {
+    const encodedKeyword = encodeURIComponent(keyword.trim());
+    const { data } = await api.get<SearchSuggestionsEnvelope>(
+      `/v1/searchsuggestionsadv?keyword=${encodedKeyword}`
+    );
+    return extractSearchSuggestions(data);
+  } catch (err: any) {
+    throw new Error(parseAxiosError(err, "Failed to load search suggestions"));
+  }
+}
+
+/* ========= Free Text Search API ========= */
+/**
+ * 🔹 Perform free-text search across monuments and regions
+ * Example:
+ *   const result = await apiFetchFreeTextSearch("バンガロール宮殿");
+ *
+ * Endpoint:
+ *   GET /v1/freetextsearch?keyword=バンガロール宮殿
+ *
+ * Response:
+ *   {
+ *     "monuments": [],
+ *     "regions": []
+ *   }
+ */
+
+export interface FreeTextSearchResponse {
+  monuments: any[];
+  regions: any[];
+}
+
+export async function apiFetchFreeTextSearch(
+  keyword: string
+): Promise<FreeTextSearchResponse> {
+  if (!keyword || !keyword.trim()) {
+    return { monuments: [], regions: [] };
+  }
+
+  try {
+    const encodedKeyword = encodeURIComponent(keyword.trim());
+    const { data } = await api.get<FreeTextSearchResponse>(
+      `/v1/freetextsearch?keyword=${encodedKeyword}`
+    );
+    // Always return normalized structure
+    return {
+      monuments: Array.isArray(data.monuments) ? data.monuments : [],
+      regions: Array.isArray(data.regions) ? data.regions : [],
+    };
+  } catch (err: any) {
+    throw new Error(parseAxiosError(err, "Failed to perform free-text search"));
+  }
+}
+

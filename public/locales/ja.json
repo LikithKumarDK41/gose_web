@@ -375,5 +375,6 @@
   "car": "車",
   "train": "電車",
   "lunch_break": "昼休み",
-  "lunch": "昼食"
+  "lunch": "昼食",
+  "no_information_to_display": "情報がありません"
 }

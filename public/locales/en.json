@@ -377,14 +377,13 @@
   "event_header": "Events",
   "bookmark_removed":"Removed from bookmarks",
   "bookmark_added":"Added to bookmarks",
-  "search_faciliy":"Search for facilities..."
-  "bookmark_removed": "Removed from bookmarks",
-  "bookmark_added": "Added to bookmarks",
+  "search_faciliy":"Search for facilities...",
   "travel_mode": "Travel mode",
   "duration": "Duration",
   "walk": "walk",
   "car": "car",
   "train": "train",
   "lunch_break": "Lunch Break",
-  "lunch": "Lunch"
+  "lunch": "Lunch",
+  "no_information_to_display": "No information to display"
 }
