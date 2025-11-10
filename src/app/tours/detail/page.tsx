@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo, useCallback, useState, Suspense } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useCallback,
+  useState,
+  Suspense,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import MapboxTourMap from "@/components/map/MapboxTourMap";
@@ -9,39 +15,108 @@ import TimelineRight from "@/components/tour/TimelineRight";
 import { Compass, Bookmark, BookmarkCheck } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
+import { toast } from "sonner";
 import {
   fetchTourById,
   fetchTourPoints,
   makeSelectTourPreferringDetail,
 } from "@/lib/store/slices/touristSlice";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
+import { apiCreateBookmark, apiRemoveBookmark, apiFetchBookmarkByRef } from "@/services/userGlobalservice";
 
+
+
+import { getPersistedUser } from "@/services/userAuthService";
 export default function TourDetailsClientPage() {
   const { t, locale } = useLocale();
+const persisted = getPersistedUser();
+const userId = persisted?.user?._id ?? null;
   const router = useRouter();
   const sp = useSearchParams();
   const id = sp.get("id") ?? "";
   const dispatch = useAppDispatch();
   const { show, hide } = useGlobalLoader();
-  const [bookmarked, setBookmarked] = useState(false);
+const [bookmarked, setBookmarked] = useState(false); // TODO: replace with real user from auth/store
 
+const [bookmarkCheckLoading, setBookmarkCheckLoading] = useState(true);
   const selectById = useMemo(() => makeSelectTourPreferringDetail(), []);
   const tour = useAppSelector((state) => selectById(state, id));
+const [bookmarkId, setBookmarkId] = useState<string | null>(null);
+const [bookmarkLoading, setBookmarkLoading] = useState(true); // 👈 added loader flag
+
+useEffect(() => {
+  if (!id || !userId) return;
+  let cancelled = false;
+
+  (async () => {
+
+    try {
+      const existing = await apiFetchBookmarkByRef(userId, "tour", id);
+      if (cancelled) return;
+
+      let foundBookmark: any = null;
+      if (existing && typeof existing === "object") {
+  const maybeList = (existing as any)?.bookmarks?.results;
+  if (Array.isArray(maybeList)) {
+    foundBookmark = maybeList.find(
+      (b: any) =>
+        b?.marktype === "tour" &&
+        b?.tour?._id === id &&
+        b?.status === "active"
+    );
+  } else if ((existing as any)?.tour?._id === id || (existing as any)?._id) {
+    foundBookmark = existing;
+  }
+}
+
+
+      if (foundBookmark) {
+        setBookmarked(true);
+        setBookmarkId(foundBookmark._id || null);
+      } else {
+        setBookmarked(false);
+        setBookmarkId(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch bookmark:", err);
+      if (!cancelled) {
+        setBookmarked(false);
+        setBookmarkId(null);
+      }
+    } finally {
+      if (!cancelled) {
+        // small delay for smoothness
+        setTimeout(() => setBookmarkCheckLoading(false), 500);
+      }
+    }
+  })();
+
+  return () => {
+    cancelled = true;
+  };
+}, [id, userId]);
+
 
   // redirect if no ID
   useEffect(() => {
     if (!id) router.replace("/tours");
   }, [id, router]);
 
+
+
+
+
+
+
   // fetch tour detail
   useEffect(() => {
     if (!id) return;
-    show();
     const thunk = dispatch(fetchTourById(id));
     thunk
       .unwrap()
       .catch((err: any) => {
-        if (err?.name !== "AbortError") console.error("fetchTourById failed", err);
+        if (err?.name !== "AbortError")
+          console.error("fetchTourById failed", err);
       })
       .finally(() => setTimeout(() => hide(), 400));
     return () => thunk.abort();
@@ -54,13 +129,54 @@ export default function TourDetailsClientPage() {
     }
   }, [id, tour, dispatch]);
 
-  const onJumpTimeline = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    const el = document.getElementById("timeline");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
+  const onJumpTimeline = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      const el = document.getElementById("timeline");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    []
+  );
 
-  const toggleBookmark = () => setBookmarked((p) => !p);
+const toggleBookmark = async () => {
+  if (!userId) {
+    toast.error("Please log in to bookmark.");
+    return;
+  }
+  if (!id) return;
+
+  try {
+    if (bookmarked && bookmarkId) {
+      await apiRemoveBookmark(bookmarkId);
+      setBookmarked(false);
+      setBookmarkId(null);
+      toast.info(t("bookmark_removed"));
+    } else {
+      const payload = {
+        user: userId,
+        marktype: "tour",
+        tour: id,
+        status: "active",
+      };
+      const created = await apiCreateBookmark(payload);
+      setBookmarked(true);
+      setBookmarkId(created?.data?._id || null);
+       toast.success(t("bookmark_added"));
+    }
+  } catch (err) {
+    console.error("Bookmark toggle failed:", err);
+    toast.error("Failed to update bookmark");
+  }
+};
+
+
+
+if (bookmarkCheckLoading) {
+show();
+  return null;
+}
+
+
 
   /* -------------------- shimmer (fallback) -------------------- */
   if (!id || !tour) {
@@ -104,22 +220,28 @@ export default function TourDetailsClientPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
         </div>
 
-        {/* Bookmark */}
-        <button
-          onClick={toggleBookmark}
-          aria-label="Bookmark tour"
-          className="absolute right-6 top-6 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/30 hover:bg-white/50 dark:bg-gray-900/40 dark:hover:bg-gray-800 transition backdrop-blur-md shadow"
-        >
-          {bookmarked ? (
-            <BookmarkCheck className="h-6 w-6 text-yellow-400" />
-          ) : (
-            <Bookmark className="h-6 w-6 text-white dark:text-gray-200" />
-          )}
-        </button>
+<button
+  onClick={toggleBookmark}
+  aria-label="Bookmark tour"
+  className="absolute right-6 top-6 z-10 flex h-11 w-11 items-center justify-center rounded-full 
+             bg-white/30 hover:bg-white/50 dark:bg-gray-900/40 dark:hover:bg-gray-800 transition 
+             backdrop-blur-md shadow"
+>
+  {bookmarked ? (
+    <BookmarkCheck className="h-6 w-6 text-yellow-400" />
+  ) : (
+    <Bookmark className="h-6 w-6 text-white dark:text-gray-200" />
+  )}
+</button>
+
+
+
 
         {/* Title + Subtitle (Centered Vertically) */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-6">
-          <h1 className="text-4xl sm:text-5xl font-bold drop-shadow-lg">{tour.title}</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold drop-shadow-lg">
+            {tour.title}
+          </h1>
           {tour.content?.brief && (
             <p className="mt-4 text-sm sm:text-base text-gray-200 max-w-2xl mx-auto leading-relaxed">
               {tour.content.brief.replace(/<[^>]+>/g, "").trim()}
@@ -143,7 +265,10 @@ export default function TourDetailsClientPage() {
             viewBox="0 0 500 50"
             preserveAspectRatio="none"
           >
-            <path d="M0,0 C150,60 350,-20 500,40 L500,0 L0,0 Z" fill="currentColor" />
+            <path
+              d="M0,0 C150,60 350,-20 500,40 L500,0 L0,0 Z"
+              fill="currentColor"
+            />
           </svg>
 
           {/* Bottom Curved Divider (mirrored) */}
@@ -152,7 +277,10 @@ export default function TourDetailsClientPage() {
             viewBox="0 0 500 50"
             preserveAspectRatio="none"
           >
-            <path d="M0,0 C150,60 350,-20 500,40 L500,0 L0,0 Z" fill="currentColor" />
+            <path
+              d="M0,0 C150,60 350,-20 500,40 L500,0 L0,0 Z"
+              fill="currentColor"
+            />
           </svg>
 
           {/* Inner Content */}
@@ -221,7 +349,9 @@ export default function TourDetailsClientPage() {
                 text-white font-semibold shadow-md hover:shadow-xl transition-all hover:scale-[1.04]"
                 asChild
               >
-                <NavLink href={`/tours/detail/navigation?id=${encodeURIComponent(id)}`}>
+                <NavLink
+                  href={`/tours/detail/navigation?id=${encodeURIComponent(id)}`}
+                >
                   {t("tourDetails.startNavigation")}
                 </NavLink>
               </Button>
@@ -251,7 +381,7 @@ export default function TourDetailsClientPage() {
                   hover:shadow-[0_0_14px_rgba(139,92,246,0.35)] transition-all duration-300"
                 >
                   <span className="text-sm leading-none">⭐</span>
-                  <span className="capitalize">{t("tourDetails.featured")}</span>
+                  <span className="capitalize">{t("actions.featured")}</span>
                 </div>
               )}
 
