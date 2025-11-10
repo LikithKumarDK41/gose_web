@@ -26,8 +26,10 @@ import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 /* ------------------------------------------------------------------ */
 export default function MapTimelineRight({
   tourpoints,
+  customStyle
 }: {
   tourpoints: TourPoint[];
+  customStyle?: string;
 }) {
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useLocale();
@@ -330,6 +332,7 @@ export default function MapTimelineRight({
         loading={modalLoading}
         details={details}
         onOpenAnother={handleOpen}
+        customStyle={customStyle}
       />
     </>
   );

@@ -132,7 +132,8 @@ function TourPointsModal({
               {t("no_tour_points_available")}
             </div>
           ) : (
-            <MapTimelineRight tourpoints={points} />
+            <MapTimelineRight tourpoints={points} customStyle="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700
+                text-white font-semibold shadow-md hover:shadow-xl transition-all" />
           )}
         </div>
       </div>
