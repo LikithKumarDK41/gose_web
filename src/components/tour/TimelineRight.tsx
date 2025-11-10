@@ -4,9 +4,7 @@ import { useState, useEffect, useMemo, Fragment } from "react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/lib/store";
-import {
-  fetchMonumentDetails,
-} from "@/lib/store/slices/touristSlice";
+import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
 import {
   type TourPoint,
   type Monument,
@@ -229,6 +227,10 @@ export default function TimelineRight({
 
               const hideTop = p.waypointtype === "start";
               const hideBottom = p.waypointtype === "end";
+              const travelTitle =
+                p.traveltype?.title ||
+                capitalize(p.traveltype?.name) ||
+                "";
 
               return (
                 <Fragment key={p._id}>
@@ -238,21 +240,26 @@ export default function TimelineRight({
                     }`}
                   >
                     <div className="relative h-full w-[90px]">
+                      {/* vertical line */}
                       <div
                         className={`absolute left-[52px] w-[3px] bg-orange-500 ${
                           hideTop ? "top-[50%]" : "top-0"
                         } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
                       />
+
+                      {/* station dot with S / E */}
                       <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
                         <div
                           className={`grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ${colorClass}`}
                         >
-                          <Train className="h-6 w-6" />
+                          <span className="text-lg font-bold">
+                            {p.waypointtype === "start" ? "S" : "E"}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* ✅ fixed text colors here */}
+                    {/* Info text */}
                     <div className="flex flex-col justify-center mt-1">
                       <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-50 leading-tight">
                         {p.name ||
@@ -260,9 +267,15 @@ export default function TimelineRight({
                             ? "Start Station"
                             : "End Station")}
                       </h3>
+                      {/* travel type info */}
+                      {travelTitle && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {t('travel_mode')}: {travelTitle}
+                        </p>
+                      )}
                       {p.traveltime && (
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Duration: {p.traveltime}
+                          {t('duration')}: {p.traveltime}
                         </p>
                       )}
                     </div>
@@ -297,7 +310,7 @@ export default function TimelineRight({
                       </div>
                       {p.traveltime && (
                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                          Duration: {p.traveltime}
+                          {t('duration')}: {p.traveltime}
                         </p>
                       )}
                     </div>
@@ -454,7 +467,7 @@ function TimelineDot({ index, accent }: { index: number; accent: string }) {
           className="grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ring-white/70 dark:ring-gray-800"
           style={{ background: accent }}
         >
-          <span className="text-[13px] font-semibold">{index + 1}</span>
+          <span className="text-[13px] font-semibold">{index}</span>
         </div>
       </div>
     </div>
@@ -475,19 +488,20 @@ function TravelConnector({
   const travelTitle =
     next?.pointtype === "lunch"
       ? "Lunch Break"
-      : info?.title || capitalize(travelMode);
+      : info?.title || travelMode;
   const icon =
     next?.pointtype === "lunch" ? (
       <UtensilsCrossed className="h-6 w-6 text-orange-500" />
     ) : (
       getTravelIcon(travelMode)
     );
+    const { t } = useLocale();
 
   return (
     <div className="flex items-center gap-3 text-base font-medium">
       <div className="flex items-center gap-2">
         {icon}
-        <span>{travelTitle}</span>
+        <span>{t(travelTitle)}</span>
       </div>
       {time && <span className="text-sm opacity-80">• {time}</span>}
     </div>
