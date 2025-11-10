@@ -367,6 +367,13 @@
     "no_events": "現在、予定されているイベントはありません"
   },
   "event_header": "イベント",
-  "bookmark_removed":"ブックマークから削除されました",
-  "bookmark_added":"ブックマークに追加されました"
+  "bookmark_removed": "ブックマークから削除されました",
+  "bookmark_added": "ブックマークに追加されました",
+  "travel_mode": "移動手段",
+  "duration": "所要時間",
+  "walk": "徒歩",
+  "car": "車",
+  "train": "電車",
+  "lunch_break": "昼休み",
+  "lunch": "昼食"
 }

@@ -114,9 +114,6 @@ export default function MonumentDetailModal({
     (async () => {
       try {
         const existing = (await apiFetchBookmarkByRef(
-          userId,
-          "monument",
-          details._id
         )) as any;
 
         console.log("Existing bookmark:", existing);
