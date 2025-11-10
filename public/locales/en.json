@@ -375,6 +375,9 @@
     "no_events": "There are no scheduled events at the moment."
   },
   "event_header": "Events",
+  "bookmark_removed":"Removed from bookmarks",
+  "bookmark_added":"Added to bookmarks",
+  "search_faciliy":"Search for facilities..."
   "bookmark_removed": "Removed from bookmarks",
   "bookmark_added": "Added to bookmarks",
   "travel_mode": "Travel mode",

@@ -390,16 +390,31 @@ function MonumentsToolbar({
 
   return (
     <div className="flex justify-end items-center gap-2 mb-6">
-       <div className="relative w-64">
-        <Input
-          placeholder={t("shortcut.tourist_attraction_search_placeholder")}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-8"
-        />
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64 p-2">
+          <DropdownMenuLabel>
+            {t("shortcut.tourist_attraction_search")}
+          </DropdownMenuLabel>
+          <Input
+            autoFocus
+            placeholder={t("shortcut.tourist_attraction_search_placeholder")}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="mt-2"
+          />
+        </DropdownMenuContent>
+      </DropdownMenu>
 
+      
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
