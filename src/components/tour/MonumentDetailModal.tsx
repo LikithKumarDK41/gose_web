@@ -43,6 +43,7 @@ interface MonumentDetailModalProps {
   loading: boolean;
   details: any;
   onOpenAnother: (id: string) => void;
+  customStyle?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -52,6 +53,7 @@ export default function MonumentDetailModal({
   loading,
   details,
   onOpenAnother,
+  customStyle,
 }: MonumentDetailModalProps) {
   const { t } = useLocale();
   const router = useRouter();
@@ -113,8 +115,7 @@ export default function MonumentDetailModal({
 
     (async () => {
       try {
-        const existing = (await apiFetchBookmarkByRef(
-        )) as any;
+        const existing = (await apiFetchBookmarkByRef()) as any;
 
         console.log("Existing bookmark:", existing);
         if (cancelled) return;
@@ -270,12 +271,13 @@ export default function MonumentDetailModal({
                   <h2 className="text-2xl font-bold tracking-tight text-foreground">
                     {safeText(details.title || details.name)}
                   </h2>
-                  {details.region && (details.region.title || details.region.name) && (
-                    <p className="mt-1 text-sm flex items-center gap-1 text-muted-foreground">
-                      <MapPin className="h-4 w-4 text-gray-500" />
-                      {safeText(details.region.title || details.region.name)}
-                    </p>
-                  )}
+                  {details.region &&
+                    (details.region.title || details.region.name) && (
+                      <p className="mt-1 text-sm flex items-center gap-1 text-muted-foreground">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        {safeText(details.region.title || details.region.name)}
+                      </p>
+                    )}
                 </section>
 
                 {/* 📖 Content */}
@@ -301,53 +303,98 @@ export default function MonumentDetailModal({
                 {/* 🏷 Meta */}
                 <section className="flex flex-wrap gap-2">
                   {safeText(details.era) && (
-                    <Badge>
+                    <Badge
+                      className={`${
+                        customStyle ||
+                        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {t("shortcut.tourist_attraction_details.era")}:{" "}
                       {details.era}
                     </Badge>
                   )}
                   {safeText(details.year) && (
-                    <Badge>
+                    <Badge
+                      className={`${
+                        customStyle ||
+                        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {t("shortcut.tourist_attraction_details.year")}:{" "}
                       {details.year}
                     </Badge>
                   )}
                   {safeText(details.size) && (
-                    <Badge>
+                    <Badge
+                      className={`${
+                        customStyle ||
+                        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {t("shortcut.tourist_attraction_details.size")}:{" "}
                       {details.size}
                     </Badge>
                   )}
                   {safeText(details.mtype) && (
-                    <Badge>
+                    <Badge
+                      className={`${
+                        customStyle ||
+                        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {t("shortcut.tourist_attraction_details.type")}:{" "}
                       {details.mtype}
                     </Badge>
                   )}
                   {details.featured && (
-                    <Badge variant="outline">
+                    <Badge
+                      className={`${
+                        customStyle ||
+                        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {t("shortcut.tourist_attraction_details.featured")}
                     </Badge>
                   )}
                   {details.rare && (
-                    <Badge variant="outline">
+                    <Badge
+                      className={`${
+                        customStyle ||
+                        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {t("shortcut.tourist_attraction_details.rare")}
                     </Badge>
                   )}
                   {details.popularity && (
-                    <Badge>
+                    <Badge
+                      className={`${
+                        customStyle ||
+                        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {t("shortcut.tourist_attraction_details.popularity")}:{" "}
                       {details.popularity}
                     </Badge>
                   )}
                   {details.priority && (
-                    <Badge>
+                    <Badge
+                      className={`${
+                        customStyle ||
+                        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {t("shortcut.tourist_attraction_details.priority")}:{" "}
                       {details.priority}
                     </Badge>
                   )}
                   {details.georadius && (
-                    <Badge>
+                    <Badge
+                      className={`${
+                        customStyle ||
+                        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {t("shortcut.tourist_attraction_details.radius")}:{" "}
                       {details.georadius}m
                     </Badge>
@@ -405,7 +452,10 @@ export default function MonumentDetailModal({
                       {details.theme?.map((th: any, i: number) => (
                         <Badge
                           key={th._id || `theme-${i}`}
-                          className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                          className={`${
+                            customStyle ||
+                            "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                          }`}
                         >
                           {safeText(th.title || th.name)}
                         </Badge>
@@ -413,7 +463,10 @@ export default function MonumentDetailModal({
                       {details.subtheme?.map((sth: any, i: number) => (
                         <Badge
                           key={sth._id || `subtheme-${i}`}
-                          className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                          className={`${
+                            customStyle ||
+                            "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
+                          }`}
                         >
                           {safeText(sth.title || sth.name)}
                         </Badge>
@@ -493,9 +546,10 @@ export default function MonumentDetailModal({
 
                             <Button
                               size="sm"
-                              className="w-full rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 
-                             dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 
-                             border border-gray-300 dark:border-gray-700"
+                              className={`cursor-pointer w-full rounded-full ${
+                                customStyle ||
+                                "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+                              }`}
                               onClick={() => onOpenAnother(m._id)}
                             >
                               {t("tourDetails.viewDetails")}
@@ -548,9 +602,10 @@ export default function MonumentDetailModal({
 
                             <Button
                               size="sm"
-                              className="w-full rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 
-                             dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 
-                             border border-gray-300 dark:border-gray-700"
+                              className={`cursor-pointer w-full rounded-full ${
+                                customStyle ||
+                                "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 "
+                              }`}
                               onClick={() =>
                                 router.push(`/tours/detail/?id=${tour._id}`)
                               }
@@ -654,9 +709,10 @@ export default function MonumentDetailModal({
 
                             <Button
                               size="sm"
-                              className="w-full rounded-full mt-2 bg-gray-100 text-gray-900 hover:bg-gray-200 
-    dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 
-    border border-gray-300 dark:border-gray-700"
+                              className={`cursor-pointer w-full rounded-full mt-2 ${
+                                customStyle ||
+                                " bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 "
+                              }`}
                               onClick={() => {
                                 router.push(`/shortcuts/events/?id=${ev._id}`);
                               }}
@@ -678,7 +734,10 @@ export default function MonumentDetailModal({
         <div className="border-t bg-background p-6">
           <Button
             size="lg"
-            className="w-full rounded-full flex items-center justify-center gap-2 bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+            className={`cursor-pointer w-full rounded-full flex items-center justify-center gap-2 ${
+              customStyle ||
+              "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+            }`}
           >
             <MapPin className="h-5 w-5" />
             {t("tourDetails.checkIn")}

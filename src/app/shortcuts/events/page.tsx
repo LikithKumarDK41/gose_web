@@ -193,6 +193,7 @@ export default function EventsPage() {
           onOpenAnother={(id) =>
             handleOpenMonument({ monument: { _id: id } } as any)
           }
+          customStyle=" text-white bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 hover:opacity-90 transition"
         />
       )}
     </div>

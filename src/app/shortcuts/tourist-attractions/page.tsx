@@ -197,6 +197,7 @@ export default function MonumentsPage() {
           loading={modalLoading}
           details={selectedMonument}
           onOpenAnother={handleOpenAnother}
+          customStyle="bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 text-white hover:opacity-90"
         />
       )}
     </div>

@@ -188,6 +188,7 @@ export default function FacilityPage() {
           loading={modalLoading}
           details={selectedMonument}
           onOpenAnother={handleOpenAnother}
+          customStyle="bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400 text-white hover:opacity-90"
         />
       )}
     </div>
