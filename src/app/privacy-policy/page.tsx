@@ -62,11 +62,6 @@ export default function PrivacyPolicyPage() {
             desc={t("privacy.contact.desc")}
           />
         </div>
-
-        {/* Footer */}
-        <div className="mt-10 pt-6 text-sm text-center">
-          © {new Date().getFullYear()} 御所市観光ナビ — {t("privacy.rights")}
-        </div>
       </div>
     </div>
   );

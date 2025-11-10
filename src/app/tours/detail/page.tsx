@@ -429,7 +429,9 @@ export default function TourDetailsClientPage() {
       {tour.tourpoints?.length && (
         <section id="timeline" className="space-y-4">
           <h2 className="text-lg font-semibold">{t("tourDetails.timeline")}</h2><br/>
-          <TimelineRight tourpoints={tour.tourpoints} />
+          <TimelineRight tourpoints={tour.tourpoints}  
+                  customStyle="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700
+                text-white font-semibold shadow-md hover:shadow-xl transition-all" />
         </section>
       )}
     </div>

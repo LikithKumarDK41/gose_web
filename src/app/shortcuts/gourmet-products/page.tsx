@@ -170,6 +170,7 @@ export default function PlacesPage() {
           onClose={() => setOpen(false)}
           loading={modalLoading}
           details={selectedPlace}
+          customStyle="bg-gradient-to-r from-yellow-400 via-amber-300 to-orange-300 text-white hover:opacity-90"
         />
       )}
     </>
