@@ -385,5 +385,6 @@
   "train": "train",
   "lunch_break": "Lunch Break",
   "lunch": "Lunch",
-  "no_information_to_display": "No information to display"
+  "no_information_to_display": "No information to display",
+  "view_on_map": "View on map"
 }

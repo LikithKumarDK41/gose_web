@@ -417,6 +417,7 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
     </div>
   );
 }
+
 /* =========================================================
    🔍 Fullscreen Search FAB + Themed Modal + API Data
    (Autocomplete + FreeText & Multi-Select Filters)

@@ -376,5 +376,6 @@
   "train": "電車",
   "lunch_break": "昼休み",
   "lunch": "昼食",
-  "no_information_to_display": "情報がありません"
+  "no_information_to_display": "情報がありません",
+  "view_on_map": "マップで見る"
 }
