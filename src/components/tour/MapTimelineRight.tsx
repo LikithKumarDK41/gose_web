@@ -203,7 +203,7 @@ export default function MapTimelineRight({
                       <div className="flex items-center gap-3">
                         <UtensilsCrossed className="h-6 w-6 text-orange-500" />
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                          🍱 {p.name || "Lunch Break"}
+                          🍱 {p.name || t("lunch_break")}
                         </h3>
                       </div>
                       {p.traveltime && (
@@ -368,7 +368,7 @@ function TravelConnector({
   const travelMode: TravelMode = (info?.name as TravelMode) || "walk";
   const travelTitle =
     next?.pointtype === "lunch"
-      ? "Lunch Break"
+      ? "lunch_break"
       : info?.title || travelMode;
   const icon =
     next?.pointtype === "lunch" ? (
