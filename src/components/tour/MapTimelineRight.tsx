@@ -208,7 +208,7 @@ export default function MapTimelineRight({
                       </div>
                       {p.traveltime && (
                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                          Duration: {p.traveltime}
+                          {t("duration")}: {p.traveltime}
                         </p>
                       )}
                     </div>
