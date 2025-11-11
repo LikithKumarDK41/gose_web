@@ -26,7 +26,7 @@ import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 /* ------------------------------------------------------------------ */
 export default function MapTimelineRight({
   tourpoints,
-  customStyle
+  customStyle,
 }: {
   tourpoints: TourPoint[];
   customStyle?: string;
@@ -47,6 +47,8 @@ export default function MapTimelineRight({
     () => tourpoints.find((p) => p._id === openId) ?? null,
     [openId, tourpoints]
   );
+
+  const hasStart = tourpoints.some((tp) => tp.waypointtype === "start");
 
   useEffect(() => {
     if (loading) show();
@@ -113,9 +115,7 @@ export default function MapTimelineRight({
             const accent = dynamicColor(i, p.waypointtype);
             const next = tourpoints[i + 1];
 
-            {
-              /* -------------------- START / END STATION -------------------- */
-            }
+            /* -------------------- START / END STATION -------------------- */
             if (
               (p.waypointtype === "start" || p.waypointtype === "end") &&
               p.pointtype === "station"
@@ -124,7 +124,6 @@ export default function MapTimelineRight({
                 p.waypointtype === "start"
                   ? "bg-green-500 ring-green-300"
                   : "bg-red-500 ring-red-300";
-
               const hideTop = p.waypointtype === "start";
               const hideBottom = p.waypointtype === "end";
               const travelTitle =
@@ -138,14 +137,11 @@ export default function MapTimelineRight({
                     }`}
                   >
                     <div className="relative h-full w-[90px]">
-                      {/* vertical line */}
                       <div
                         className={`absolute left-[52px] w-[3px] bg-orange-500 ${
                           hideTop ? "top-[50%]" : "top-0"
                         } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
                       />
-
-                      {/* station dot with S / E */}
                       <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
                         <div
                           className={`grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ${colorClass}`}
@@ -157,7 +153,6 @@ export default function MapTimelineRight({
                       </div>
                     </div>
 
-                    {/* Info text */}
                     <div className="flex flex-col justify-center mt-1">
                       <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-50 leading-tight">
                         {p.name ||
@@ -165,7 +160,6 @@ export default function MapTimelineRight({
                             ? "Start Station"
                             : "End Station")}
                       </h3>
-                      {/* travel type info */}
                       {travelTitle && (
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           {t("travel_mode")}: {travelTitle}
@@ -179,7 +173,6 @@ export default function MapTimelineRight({
                     </div>
                   </li>
 
-                  {/* connector */}
                   {next && (
                     <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
                       <TravelConnector
@@ -198,23 +191,27 @@ export default function MapTimelineRight({
               return (
                 <Fragment key={p._id}>
                   <li className="grid grid-cols-[90px_1fr] gap-6 items-start">
-                    <TimelineDot index={i} accent={accent} />
+                    <TimelineDot
+                      index={i}
+                      accent={accent}
+                      waypointtype={p.waypointtype}
+                      hasStart={hasStart}
+                    />
                     <div className="col-start-2 p-6 rounded-2xl bg-yellow-50 dark:bg-zinc-800 border border-yellow-200 dark:border-zinc-700 shadow-sm">
                       <div className="flex items-center gap-3">
                         <UtensilsCrossed className="h-6 w-6 text-orange-500" />
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                          🍱 {p.name || "Lunch Break"}
+                          🍱 {p.name || t("lunch_break")}
                         </h3>
                       </div>
                       {p.traveltime && (
                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                          Duration: {p.traveltime}
+                          {t("duration")}: {p.traveltime}
                         </p>
                       )}
                     </div>
                   </li>
 
-                  {/* connector after lunch if not last */}
                   {next && (
                     <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
                       <TravelConnector
@@ -233,7 +230,12 @@ export default function MapTimelineRight({
             return (
               <Fragment key={p._id}>
                 <li className="grid grid-cols-[90px_1fr] gap-6 items-start">
-                  <TimelineDot index={i} accent={accent} />
+                  <TimelineDot
+                    index={i}
+                    accent={accent}
+                    waypointtype={p.waypointtype}
+                    hasStart={hasStart}
+                  />
 
                   <article className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl">
                     <div
@@ -339,7 +341,22 @@ export default function MapTimelineRight({
 }
 
 /* ------------------------------------------------------------------ */
-function TimelineDot({ index, accent }: { index: number; accent: string }) {
+function TimelineDot({
+  index,
+  accent,
+  waypointtype,
+  hasStart,
+}: {
+  index: number;
+  accent: string;
+  waypointtype?: string;
+  hasStart: boolean;
+}) {
+  let label: string | number = index + 1;
+  if (waypointtype === "start") label = "S";
+  else if (waypointtype === "end") label = "E";
+  else if (hasStart) label = index;
+
   return (
     <div className="relative h-full w-[90px]">
       <div className="absolute left-[52px] top-0 bottom-0 w-[3px] bg-transparent" />
@@ -348,7 +365,7 @@ function TimelineDot({ index, accent }: { index: number; accent: string }) {
           className="grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ring-white/70 dark:ring-gray-800"
           style={{ background: accent }}
         >
-          <span className="text-[13px] font-semibold">{index}</span>
+          <span className="text-[13px] font-semibold">{label}</span>
         </div>
       </div>
     </div>
@@ -368,7 +385,7 @@ function TravelConnector({
   const travelMode: TravelMode = (info?.name as TravelMode) || "walk";
   const travelTitle =
     next?.pointtype === "lunch"
-      ? "Lunch Break"
+      ? "lunch_break"
       : info?.title || travelMode;
   const icon =
     next?.pointtype === "lunch" ? (
@@ -376,7 +393,7 @@ function TravelConnector({
     ) : (
       getTravelIcon(travelMode)
     );
-    const { t } = useLocale();
+  const { t } = useLocale();
 
   return (
     <div className="flex items-center gap-3 text-base font-medium">
