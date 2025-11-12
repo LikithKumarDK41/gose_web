@@ -210,7 +210,10 @@ export default function ToursDashboardPage() {
 
         {tours.length > 6 && (
           <div className="mt-6 flex justify-center">
-            <Button asChild className="rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90">
+            <Button
+              asChild
+              className="rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90"
+            >
               <Link href="/tours">{t("actions.show_more")}</Link>
             </Button>
           </div>
@@ -223,7 +226,6 @@ export default function ToursDashboardPage() {
             </p>
           </div>
         )}
-
       </div>
       {/* ===== Floating Search Button ===== */}
       <SearchFab />
@@ -477,17 +479,63 @@ function SearchFab() {
 
   /* -------------------- Filter Change -------------------- */
   useEffect(() => {
-    if (selectedFilters.length === 0) return;
+    if (selectedFilters.length === 0) {
+      fetchDefaultData();
+      return;
+    }
 
     async function applyFilters() {
       try {
         setLoading(true);
 
-        // Merge all selected filters' links (parsed JSON)
         const selectedData = filters.filter((f) =>
           selectedFilters.includes(f._id)
         );
 
+        // Identify your filter 1 & 2 (update condition if you use title)
+        const filter1 = filters[0];
+        const filter2 = filters[1];
+
+        const isFilter1Selected =
+          filter1 && selectedFilters.includes(filter1._id);
+        const isFilter2Selected =
+          filter2 && selectedFilters.includes(filter2._id);
+
+        // Case 1: Only filter 1 & 2 selected → call both APIs & combine
+        if (
+          isFilter1Selected &&
+          isFilter2Selected &&
+          selectedFilters.length === 2
+        ) {
+          const results = await Promise.all(
+            [filter1, filter2].map(async (f) => {
+              try {
+                const parsed = f.link ? JSON.parse(f.link) : {};
+                const sortOrder = f.sortby || "-popularity";
+                const payload = { filter: parsed, sort: sortOrder };
+                const data: any = await apiFetchAllMonumentsWithQuery(payload);
+
+                return Array.isArray(data)
+                  ? data
+                  : data?.monuments?.results || [];
+              } catch (err) {
+                console.warn("Error fetching filter:", f.title);
+                return [];
+              }
+            })
+          );
+
+          // Combine & remove duplicates
+          const combined = results.flat();
+          const unique = combined.filter(
+            (m, i, arr) => arr.findIndex((x) => x._id === m._id) === i
+          );
+
+          setMonuments(unique);
+          return; // stop here, don't continue to merge logic
+        }
+
+        //  Case 2: For all other filters → merge filters normally
         const mergedFilter: Record<string, any> = {};
         let sortOrder = "-popularity";
 
@@ -502,8 +550,11 @@ function SearchFab() {
         });
 
         const payload = { filter: mergedFilter, sort: sortOrder };
-        const data = await apiFetchAllMonumentsWithQuery(payload);
-        setMonuments(data || []);
+        const data: any = await apiFetchAllMonumentsWithQuery(payload);
+        const results = Array.isArray(data)
+          ? data
+          : data?.monuments?.results || [];
+        setMonuments(results);
       } catch (err) {
         console.error("Failed to apply filters:", err);
       } finally {
@@ -586,7 +637,6 @@ function SearchFab() {
     setPage(1);
   }
 
-
   /* -------------------- Pagination -------------------- */
   const total = monuments.length;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -649,10 +699,11 @@ function SearchFab() {
                   border border-sky-400/60 dark:border-cyan-500/50 
                   bg-gray-50 dark:bg-slate-900 focus-within:ring-2 
                   focus-within:ring-sky-400
-                  ${keyword && suggestions.length > 0
+                  ${
+                    keyword && suggestions.length > 0
                       ? "rounded-t-2xl"
                       : "rounded-2xl"
-                    }`}
+                  }`}
                 >
                   <Search className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-3" />
 
@@ -741,16 +792,18 @@ function SearchFab() {
                       <div
                         key={f._id}
                         onClick={() => toggleFilter(f._id)}
-                        className={`flex flex-col items-center cursor-pointer transition-transform hover:scale-105 ${isActive
-                          ? "opacity-100"
-                          : "opacity-80 hover:opacity-100"
-                          }`}
+                        className={`flex flex-col items-center cursor-pointer transition-transform hover:scale-105 ${
+                          isActive
+                            ? "opacity-100"
+                            : "opacity-80 hover:opacity-100"
+                        }`}
                       >
                         <div
-                          className={`relative h-20 w-20 rounded-full flex items-center justify-center shadow-md transition-all ${isActive
-                            ? "bg-gradient-to-br from-emerald-500 to-sky-500"
-                            : "bg-gradient-to-br from-sky-400 to-emerald-400 dark:from-sky-600 dark:to-emerald-600"
-                            }`}
+                          className={`relative h-20 w-20 rounded-full flex items-center justify-center shadow-md transition-all ${
+                            isActive
+                              ? "bg-gradient-to-br from-emerald-500 to-sky-500"
+                              : "bg-gradient-to-br from-sky-400 to-emerald-400 dark:from-sky-600 dark:to-emerald-600"
+                          }`}
                         >
                           {f.icon?.secure_url ? (
                             <img
@@ -902,10 +955,11 @@ function PageNavigator({
               <button
                 key={`page-${n}-${i}`}
                 onClick={() => onPageChange(n)}
-                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${n === page
-                  ? "bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white shadow-sm"
-                  : "hover:bg-sky-50 dark:hover:bg-slate-800 text-sky-700 dark:text-cyan-300"
-                  }`}
+                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${
+                  n === page
+                    ? "bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white shadow-sm"
+                    : "hover:bg-sky-50 dark:hover:bg-slate-800 text-sky-700 dark:text-cyan-300"
+                }`}
               >
                 {n}
               </button>
