@@ -184,8 +184,21 @@ const slice = createSlice({
       state.pendingAccount = null;
       state.pendingEmailid = null;
       state.pendingFirebaseUid = "";
+
+
+      
       clearPersistedUser();
     },
+    resetOtpState(state) {
+  state.otpServer = null;
+  state.otpVerified = false;
+  state.otpTarget = null;
+  state.otpMode = null;
+  state.pendingAccount = null;
+  state.pendingEmailid = null;
+  state.pendingFirebaseUid = "";
+},
+
     setOtpMode(state, action: { payload: OtpMode | null }) {
       state.otpMode = action.payload;
     },
@@ -322,5 +335,5 @@ const slice = createSlice({
   },
 });
 
-export const { clearAuth, setOtpMode } = slice.actions;
+export const { clearAuth, setOtpMode, resetOtpState } = slice.actions;
 export default slice.reducer;

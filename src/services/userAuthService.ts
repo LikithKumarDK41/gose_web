@@ -9,7 +9,7 @@ export const AUTH_USER_KEY = "auth_user";
 /* ------------------------------------------------------------
    📘 Types
 ------------------------------------------------------------ */
-export type AccountType = "Facebook" | "Google" | "OTP" | "Email-OTP";
+export type AccountType = "Facebook" | "Google" | "OTP" | "Email_OTP";
 
 export interface Country {
   name: string;

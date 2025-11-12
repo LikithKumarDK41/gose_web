@@ -119,7 +119,8 @@
     "pageOf": "Page {{current}} of {{total}}",
     "prev": "Prev",
     "next": "Next",
-    "searchPlaceholder": "Search for tours..."
+    "searchPlaceholder": "Search for tours...",
+    "search_tours":"Search for tours"
   },
   "tourDetails": {
     "stops": "Stops",
