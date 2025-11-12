@@ -234,7 +234,7 @@ function ToursToolbar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64 p-2">
           <DropdownMenuLabel>
-            {t("shortcut.tourist_attraction_search")}
+            {t("tours.search_tours")}
           </DropdownMenuLabel>
         <Input
             autoFocus

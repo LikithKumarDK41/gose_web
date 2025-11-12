@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Github, Mail, UserRound, Phone, Globe, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,12 +26,13 @@ import {
   fetchCountries,
   Country,
   AccountType,
+  resetOtpState,
 } from '@/lib/store/slices/authSlice';
 
 import { auth, loginWithGoogle, loginWithFacebook } from '@/lib/firebase';
 
-type Step = 'identifier' | 'otp' | 'register';
-type OtpMode = 'email' | 'phone';
+
+type OtpMode = 'login' | 'register';
 type FieldErrors = Record<string, string>;
 
 /** Try to infer a country code (e.g., 'JP') from a +<dial> E.164 number */
@@ -50,6 +52,47 @@ export default function SignInPage() {
   const router = useRouter();
   const sp = useSearchParams();
   const next = sp.get('next') || '/';
+  const [showSocialRegister, setShowSocialRegister] = React.useState(false);
+const otpVerifiedState = useAppSelector((s) => s.auth.otpVerified);
+const otpServer = useAppSelector((s) => s.auth.otpServer);
+const otpSent = !!otpServer; // OTP sent if server stored it
+const otpVerified = otpVerifiedState; // already from Redux
+const [hydrated, setHydrated] = React.useState(false);
+
+
+
+// rename for clarity:
+function resetLocalForm() {
+  // ✅ Clear browser storages
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+      console.log('✅ Cleared LocalStorage and SessionStorage');
+    } catch (err) {
+      console.warn('⚠️ Unable to clear storage:', err);
+    }
+  }
+
+  // ✅ Reset form fields
+  setEmailReg('');
+  setOtp('');
+  setName('');
+  setGender('');
+  setAgegroup('');
+  setCountry('');
+  setNationality('');
+  setPhoneNumber('');
+  setRegErrors({});
+  setOtpErrors({});
+}
+
+// 🔹 Tab-based state to switch between Login and Register
+const [activeTab, setActiveTab] = React.useState<'login' | 'register'>('login');
+
+
+
+
 
   const {
     loading,
@@ -61,18 +104,42 @@ export default function SignInPage() {
     countries,
     countriesLoading,
   } = useAppSelector((s) => s.auth);
+ React.useEffect(() => {
+  // Don't reset if social login has occurred
+  if (hydrated || pendingAccount) return;
 
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    } catch {}
+  }
+
+  const timer = setTimeout(() => {
+    dispatch(setOtpMode(null));
+    dispatch(resetOtpState());
+    resetLocalForm();
+    console.log('✅ Redux OTP flags reset');
+    setHydrated(true);
+  }, 150);
+
+  return () => clearTimeout(timer);
+}, [dispatch, hydrated, pendingAccount]);
+
+const socialPrefilled = pendingAccount && !otpServer && !otpVerified;
   React.useEffect(() => {
     dispatch(fetchCountries());
   }, [dispatch]);
 
-  const [mode, setMode] = React.useState<OtpMode>('email');
-  const [step, setStep] = React.useState<Step>('identifier');
+  
+
 
   // identifier & OTP
   const [email, setEmail] = React.useState('');
-  const [phoneRaw, setPhoneRaw] = React.useState('');
+
   const [otp, setOtp] = React.useState('');
+// 🔹 For phone number input in register form
+const [phoneNumber, setPhoneNumber] = React.useState('');
 
   // registration (EXACT payload fields)
   const [name, setName] = React.useState('');
@@ -81,7 +148,7 @@ export default function SignInPage() {
   const [country, setCountry] = React.useState('');
   const [nationality, setNationality] = React.useState('');
   const [emailReg, setEmailReg] = React.useState('');
-  const [phoneNumber, setPhoneNumber] = React.useState('');
+
 
   // validation-only errors
   const [idErrors, setIdErrors] = React.useState<FieldErrors>({});
@@ -90,43 +157,32 @@ export default function SignInPage() {
 
   const effectiveEmail = pendingEmailid || email.trim();
 
-  function accountLabel(): AccountType {
-    if (pendingAccount) return pendingAccount;
-    const m = (otpMode || mode);
-    return m === 'email' ? 'Email-OTP' : 'OTP';
-  }
+function accountLabel(): AccountType {
+  if (pendingAccount) return pendingAccount;
+  return 'Email_OTP';
+}
 
-  function gotoRegisterPrefill() {
-    if (pendingAccount) {
-      setEmailReg(effectiveEmail || '');
-      // keep name/phone if we already set them from social below
-    } else {
-      if ((otpMode || mode) === 'email') {
-        setEmailReg(otpTarget || effectiveEmail || '');
-        setPhoneNumber('');
-      } else {
-        const digits = (otpTarget || phoneRaw.trim()).replace(/\D/g, '');
-        setPhoneNumber(digits);
-        setEmailReg('');
-      }
-    }
-    setStep('register');
+
+function gotoRegisterPrefill() {
+  if (pendingAccount) {
+    setEmailReg(effectiveEmail || '');
+    // keep name if already set from social
+  } else {
+    setEmailReg(otpTarget || effectiveEmail || '');
   }
+}
+
+
 
   /** ---------- Validation ---------- */
-  function validateIdentifier(): boolean {
-    const errs: FieldErrors = {};
-    if (mode === 'email') {
-      if (!email.trim()) errs.email = 'Email is required';
-      else if (!/^\S+@\S+\.\S+$/.test(email.trim())) errs.email = 'Enter a valid email';
-    } else {
-      const digits = phoneRaw.replace(/\D/g, '');
-      if (!digits) errs.phone = 'Phone number is required';
-      else if (digits.length < 6) errs.phone = 'Enter a valid phone number';
-    }
-    setIdErrors(errs);
-    return Object.keys(errs).length === 0;
-  }
+function validateIdentifier(): boolean {
+  const errs: FieldErrors = {};
+  if (!email.trim()) errs.email = 'Email is required';
+  else if (!/^\S+@\S+\.\S+$/.test(email.trim())) errs.email = 'Enter a valid email';
+  setIdErrors(errs);
+  return Object.keys(errs).length === 0;
+}
+
 
   function validateOtp(): boolean {
     const errs: FieldErrors = {};
@@ -153,67 +209,61 @@ export default function SignInPage() {
   }
 
   /** ---------- Submit ---------- */
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
 
-    if (step === 'identifier') {
-      if (!validateIdentifier()) return;
+  /** ---------- LOGIN TAB ---------- */
+  if (activeTab === 'login') {
+    if (!validateIdentifier()) return;
 
-      if (mode === 'email') {
-        const val = email.trim();
-        const signAction = await dispatch(signin({ email: val }));
-        if (signin.fulfilled.match(signAction)) {
-          toast.success('Signed in. Welcome back!');
-          return router.replace(next);
-        }
-        if (signAction.payload === 'ERROR_INVALID_USER') {
-          const otpAction = await dispatch(sendEmailOtp({ emailid: val }));
-          if (sendEmailOtp.fulfilled.match(otpAction)) {
-            toast('Code sent', { description: `We sent a one-time code to ${val}` });
-            setStep('otp');
-            dispatch(setOtpMode('email'));
-          } else {
-            toast.error(String(otpAction.payload || 'Failed to send Email OTP'));
-          }
-          return;
-        }
-        return toast.error(String(signAction.payload || 'Signin failed. Please try again.'));
+    const val = email.trim();
+    const signAction = await dispatch(signin({ email: val }));
+
+    if (signin.fulfilled.match(signAction)) {
+      toast.success('Signed in successfully');
+      return router.replace(next);
+    }
+
+    // ❌ Do NOT send OTP from login tab anymore
+    toast.error(String(signAction.payload || 'Login failed. Please check your email or register.'));
+    return;
+  }
+
+  /** ---------- REGISTER TAB ---------- */
+  if (activeTab === 'register') {
+     if (!otpServer) {
+      if (!emailReg.trim()) {
+        toast.error('Enter a valid email before sending OTP');
+        return;
       }
 
-      // phone flow (digits only)
-      const digits = phoneRaw.replace(/\D/g, '');
-      const otpAction = await dispatch(sendPhoneOtp({ phonenumber: digits }));
-      if (sendPhoneOtp.fulfilled.match(otpAction)) {
-        toast('Code sent', { description: 'We sent a one-time code to your phone' });
-        setStep('otp');
-        dispatch(setOtpMode('phone'));
+      const otpAction = await dispatch(sendEmailOtp({ emailid: emailReg.trim() }));
+      if (sendEmailOtp.fulfilled.match(otpAction)) {
+        toast.success('OTP sent', { description: `We sent a one-time code to ${emailReg}` });
       } else {
-        toast.error(String(otpAction.payload || 'Failed to send Phone OTP'));
+        toast.error(String(otpAction.payload || 'Failed to send Email OTP'));
       }
       return;
     }
 
-    if (step === 'otp') {
+    // 2️⃣ OTP sent but not verified yet
+    if (otpSent && !otpVerified) {
       if (!validateOtp()) return;
 
-      const target =
-        (otpMode === 'phone')
-          ? (otpTarget || phoneRaw.replace(/\D/g, ''))
-          : (otpTarget || effectiveEmail);
-
       const action = await dispatch(
-        verifyOtp({ mode: (otpMode || mode) as OtpMode, target, otp: otp.trim() })
+        verifyOtp({ mode: 'email', target: emailReg.trim(), otp: otp.trim() })
       );
+
       if (verifyOtp.fulfilled.match(action)) {
         toast.success('OTP verified. Complete your registration.');
-        gotoRegisterPrefill();
       } else {
         toast.error(String(action.payload || 'Invalid verification code'));
       }
       return;
     }
 
-    if (step === 'register') {
+    // 3️⃣ OTP verified → final registration
+    if (otpVerified) {
       if (!validateRegister()) return;
 
       const phoneNumParsed = Number(phoneNumber.replace(/\D/g, '')) || 0;
@@ -238,72 +288,90 @@ export default function SignInPage() {
       } else {
         toast.error(String(regAction.payload || 'User registration failed'));
       }
+    }
+  }
+}
+
+
+async function handleSocial(provider: 'google' | 'facebook') {
+  try {
+    const account = provider === 'google' ? 'Google' : 'Facebook';
+    if (provider === 'google') {
+      await loginWithGoogle();
+    } else {
+      await loginWithFacebook();
+    }
+
+    const user = auth.currentUser;
+    const emailFromSocial = user?.email || '';
+    const uid = user?.uid || '';
+    const displayName = user?.displayName || '';
+    const phoneFromSocial = user?.phoneNumber || '';
+
+    if (!emailFromSocial) {
+      toast.error(`${account} did not return an email. Please use another method.`);
       return;
     }
-  }
 
-  /** ---------- Social sign-in (check backend, then prefill) ---------- */
-  async function handleSocial(provider: 'google' | 'facebook') {
+    // 🔹 Try to sign in, but handle 401 as "new user"
+    let signAction;
     try {
-      const account = provider === 'google' ? 'Google' : 'Facebook';
-      if (provider === 'google') {
-        await loginWithGoogle();
-      } else {
-        await loginWithFacebook();
-      }
-
-      const user = auth.currentUser;
-      const emailFromFb = user?.email || '';
-      const uid = user?.uid || '';
-      const displayName = user?.displayName || '';
-      const phoneFromFb = user?.phoneNumber || ''; // E.164 like +819012345678
-
-      if (!emailFromFb) {
-        // Your API needs an email for both signin & register
-        toast.error(`${account} didn't return an email. Please use another method.`);
-        return;
-      }
-
-      // 1) Try backend signin with the social email
-      const signAction = await dispatch(signin({ email: emailFromFb }));
-      if (signin.fulfilled.match(signAction)) {
-        toast.success('Signed in. Welcome back!');
-        router.replace(next);
-        return;
-      }
-
-      // 2) If the backend says user doesn't exist, go to register with prefilled fields
-      if (signAction.payload === 'ERROR_INVALID_USER') {
-        // Prefill form fields
-        if (displayName) setName(displayName);
-        setEmailReg(emailFromFb);
-        if (phoneFromFb) setPhoneNumber(phoneFromFb.replace(/\D/g, ''));
-        const inferred = phoneFromFb ? inferCountryFromE164(phoneFromFb, countries) : null;
-        if (inferred) setCountry(inferred);
-
-        // Bridge to redux for final payload pieces
-        await dispatch(
-          prepareSocialRegistration({
-            account: account as 'Google' | 'Facebook',
-            emailid: emailFromFb,
-            firebaseUserId: uid,
-          })
-        );
-
-        toast.success(`${account} authenticated. Please complete registration.`);
-        setStep('register');
-        return;
-      }
-
-      // 3) Any other error from signin
-      toast.error(String(signAction.payload || 'Social sign-in failed. Try again.'));
-    } catch (err) {
-      console.error(err);
-      toast.error('Social sign-in failed. Try again.');
+      signAction = await dispatch(signin({ email: emailFromSocial }));
+    } catch {
+      // swallow errors so UI doesn't flip
     }
-  }
 
-  const isEmailMode = (otpMode || mode) === 'email';
+    // ✅ Existing user → normal login
+    if (signAction && signin.fulfilled.match(signAction)) {
+      toast.success('Signed in successfully!');
+      router.replace(next);
+      return;
+    }
+
+    // ❌ New user (ERROR_INVALID_USER or 401)
+    const errPayload = signAction?.payload;
+    if (
+      !signAction ||
+      errPayload === 'ERROR_INVALID_USER' ||
+      (typeof errPayload === 'string' && errPayload.includes('401'))
+    ) {
+      // Prefill form
+      if (displayName) setName(displayName);
+      setEmailReg(emailFromSocial);
+      if (phoneFromSocial) setPhoneNumber(phoneFromSocial.replace(/\D/g, ''));
+      const inferred = phoneFromSocial
+        ? inferCountryFromE164(phoneFromSocial, countries)
+        : null;
+      if (inferred) setCountry(inferred);
+
+      await dispatch(
+        prepareSocialRegistration({
+          account: account as 'Google' | 'Facebook',
+          emailid: emailFromSocial,
+          firebaseUserId: uid,
+        })
+      );
+
+      // ✅ Go to Register tab (skip OTP flow)
+      setActiveTab('register');
+      dispatch(setOtpMode(null));
+      dispatch(resetOtpState());
+      toast.success(`${account} authenticated. Please complete registration.`);
+      return;
+    }
+
+    toast.error(String(errPayload || 'Social sign-in failed. Try again.'));
+  } catch (err) {
+    console.error(err);
+    toast.error('Social sign-in failed. Try again.');
+  }
+}
+
+
+
+
+ const isEmailMode = true;
+
 
   return (
     <main className="min-h-dvh bg-inherit text-inherit">
@@ -312,347 +380,295 @@ export default function SignInPage() {
           <CardHeader className="space-y-2 text-center">
             <CardTitle className="text-3xl font-bold">Welcome</CardTitle>
             <CardDescription className="text-base">
-              {step === 'identifier' &&
-                (mode === 'email'
-                  ? 'Sign in with your email — or choose a social provider'
-                  : 'Sign in with your phone number — we’ll send an OTP')}
-              {step === 'otp' &&
-                `Enter the verification code sent to ${otpTarget || (isEmailMode ? (pendingEmailid || email) : 'your phone')}`}
-              {step === 'register' && `Complete your registration (${accountLabel()})`}
+{activeTab === 'login' && 'Sign in with your email — or choose a social provider'}
+
+{activeTab === 'register' && `Complete your registration (${accountLabel()})`}
+
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-8">
-            {step === 'identifier' && !pendingAccount && (
-              <div className="flex gap-2 justify-center">
-                <Button
-                  type="button"
-                  variant={mode === 'email' ? 'default' : 'outline'}
-                  onClick={() => { setMode('email'); setStep('identifier'); setOtp(''); setIdErrors({}); }}
-                  disabled={loading}
-                >
-                  <Mail className="mr-2 size-4" />
-                  Email
-                </Button>
-                <Button
-                  type="button"
-                  variant={mode === 'phone' ? 'default' : 'outline'}
-                  onClick={() => { setMode('phone'); setStep('identifier'); setOtp(''); setIdErrors({}); }}
-                  disabled={loading}
-                >
-                  <Phone className="mr-2 size-4" />
-                  Phone
-                </Button>
-              </div>
-            )}
+         <CardContent className="space-y-8">
+  <Tabs
+  value={activeTab}
+  onValueChange={(val) => setActiveTab(val as 'login' | 'register')}
+  className="w-full"
+>
 
-            <form className="grid gap-4" onSubmit={onSubmit} noValidate>
-              {step === 'identifier' && !pendingAccount && (
-                <>
-                  {mode === 'email' ? (
-                    <div className="grid gap-2">
-                      <Label htmlFor="email" className="flex items-center gap-2">
-                        <UserRound className="size-4 opacity-70" /> Email
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => {
-                          setEmail(e.target.value);
-                          if (idErrors.email) setIdErrors((prev) => ({ ...prev, email: '' }));
-                        }}
-                        onBlur={validateIdentifier}
-                        disabled={loading}
-                        aria-invalid={!!idErrors.email}
-                        aria-describedby="email-error"
-                      />
-                      {idErrors.email && <p id="email-error" className="text-xs text-red-600">{idErrors.email}</p>}
-                    </div>
-                  ) : (
-                    <div className="grid gap-2">
-                      <Label htmlFor="phone" className="flex items-center gap-2">
-                        <Phone className="size-4 opacity-70" /> Phone number (digits only)
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        inputMode="numeric"
-                        pattern="\d*"
-                        placeholder="e.g., 9876543210"
-                        autoComplete="tel"
-                        value={phoneRaw}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, '');
-                          setPhoneRaw(digits);
-                          if (idErrors.phone) setIdErrors((prev) => ({ ...prev, phone: '' }));
-                        }}
-                        onBlur={validateIdentifier}
-                        disabled={loading}
-                        aria-invalid={!!idErrors.phone}
-                        aria-describedby="phone-error"
-                      />
-                      {idErrors.phone && <p id="phone-error" className="text-xs text-red-600">{idErrors.phone}</p>}
-                    </div>
-                  )}
-                </>
-              )}
+    <TabsList className="grid grid-cols-2 mb-6">
+      <TabsTrigger value="login">Login</TabsTrigger>
+      <TabsTrigger value="register">Register</TabsTrigger>
+    </TabsList>
 
-              {step === 'otp' && (
-                <div className="grid gap-2">
-                  <Label htmlFor="otp">One-time code</Label>
-                  <Input
-                    id="otp"
-                    inputMode="numeric"
-                    pattern="\d*"
-                    maxLength={8}
-                    placeholder="Enter code"
-                    value={otp}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, '');
-                      setOtp(digits);
-                      if (otpErrors.otp) setOtpErrors({});
-                    }}
-                    onBlur={validateOtp}
-                    disabled={loading}
-                    aria-invalid={!!otpErrors.otp}
-                    aria-describedby="otp-error"
-                  />
-                  {otpErrors.otp && <p id="otp-error" className="text-xs text-red-600">{otpErrors.otp}</p>}
-                  <p className="text-xs opacity-70">
-                    Didn’t get the code?{' '}
-                    <button
-                      type="button"
-                      className="underline text-sky-600 dark:text-sky-400"
-                      onClick={async () => {
-                        if ((otpMode || mode) === 'email') {
-                          const resend = await dispatch(sendEmailOtp({ emailid: (otpTarget || pendingEmailid || email).trim() }));
-                          if (sendEmailOtp.fulfilled.match(resend)) {
-                            toast('Code re-sent', { description: `${otpTarget || pendingEmailid || email}` });
-                          } else {
-                            toast.error(String(resend.payload || 'Failed to resend Email OTP'));
-                          }
-                        } else {
-                          const digits = (otpTarget || phoneRaw).replace(/\D/g, '');
-                          const resend = await dispatch(sendPhoneOtp({ phonenumber: digits }));
-                          if (sendPhoneOtp.fulfilled.match(resend)) {
-                            toast('Code re-sent', { description: 'Sent to your phone' });
-                          } else {
-                            toast.error(String(resend.payload || 'Failed to resend Phone OTP'));
-                          }
-                        }
-                      }}
-                      disabled={loading}
-                    >
-                      Resend
-                    </button>
-                  </p>
-                </div>
-              )}
+    {/* ---------- LOGIN TAB ---------- */}
+    <TabsContent value="login">
+      <form className="grid gap-4" onSubmit={onSubmit} noValidate>
+        <div className="grid gap-2">
+          <Label htmlFor="email" className="flex items-center gap-2">
+            <UserRound className="size-4 opacity-70" /> Email
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (idErrors.email)
+                setIdErrors((prev) => ({ ...prev, email: '' }));
+            }}
+            onBlur={validateIdentifier}
+            disabled={loading}
+            aria-invalid={!!idErrors.email}
+            aria-describedby="email-error"
+          />
+          {idErrors.email && (
+            <p id="email-error" className="text-xs text-red-600">
+              {idErrors.email}
+            </p>
+          )}
+        </div>
 
-              {step === 'register' && (
-                <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="name" className="flex items-center gap-2">
-                      <User className="size-4 opacity-70" /> Name *
-                    </Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => { setName(e.target.value); if (regErrors.name) setRegErrors((p) => ({ ...p, name: '' })); }}
-                      onBlur={validateRegister}
-                      disabled={loading}
-                      aria-invalid={!!regErrors.name}
-                      aria-describedby="name-error"
-                    />
-                    {regErrors.name && <p id="name-error" className="text-xs text-red-600">{regErrors.name}</p>}
-                  </div>
+       <Button type="submit" disabled={loading} className="w-full">
+  {loading ? 'Please wait…' : 'Login'}
+</Button>
 
-                  <div className="grid gap-2">
-                    <Label>Gender *</Label>
-                    <Select
-                      value={gender}
-                      onValueChange={(v) => { setGender(v); if (regErrors.gender) setRegErrors((p) => ({ ...p, gender: '' })); }}
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="w-full" aria-invalid={!!regErrors.gender}>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={6}>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {regErrors.gender && <p className="text-xs text-red-600">{regErrors.gender}</p>}
-                  </div>
 
-                  <div className="grid gap-2">
-                    <Label>Age group *</Label>
-                    <Select
-                      value={agegroup}
-                      onValueChange={(v) => { setAgegroup(v); if (regErrors.agegroup) setRegErrors((p) => ({ ...p, agegroup: '' })); }}
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="w-full" aria-invalid={!!regErrors.agegroup}>
-                        <SelectValue placeholder="Select age group" />
-                      </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={6}>
-                        <SelectItem value="10s">10s</SelectItem>
-                        <SelectItem value="20s">20s</SelectItem>
-                        <SelectItem value="30s">30s</SelectItem>
-                        <SelectItem value="40s">40s</SelectItem>
-                        <SelectItem value="50s">50s</SelectItem>
-                        <SelectItem value="60s">60s</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {regErrors.agegroup && <p className="text-xs text-red-600">{regErrors.agegroup}</p>}
-                  </div>
+        {/* Social login section */}
+        <div className="flex items-center gap-3 pt-6">
+          <Separator className="flex-1" />
+          <span className="text-sm uppercase tracking-wide opacity-70">
+            or continue with
+          </span>
+          <Separator className="flex-1" />
+        </div>
 
-                  <div className="grid gap-2">
-                    <Label className="flex items-center gap-2">
-                      <Globe className="size-4 opacity-70" /> Country *
-                    </Label>
-                    <Select
-                      value={country}
-                      onValueChange={(code) => { setCountry(code); if (regErrors.country) setRegErrors((p) => ({ ...p, country: '' })); }}
-                      disabled={loading || countriesLoading}
-                    >
-                      <SelectTrigger className="w-full" aria-invalid={!!regErrors.country}>
-                        <SelectValue placeholder={countriesLoading ? 'Loading...' : 'Select country'} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-72" position="popper" sideOffset={6}>
-                        {countries.map((c) => (
-                          <SelectItem key={c.code} value={c.code}>
-                            {c.name} ({c.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {regErrors.country && <p className="text-xs text-red-600">{regErrors.country}</p>}
-                  </div>
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <Button
+            variant="outline"
+            className="w-full h-12"
+            type="button"
+            onClick={() => handleSocial('google')}
+            disabled={loading}
+          >
+            <Mail className="mr-2 size-5" /> Google
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full h-12"
+            type="button"
+            onClick={() => handleSocial('facebook')}
+            disabled={loading}
+          >
+            <Github className="mr-2 size-5" /> Facebook
+          </Button>
+        </div>
+      </form>
+    </TabsContent>
+{/* ---------- REGISTER TAB ---------- */}
+<TabsContent value="register">
+  <form className="grid gap-4" onSubmit={onSubmit} noValidate>
+    {/* STEP 1️⃣ - Email only (Send OTP) */}
+    {!otpServer && !otpVerified && !socialPrefilled && (
+      <>
+        <div className="grid gap-2">
+          <Label htmlFor="emailReg">Email *</Label>
+          <Input
+            id="emailReg"
+            type="email"
+            placeholder="you@example.com"
+            value={emailReg}
+            onChange={(e) => setEmailReg(e.target.value)}
+            disabled={loading}
+          />
+        </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="nationality">Nationality *</Label>
-                    <Input
-                      id="nationality"
-                      value={nationality}
-                      onChange={(e) => { setNationality(e.target.value); if (regErrors.nationality) setRegErrors((p) => ({ ...p, nationality: '' })); }}
-                      onBlur={validateRegister}
-                      disabled={loading}
-                      aria-invalid={!!regErrors.nationality}
-                      aria-describedby="nat-error"
-                    />
-                    {regErrors.nationality && <p id="nat-error" className="text-xs text-red-600">{regErrors.nationality}</p>}
-                  </div>
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? 'Please wait…' : 'Send OTP'}
+        </Button>
+      </>
+    )}
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="emailReg">Email *</Label>
-                    <Input
-                      id="emailReg"
-                      type="email"
-                      value={emailReg}
-                      onChange={(e) => { setEmailReg(e.target.value); if (regErrors.emailReg) setRegErrors((p) => ({ ...p, emailReg: '' })); }}
-                      onBlur={validateRegister}
-                      disabled={loading}
-                      aria-invalid={!!regErrors.emailReg}
-                      aria-describedby="emailReg-error"
-                    />
-                    {regErrors.emailReg && <p id="emailReg-error" className="text-xs text-red-600">{regErrors.emailReg}</p>}
-                  </div>
+    {/* STEP 2️⃣ - OTP verification */}
+    {otpServer && !otpVerified && (
+      <>
+        <div className="grid gap-2">
+          <Label>Email</Label>
+          <Input type="email" value={emailReg} disabled />
+        </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="phoneNumber">Phone number (digits only) *</Label>
-                    <Input
-                      id="phoneNumber"
-                      type="tel"
-                      inputMode="numeric"
-                      pattern="\d*"
-                      placeholder="e.g., 9876543210"
-                      value={phoneNumber}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, '');
-                        setPhoneNumber(digits);
-                        if (regErrors.phoneNumber) setRegErrors((p) => ({ ...p, phoneNumber: '' }));
-                      }}
-                      onBlur={validateRegister}
-                      disabled={loading}
-                      aria-invalid={!!regErrors.phoneNumber}
-                      aria-describedby="phoneNumber-error"
-                    />
-                    {regErrors.phoneNumber && <p id="phoneNumber-error" className="text-xs text-red-600">{regErrors.phoneNumber}</p>}
-                  </div>
+        <div className="grid gap-2">
+          <Label htmlFor="otp">Enter OTP</Label>
+          <Input
+            id="otp"
+            type="text"
+            inputMode="numeric"
+            pattern="\d*"
+            maxLength={8}
+            placeholder="Enter verification code"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+            disabled={loading}
+          />
+        </div>
 
-                  <p className="text-xs opacity-70">
-                    Account: <b>{accountLabel()}</b> &nbsp;|&nbsp; State: <b>active</b>
-                  </p>
-                </>
-              )}
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? 'Please wait…' : 'Verify OTP'}
+        </Button>
+      </>
+    )}
 
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading
-                  ? 'Please wait…'
-                  : step === 'identifier'
-                    ? (mode === 'email' ? 'Continue' : 'Send OTP')
-                    : step === 'otp'
-                      ? 'Verify Code'
-                      : 'Register & Continue'}
-              </Button>
+    {/* STEP 3️⃣ - OTP verified (Full registration fields) */}
+    {otpVerified && (
+      <>
+        <div className="grid gap-2">
+          <Label>Email</Label>
+          <Input type="email" value={emailReg} disabled />
+        </div>
 
-              {step !== 'identifier' && !pendingAccount && (
-                <button
-                  type="button"
-                  className="text-sm underline opacity-80"
-                  onClick={() => {
-                    if (step === 'register') setStep('otp');
-                    else setStep('identifier');
-                    setIdErrors({});
-                    setOtpErrors({});
-                    setRegErrors({});
-                  }}
-                  disabled={loading}
-                >
-                  {step === 'register' ? 'Back to OTP' : `Change ${isEmailMode ? 'email' : 'phone'}`}
-                </button>
-              )}
-            </form>
+        {/* Name */}
+        <div className="grid gap-2">
+          <Label htmlFor="name">Name *</Label>
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={loading}
+          />
+        </div>
 
-            {/* Social */}
-            {step === 'identifier' && !pendingAccount && (
-              <>
-                <div className="flex items-center gap-3">
-                  <Separator className="flex-1" />
-                  <span className="text-sm uppercase tracking-wide opacity-70">or continue with</span>
-                  <Separator className="flex-1" />
-                </div>
+        {/* Gender */}
+        <div className="grid gap-2">
+          <Label>Gender *</Label>
+          <Select
+            value={gender}
+            onValueChange={(v) => setGender(v)}
+            disabled={loading}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select gender" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="male">Male</SelectItem>
+              <SelectItem value="female">Female</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button
-                      variant="outline"
-                      className="w-full h-12"
-                      type="button"
-                      onClick={() => handleSocial('google')}
-                      disabled={loading}
-                    >
-                      <Mail className="mr-2 size-5" /> Google
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full h-12"
-                      type="button"
-                      onClick={() => handleSocial('facebook')}
-                      disabled={loading}
-                    >
-                      <Github className="mr-2 size-5" /> Facebook
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
+        {/* Age group */}
+        <div className="grid gap-2">
+          <Label>Age group *</Label>
+          <Select
+            value={agegroup}
+            onValueChange={(v) => setAgegroup(v)}
+            disabled={loading}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select age group" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10s">10s</SelectItem>
+              <SelectItem value="20s">20s</SelectItem>
+              <SelectItem value="30s">30s</SelectItem>
+              <SelectItem value="40s">40s</SelectItem>
+              <SelectItem value="50s">50s</SelectItem>
+              <SelectItem value="60s">60s</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Country */}
+        <div className="grid gap-2">
+          <Label>Country *</Label>
+          <Select
+            value={country}
+            onValueChange={(v) => setCountry(v)}
+            disabled={loading || countriesLoading}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select country" />
+            </SelectTrigger>
+            <SelectContent>
+              {countries.map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.name} ({c.code})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Nationality */}
+        <div className="grid gap-2">
+          <Label htmlFor="nationality">Nationality *</Label>
+          <Input
+            id="nationality"
+            value={nationality}
+            onChange={(e) => setNationality(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+
+        {/* Phone number */}
+        <div className="grid gap-2">
+          <Label htmlFor="phoneNumber">Phone number *</Label>
+          <Input
+            id="phoneNumber"
+            type="tel"
+            inputMode="numeric"
+            pattern="\d*"
+            placeholder="e.g., 9876543210"
+            value={phoneNumber}
+            onChange={(e) =>
+              setPhoneNumber(e.target.value.replace(/\D/g, ''))
+            }
+            disabled={loading}
+          />
+        </div>
+
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? 'Please wait…' : 'Register & Continue'}
+        </Button>
+      </>
+    )}
+  </form>
+  {/* Social login section (for Register tab) */}
+<div className="flex items-center gap-3 pt-6">
+  <Separator className="flex-1" />
+  <span className="text-sm uppercase tracking-wide opacity-70">
+    or register with
+  </span>
+  <Separator className="flex-1" />
+</div>
+
+<div className="grid grid-cols-2 gap-4 pt-2">
+  <Button
+    variant="outline"
+    className="w-full h-12"
+    type="button"
+    onClick={() => handleSocial('google')}
+    disabled={loading}
+  >
+    <Mail className="mr-2 size-5" /> Google
+  </Button>
+  <Button
+    variant="outline"
+    className="w-full h-12"
+    type="button"
+    onClick={() => handleSocial('facebook')}
+    disabled={loading}
+  >
+    <Github className="mr-2 size-5" /> Facebook
+  </Button>
+</div>
+
+</TabsContent>
+
+
+  </Tabs>
+</CardContent>
+
 
           <CardFooter className="flex flex-col gap-2 text-center text-xs opacity-70">
             <p>
