@@ -119,8 +119,8 @@
     "pageOf": "{{total}}ページ中{{current}}ページ目",
     "prev": "前へ",
     "next": "次へ",
-     "searchPlaceholder": "ツアーを検索...",
-    "search_tours":"ツアーを検索"
+    "searchPlaceholder": "ツアーを検索...",
+    "search_tours": "ツアーを検索"
   },
   "tourDetails": {
     "stops": "停留所",
@@ -298,9 +298,7 @@
     "title": "プライバシーポリシー",
     "updated": "更新日",
     "rights": "全著作権所有",
-
     "intro": "当財団はお客様の個人情報に配慮し、お客様のプライバシーを守ることに専心しております。当財団の製品を使用する際には、お客様は、本プライバシーポリシーに記載されている通り、お客様の個人情報の収集、使用、開示、及び処理に同意するものとします。\n本プライバシーポリシーは、この製品がお客様の旅行経験のサポートのような特定の目的のみを意図しており、当財団のアプリやウェブサイトを使用する個人、当財団が提供するアプリやサービスに限らず、当財団の製品またはサービスを使用する個人、当財団の製品内でのみ、且つ当財団が提供するアプリケーションを使用する個人から、個人情報を収集、保存、使用、開示するものでないことを、お客様に保証します。",
-
     "general": {
       "title": "一般事項",
       "desc": "個人情報とは、お客様の氏名、住所、電話番号などの個人を特定可能な機密情報であり、ユーザー名として利用する電子メールアドレスを除き、当財団はそのような情報を収集または保存するものではありません。"
@@ -378,5 +376,53 @@
   "lunch_break": "昼休み",
   "lunch": "昼食",
   "no_information_to_display": "情報がありません",
-  "view_on_map": "マップで見る"
+  "view_on_map": "マップで見る",
+  "auth": {
+    "welcome_title": "御所市ツアー",
+    "tab_login": "ログイン",
+    "tab_register": "新規登録",
+    "label_email": "メールアドレス",
+    "label_name": "氏名",
+    "label_gender": "性別",
+    "label_age_group": "年齢層",
+    "label_country": "国籍",
+    "label_nationality": "国籍情報",
+    "label_phone": "電話番号",
+    "label_otp": "認証コード",
+    "gender_male": "男性",
+    "gender_female": "女性",
+    "gender_other": "その他",
+    "age_10s": "10代",
+    "age_20s": "20代",
+    "age_30s": "30代",
+    "age_40s": "40代",
+    "age_50s": "50代",
+    "age_60s": "60代",
+    "placeholder_email": "あなた@example.com",
+    "placeholder_phone": "例: 9876543210",
+    "placeholder_otp": "認証コードを入力",
+    "btn_send_otp": "OTP を送信",
+    "btn_verify_otp": "OTP を確認",
+    "btn_login": "ログイン",
+    "btn_register": "登録して続行",
+    "btn_continue_google": "Google",
+    "btn_continue_facebook": "Facebook",
+    "or_continue_with": "または次で続行",
+    "toast_login_success": "ログイン成功！",
+    "toast_login_failed": "ログインに失敗しました。メールを確認してください。",
+    "toast_otp_sent": "OTP を送信しました",
+    "toast_otp_failed": "OTP の送信に失敗しました",
+    "toast_otp_verified": "OTP が確認されました。登録を続けてください。",
+    "toast_register_success": "アカウントが作成されました！",
+    "toast_register_failed": "登録に失敗しました",
+    "toast_social_email_missing": "メールアドレスが取得できませんでした。",
+    "toast_social_complete": "登録を完了してください。",
+    "terms_text": "続行すると、あなたは以下に同意したことになります:",
+    "terms_link": "利用規約",
+    "privacy_link": "プライバシーポリシー",
+    "label_or_continue_with": "または次で続行",
+    "label_terms_text": "続行すると、次に同意したものとみなされます",
+    "label_terms": "利用規約",
+    "label_privacy": "プライバシーポリシー"
+  }
 }
