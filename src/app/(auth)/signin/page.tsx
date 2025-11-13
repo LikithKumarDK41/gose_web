@@ -494,7 +494,7 @@ export default function SignInPage() {
 
                   <div className="grid gap-2">
                     <Label htmlFor="email" className="flex items-center gap-2">
-                      <UserRound className="size-4 opacity-70" /> {t("auth.label_email")}
+                      {t("auth.label_email")}
                     </Label>
 
                     <Input
