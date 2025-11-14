@@ -423,6 +423,7 @@
     "label_or_continue_with": "または次で続行",
     "label_terms_text": "続行すると、次に同意したものとみなされます",
     "label_terms": "利用規約",
-    "label_privacy": "プライバシーポリシー"
+    "label_privacy": "プライバシーポリシー",
+    "please_wait": "お待ちください..."
   }
 }
