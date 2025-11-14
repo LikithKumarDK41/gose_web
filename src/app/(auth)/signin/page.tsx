@@ -210,24 +210,20 @@ const [profilePreview, setProfilePreview] = React.useState<string>("");
     if (showSocialRegister) {
       if (!validateRegister()) return;
 
-      const fd = new FormData();
-fd.append("state", "active");
-fd.append("email", emailReg.trim());
-fd.append("account", accountLabel());
-fd.append("name", name.trim());
-fd.append("gender", gender.trim());
-fd.append("agegroup", agegroup.trim());
-fd.append("country", country.trim());
-fd.append("nationality", nationality.trim());
-fd.append("phoneNumber", String(Number(phoneNumber.replace(/\D/g, ''))));
-fd.append("firebaseUserId", "");
+    const payload = {
+  state: "active" as const,
+  email: emailReg.trim(),
+  account: accountLabel(),
+  name: name.trim(),
+  gender: gender.trim(),
+  agegroup: agegroup.trim(),
+  country: country.trim(),
+  nationality: nationality.trim(),
+  phoneNumber: Number(phoneNumber.replace(/\D/g, "")),
+  firebaseUserId: "",
+};
 
-// ⭐ append profile image
-if (profileImage) {
-  fd.append("profileImage", profileImage);
-}
-
-const regAction = await dispatch(registerNewUser(fd));
+const regAction = await dispatch(registerNewUser(payload));
 
 
 
