@@ -425,6 +425,42 @@
     "label_terms_text": "By continuing, you agree to our",
     "label_terms": "Terms",
     "label_privacy": "Privacy Policy",
-    "please_wait": "Please wait..."
+    "please_wait": "Please wait...",
+    "label_profile_image": "Profile Photo",
+    "label_upload_photo": "Upload Photo",
+    "label_change_photo": "Change Photo"
+  },
+  "profile": {
+    "editProfile": "Edit Profile",
+    "email": "Email",
+    "name": "Name",
+    "gender": "Gender",
+    "agegroup": "Age Group",
+    "country": "Country",
+    "nationality": "Nationality",
+    "selectGender": "Select gender",
+    "selectAgeGroup": "Select age group",
+    "selectCountry": "Select country",
+    "uploadHint": "Click the edit button to upload a new photo",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "success": "Profile updated successfully",
+    "error": "Failed to update profile",
+    "userNotFound": "User not found",
+
+    "gender_male": "Male",
+    "gender_female": "Female",
+    "gender_other": "Other",
+
+    "age_10s": "10s",
+    "age_20s": "20s",
+    "age_30s": "30s",
+    "age_40s": "40s",
+    "age_50s": "50s",
+    "age_60s": "60s",
+     "guestUser": "Guest User",
+    "noEmail": "No email available",
+    "viewProfile": "View Profile",
+    "logout": "Logout"
   }
 }

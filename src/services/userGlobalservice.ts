@@ -552,4 +552,42 @@ export async function apiFetchFreeTextSearch(
     throw new Error(parseAxiosError(err, "Failed to perform free-text search"));
   }
 }
+/* ========= Profile Update (Text Fields) ========= */
+
+export interface UserProfileUpdatePayload {
+  name?: string;
+  gender?: string;
+  agegroup?: string;
+  country?: string;
+  nationality?: string;
+  phoneNumber?: string | number;
+}
+
+export async function apiUpdateUserProfile(
+  userId: string,
+  payload: UserProfileUpdatePayload
+) {
+  try {
+    const { data } = await api.patch(`/v1/userprofiles/${userId}`, payload);
+    console.log("UPDATE PROFILE RESPONSE =", data);
+
+    return data;
+  } catch (err: any) {
+    throw new Error(parseAxiosError(err, "Failed to update profile"));
+  }
+}
+/* ========= Profile Image Upload ========= */
+
+export async function apiUploadProfileImage(userId: string, file: File) {
+  const fd = new FormData();
+  fd.append("_id", userId);
+  fd.append("image_upload", file);
+
+  const { data } = await api.post("/v1/profileimage", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return data;
+}
+
 
