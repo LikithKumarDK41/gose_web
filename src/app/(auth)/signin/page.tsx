@@ -51,6 +51,8 @@ function inferCountryFromE164(e164: string, list: Country[]): string | null {
 
 export default function SignInPage() {
   const { t } = useLocale(); // ⭐ Translation hook
+const [profileImage, setProfileImage] = React.useState<File | null>(null);
+const [profilePreview, setProfilePreview] = React.useState<string>("");
 
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -208,25 +210,26 @@ export default function SignInPage() {
     if (showSocialRegister) {
       if (!validateRegister()) return;
 
-      const payload = {
-        state: 'active' as const,
-        email: emailReg.trim(),
-        account:
-          socialProvider === 'google'
-            ? 'Google'
-            : socialProvider === 'facebook'
-              ? 'Facebook'
-              : accountLabel(),
-        name: name.trim(),
-        gender: gender.trim(),
-        agegroup: agegroup.trim(),
-        country: country.trim(),
-        nationality: nationality.trim(),
-        phoneNumber: Number(phoneNumber.replace(/\D/g, '')) || 0,
-        firebaseUserId: localFirebaseUid,
-      };
+      const fd = new FormData();
+fd.append("state", "active");
+fd.append("email", emailReg.trim());
+fd.append("account", accountLabel());
+fd.append("name", name.trim());
+fd.append("gender", gender.trim());
+fd.append("agegroup", agegroup.trim());
+fd.append("country", country.trim());
+fd.append("nationality", nationality.trim());
+fd.append("phoneNumber", String(Number(phoneNumber.replace(/\D/g, ''))));
+fd.append("firebaseUserId", "");
 
-      const regAction = await dispatch(registerNewUser(payload));
+// ⭐ append profile image
+if (profileImage) {
+  fd.append("profileImage", profileImage);
+}
+
+const regAction = await dispatch(registerNewUser(fd));
+
+
 
       if (registerNewUser.fulfilled.match(regAction)) {
         toast.success(t("auth.toast_register_success"));
@@ -559,6 +562,9 @@ export default function SignInPage() {
                   {/* STEP 1 – Email before OTP */}
                   {!otpServer && !otpVerified && !socialPrefilled && !showSocialRegister && (
                     <>
+
+
+
                       <div className="grid gap-2">
                         <Label htmlFor="emailReg">
                           {t("auth.label_email")}

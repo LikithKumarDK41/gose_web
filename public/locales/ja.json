@@ -424,6 +424,42 @@
     "label_terms_text": "続行すると、次に同意したものとみなされます",
     "label_terms": "利用規約",
     "label_privacy": "プライバシーポリシー",
-    "please_wait": "お待ちください..."
+    "please_wait": "お待ちください...",
+     "label_profile_image": "プロフィール写真",
+    "label_upload_photo": "写真をアップロード",
+    "label_change_photo": "写真を変更"
+  },
+   "profile": {
+    "editProfile": "プロフィールを編集",
+    "email": "メールアドレス",
+    "name": "氏名",
+    "gender": "性別",
+    "agegroup": "年代",
+    "country": "国籍",
+    "nationality": "国籍（国名）",
+    "selectGender": "性別を選択してください",
+    "selectAgeGroup": "年代を選択してください",
+    "selectCountry": "国を選択してください",
+    "uploadHint": "編集ボタンをクリックして新しい写真をアップロードしてください",
+    "saveChanges": "変更を保存",
+    "saving": "保存中…",
+    "success": "プロフィールが正常に更新されました",
+    "error": "プロフィールの更新に失敗しました",
+    "userNotFound": "ユーザーが見つかりません",
+
+    "gender_male": "男性",
+    "gender_female": "女性",
+    "gender_other": "その他",
+
+    "age_10s": "10〜20代",
+    "age_20s": "20〜30代",
+    "age_30s": "30〜40代",
+    "age_40s": "40〜50代",
+    "age_50s": "50〜60代",
+    "age_60s": "60〜70代",
+     "guestUser": "ゲストユーザー",
+    "noEmail": "メール情報がありません",
+    "viewProfile": "プロフィールを見る",
+    "logout": "ログアウト"
   }
 }

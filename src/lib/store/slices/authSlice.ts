@@ -19,6 +19,7 @@ import {
   persistUser,
   clearPersistedUser,
 } from "@/services/userAuthService";
+import { apiUpdateUserProfile, apiUploadProfileImage } from "@/services/userGlobalservice";
 
 // Re-export types so existing imports from this slice keep working:
 export type { Country, AccountType, AuthResponse, RegisterPayload, SigninPayload };
@@ -140,6 +141,35 @@ export const registerNewUser = createAsyncThunk<
     return data;
   } catch (err: any) {
     return rejectWithValue(err.message || "Failed to create user profile");
+  }
+});
+/* ========== UPDATE USER PROFILE ========== */
+export const updateUserProfile = createAsyncThunk<
+  AuthResponse,
+  { id: string; payload: any },
+  { rejectValue: string; state: { auth: AuthState } }
+>("auth/updateUserProfile", async ({ id, payload }, { rejectWithValue }) => {
+  try {
+    const res = await apiUpdateUserProfile(id, payload);
+    persistUser(res);
+    return res;
+  } catch (err: any) {
+    return rejectWithValue(err.message || "Failed to update user profile");
+  }
+});
+
+/* ========== UPLOAD PROFILE IMAGE ========== */
+export const uploadProfileImage = createAsyncThunk<
+  AuthResponse,
+  { userId: string; file: File },
+  { rejectValue: string; state: { auth: AuthState } }
+>("auth/uploadProfileImage", async ({ userId, file }, { rejectWithValue }) => {
+  try {
+    const res = await apiUploadProfileImage(userId, file);
+    persistUser(res);
+    return res;
+  } catch (err: any) {
+    return rejectWithValue(err.message || "Failed to upload profile image");
   }
 });
 
@@ -332,6 +362,34 @@ const slice = createSlice({
       s.countriesLoading = false;
       s.countriesError = null;
     });
+    // --- UPDATE USER PROFILE ---
+b.addCase(updateUserProfile.pending, (s) => {
+  s.loading = true;
+  s.error = null;
+});
+b.addCase(updateUserProfile.fulfilled, (s, { payload }) => {
+  s.loading = false;
+  s.data = payload;
+});
+b.addCase(updateUserProfile.rejected, (s, { payload }) => {
+  s.loading = false;
+  s.error = (payload as string) || "Failed to update profile";
+});
+
+// --- UPLOAD PROFILE IMAGE ---
+b.addCase(uploadProfileImage.pending, (s) => {
+  s.loading = true;
+  s.error = null;
+});
+b.addCase(uploadProfileImage.fulfilled, (s, { payload }) => {
+  s.loading = false;
+  s.data = payload; // updated user with image
+});
+b.addCase(uploadProfileImage.rejected, (s, { payload }) => {
+  s.loading = false;
+  s.error = (payload as string) || "Failed to upload image";
+});
+
   },
 });
 
