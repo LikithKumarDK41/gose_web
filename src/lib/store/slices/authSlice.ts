@@ -143,35 +143,63 @@ export const registerNewUser = createAsyncThunk<
     return rejectWithValue(err.message || "Failed to create user profile");
   }
 });
-/* ========== UPDATE USER PROFILE ========== */
+interface UpdateUserProfilePayload {
+  id: string;
+  payload: {
+    name: string;
+    email: string;
+    gender: string;
+    agegroup: string;
+    country: string;
+    nationality: string;
+  };
+}
+
 export const updateUserProfile = createAsyncThunk<
   AuthResponse,
-  { id: string; payload: any },
-  { rejectValue: string; state: { auth: AuthState } }
+  UpdateUserProfilePayload,
+  { rejectValue: string }
 >("auth/updateUserProfile", async ({ id, payload }, { rejectWithValue }) => {
   try {
     const res = await apiUpdateUserProfile(id, payload);
-    persistUser(res);
-    return res;
+
+    // ⭐ Normalize backend result → AuthResponse
+    const normalized: AuthResponse = {
+      ...res,
+      user: res.userprofile ? res.userprofile : res.user,
+    };
+
+    persistUser(normalized);
+    return normalized;
   } catch (err: any) {
     return rejectWithValue(err.message || "Failed to update user profile");
   }
 });
 
+
+
+
 /* ========== UPLOAD PROFILE IMAGE ========== */
 export const uploadProfileImage = createAsyncThunk<
   AuthResponse,
   { userId: string; file: File },
-  { rejectValue: string; state: { auth: AuthState } }
+  { rejectValue: string }
 >("auth/uploadProfileImage", async ({ userId, file }, { rejectWithValue }) => {
   try {
     const res = await apiUploadProfileImage(userId, file);
-    persistUser(res);
-    return res;
+
+    const normalized: AuthResponse = {
+      ...res,
+      user: res.userprofile ? res.userprofile : res.user,
+    };
+
+    persistUser(normalized);
+    return normalized;
   } catch (err: any) {
     return rejectWithValue(err.message || "Failed to upload profile image");
   }
 });
+
 
 export const prepareSocialRegistration = createAsyncThunk<
   { account: AccountType; emailid: string; firebaseUserId: string },
@@ -362,15 +390,36 @@ const slice = createSlice({
       s.countriesLoading = false;
       s.countriesError = null;
     });
-    // --- UPDATE USER PROFILE ---
-b.addCase(updateUserProfile.pending, (s) => {
-  s.loading = true;
-  s.error = null;
-});
 b.addCase(updateUserProfile.fulfilled, (s, { payload }) => {
+  console.log("🟢 RAW BACKEND RESPONSE (updateUserProfile) =", payload);
+
   s.loading = false;
-  s.data = payload;
+  if (!s.data) return;
+
+  // FIX → Use `userprofile` instead of `user`
+  const updatedUser = payload.user;
+
+  console.log("🟢 Extracted updatedUser =", updatedUser);
+
+  if (!updatedUser) {
+    console.warn("⚠️ No updated userprofile in response:", payload);
+    return;
+  }
+
+  s.data = {
+    ...s.data,
+    user: {
+      ...s.data.user,
+      ...updatedUser,
+    },
+  };
+
+  persistUser(s.data);
 });
+
+
+
+
 b.addCase(updateUserProfile.rejected, (s, { payload }) => {
   s.loading = false;
   s.error = (payload as string) || "Failed to update profile";
@@ -382,9 +431,32 @@ b.addCase(uploadProfileImage.pending, (s) => {
   s.error = null;
 });
 b.addCase(uploadProfileImage.fulfilled, (s, { payload }) => {
+  console.log("🟣 RAW BACKEND RESPONSE (uploadProfileImage) =", payload);
+
   s.loading = false;
-  s.data = payload; // updated user with image
+  if (!s.data) return;
+
+  const updatedUser = payload.user;  // FIX
+
+  console.log("🟣 Extracted updatedUser =", updatedUser);
+
+  if (!updatedUser) {
+    console.warn("⚠️ No updated userprofile in response:", payload);
+    return;
+  }
+
+  s.data = {
+    ...s.data,
+    user: {
+      ...s.data.user,
+      ...updatedUser,
+    },
+  };
+
+  persistUser(s.data);
 });
+
+
 b.addCase(uploadProfileImage.rejected, (s, { payload }) => {
   s.loading = false;
   s.error = (payload as string) || "Failed to upload image";
