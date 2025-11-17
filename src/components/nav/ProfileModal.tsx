@@ -103,7 +103,7 @@ const matchedCountry = countries.find(
   });
 
   setPreview(user?.image?.secure_url || user?.image || null);
-}, [user, countries, open]);
+}, [user, countries]);
 
 
 
@@ -136,11 +136,6 @@ const matchedCountry = countries.find(
   const fd = new FormData();
 fd.append("_id", user._id);                     // ✔ backend expects this
 fd.append("image_upload", imageFile);          // ✔ backend expects this
-
-
-  console.log("🚀 Debug FormData:");
-  console.log("userId =", user._id);
-  console.log("file =", imageFile);
 
 await dispatch(
   uploadProfileImage({
@@ -203,10 +198,6 @@ return (
               onChange={handleImageSelect}
             />
           </div>
-
-          <p className="text-sm text-gray-400">
-            {t("profile.uploadHint")}
-          </p>
         </div>
 
         {/* EMAIL */}
