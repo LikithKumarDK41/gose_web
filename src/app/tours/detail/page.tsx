@@ -46,50 +46,62 @@ export default function TourDetailsClientPage() {
   const [bookmarkId, setBookmarkId] = useState<string | null>(null);
   const [bookmarkLoading, setBookmarkLoading] = useState(true); // 👈 added loader flag
 
+  interface BookmarkItem {
+    _id: string;
+    marktype: "tour" | "monument";
+    status: string;
+    tour?: { _id: string };
+    monument?: { _id: string };
+  }
+
   useEffect(() => {
     if (!id || !userId) return;
+
     let cancelled = false;
 
     (async () => {
       try {
-        const existing = await apiFetchBookmarkByRef();
+        const res = await apiFetchBookmarkByRef();
         if (cancelled) return;
 
-        let foundBookmark: any = null;
-        if (existing && typeof existing === "object") {
-          const maybeList = (existing as any)?.bookmarks?.results;
-          if (Array.isArray(maybeList)) {
-            foundBookmark = maybeList.find(
-              (b: any) =>
-                b?.marktype === "tour" &&
-                b?.tour?._id === id &&
-                b?.status === "active"
-            );
-          } else if (
-            (existing as any)?.tour?._id === id ||
-            (existing as any)?._id
-          ) {
-            foundBookmark = existing;
-          }
+        let bookmark: BookmarkItem | null = null;
+
+        // Case 1: list response => bookmarks.results
+        if (Array.isArray((res as any)?.bookmarks?.results)) {
+          bookmark =
+            (res as any).bookmarks.results.find(
+              (b: BookmarkItem) =>
+                b.marktype === "tour" &&
+                b.tour?._id === id &&
+                b.status === "active"
+            ) || null;
         }
 
-        if (foundBookmark) {
-          setBookmarked(true);
-          setBookmarkId(foundBookmark._id || null);
-        } else {
-          setBookmarked(false);
-          setBookmarkId(null);
+        // Case 2: direct single bookmark response
+        else if (
+          (res as any)?.tour?._id === id ||
+          (res as any)?._id
+        ) {
+          bookmark = res as BookmarkItem;
         }
+
+        const bmId =
+          bookmark?._id ||
+          (bookmark as any)?.data?._id ||
+          (bookmark as any)?.bookmark?._id ||
+          null;
+
+        setBookmarked(!!bmId);
+        setBookmarkId(bmId);
       } catch (err) {
-        console.error("Failed to fetch bookmark:", err);
+        console.error("Bookmark fetch failed:", err);
         if (!cancelled) {
           setBookmarked(false);
           setBookmarkId(null);
         }
       } finally {
         if (!cancelled) {
-          // small delay for smoothness
-          setTimeout(() => setBookmarkCheckLoading(false), 500);
+          setTimeout(() => setBookmarkCheckLoading(false), 400);
         }
       }
     })();
@@ -114,7 +126,7 @@ export default function TourDetailsClientPage() {
         if (err?.name !== "AbortError")
           console.error("fetchTourById failed", err);
       })
-      // .finally(() => setTimeout(() => hide(), 400));
+    // .finally(() => setTimeout(() => hide(), 400));
     return () => thunk.abort();
   }, [id, locale, dispatch]);
 
@@ -143,22 +155,36 @@ export default function TourDetailsClientPage() {
 
     try {
       if (bookmarked && bookmarkId) {
+        console.log("🔴 Removing bookmark:", bookmarkId);
         await apiRemoveBookmark(bookmarkId);
+
         setBookmarked(false);
         setBookmarkId(null);
         toast.info(t("bookmark_removed"));
-      } else {
-        const payload = {
-          user: userId,
-          marktype: "tour",
-          tour: id,
-          status: "active",
-        };
-        const created = await apiCreateBookmark(payload);
-        setBookmarked(true);
-        setBookmarkId(created?.data?._id || null);
-        toast.success(t("bookmark_added"));
+        return;
       }
+
+      // ADD bookmark
+      const payload = {
+        user: userId,
+        marktype: "tour",
+        tour: id,
+        status: "active",
+      };
+
+      const created: any = await apiCreateBookmark(payload);
+
+      const newId =
+        created?._id ||
+        created?.data?._id ||
+        created?.bookmark?._id ||
+        null;
+
+      console.log("🟢 Bookmark created:", newId);
+
+      setBookmarked(true);
+      setBookmarkId(newId);
+      toast.success(t("bookmark_added"));
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
       toast.error("Failed to update bookmark");
@@ -166,13 +192,13 @@ export default function TourDetailsClientPage() {
   };
 
   useEffect(() => {
-  // When both tour and bookmark check are done → hide loader
-  if (!bookmarkCheckLoading && tour) {
-    hide();
-  } else {
-    show();
-  }
-}, [bookmarkCheckLoading, tour, show, hide]);
+    // When both tour and bookmark check are done → hide loader
+    if (!bookmarkCheckLoading && tour) {
+      hide();
+    } else {
+      show();
+    }
+  }, [bookmarkCheckLoading, tour, show, hide]);
 
   /* -------------------- shimmer (fallback) -------------------- */
   if (!id || !tour) {
@@ -428,9 +454,9 @@ export default function TourDetailsClientPage() {
       {/* ===== Timeline Section ===== */}
       {tour.tourpoints?.length && (
         <section id="timeline" className="space-y-4">
-          <h2 className="text-lg font-semibold">{t("tourDetails.timeline")}</h2><br/>
-          <TimelineRight tourpoints={tour.tourpoints}  
-                  customStyle="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700
+          <h2 className="text-lg font-semibold">{t("tourDetails.timeline")}</h2><br />
+          <TimelineRight tourpoints={tour.tourpoints}
+            customStyle="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700
                 text-white font-semibold shadow-md hover:shadow-xl transition-all" />
         </section>
       )}
