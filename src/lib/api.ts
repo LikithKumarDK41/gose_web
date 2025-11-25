@@ -32,7 +32,6 @@ function getAuthToken(): string | null {
     const token = parsed?.user?.token;
 
     if (token) {
-      console.log("🔑 Using token from auth_user.user.token:", token);
       return token;
     }
 
@@ -66,9 +65,7 @@ api.interceptors.request.use(
       (config.headers as Record<string, string>)["locale"] = locale;
 
       if (token) {
-        // ✅ Your backend expects raw token (no Bearer)
         (config.headers as Record<string, string>)["Authorization"] = token;
-        console.log("🚀 Sending Authorization header:", token);
       } else {
         console.warn("🚫 No Authorization token attached");
       }

@@ -27,8 +27,6 @@ export default function UserProfileDropdown({
   const auth = useAppSelector((state) => state.auth);
   const user = auth?.data?.user || null;
 
-  console.log("🔥 FINAL Dropdown User =", user);
-
   const userName = user?.name || "Guest User";
   const userEmail = user?.email || "No email available";
 
