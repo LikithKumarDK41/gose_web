@@ -348,23 +348,6 @@ export default function TimelineRight({
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-                      {m?._id && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleBookmarkToggle(m._id);
-                          }}
-                          aria-label="Toggle bookmark"
-                          className="absolute top-3 right-3 bg-black/40 hover:bg-black/70 p-2 rounded-full transition"
-                        >
-                          {bookmarkedIds[m._id] ? (
-                            <BookmarkCheck className="h-5 w-5 text-yellow-400" />
-                          ) : (
-                            <Bookmark className="h-5 w-5 text-white" />
-                          )}
-                        </button>
-                      )}
                     </div>
 
                     <div className="p-6">

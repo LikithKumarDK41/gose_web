@@ -1,141 +1,148 @@
-import { createSlice, PayloadAction, nanoid } from "@reduxjs/toolkit";
-import { RootState } from "../index";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import type { RootState } from "../index";
 
-/* ----------------------------------------------------------------
-   🗺️ Types
----------------------------------------------------------------- */
-export interface GeofencePlace {
-  id: string;
+/* ============================================================
+   TYPES
+============================================================ */
+
+export interface QueueItem {
+  id: string;                    // tourpoint ID
   name: string;
+
   lat: number;
   lng: number;
   radius: number;
+
   blurb?: string;
-  tourId?: string | null;
-  monumentId?: string | null; // ✅ NEW: actual monument _id
+
+  /* ⭐ NEW — required for Stamp API */
+  monumentId: string | null;
+  tourpointId: string | null;
+  tourId: string | null;
 }
 
-export interface QueueItem extends GeofencePlace {
-  distance: number;
-  _key: string;
-}
-
-interface GeofenceState {
-  queue: QueueItem[];
-  inside: Record<string, boolean>;
+export interface LocationState {
   last: { lat: number; lng: number } | null;
-  checked: Record<string, boolean>; // ✅ store permanently entered points
+  queue: QueueItem[];
 }
 
-/* ----------------------------------------------------------------
-   ⚙️ Initial State
----------------------------------------------------------------- */
-const initialState: GeofenceState = {
-  queue: [],
-  inside: {},
+/* ============================================================
+   INITIAL STATE
+============================================================ */
+const initialState: LocationState = {
   last: null,
-  checked: {},
+  queue: [],
 };
 
-/* ----------------------------------------------------------------
-   🧮 Helper
----------------------------------------------------------------- */
-function haversine(a: [number, number], b: [number, number]): number {
-  const R = 6371000; // meters
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b[1] - a[1]);
-  const dLng = toRad(b[0] - a[0]);
-  const lat1 = toRad(a[1]);
-  const lat2 = toRad(b[1]);
+/* ============================================================
+   HELPERS
+============================================================ */
+function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const R = 6371e3;
+  const φ1 = (a.lat * Math.PI) / 180;
+  const φ2 = (b.lat * Math.PI) / 180;
+  const Δφ = ((b.lat - a.lat) * Math.PI) / 180;
+  const Δλ = ((b.lng - a.lng) * Math.PI) / 180;
+
   const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
+    Math.sin(Δφ / 2) ** 2 +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+
+  return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
-const MIN_DISTANCE_CHANGE = 10; // meters before recalculation
+/* ============================================================
+   SLICE
+============================================================ */
 
-/* ----------------------------------------------------------------
-   🧩 Slice
----------------------------------------------------------------- */
 const geofenceSlice = createSlice({
   name: "geofence",
   initialState,
   reducers: {
+    /* ------------------------------------------------------
+       LOCATION UPDATE (called every GeoWatcher tick)
+    ------------------------------------------------------ */
     locationTick(
       state,
       action: PayloadAction<{
         lat: number;
         lng: number;
-        places: GeofencePlace[];
-        tourId?: string | null;
+        places: {
+          id: string;
+          name: string;
+          lat: number;
+          lng: number;
+          radius: number;
+          blurb?: string;
+          monumentId: string | null;
+          tourpointId: string | null;
+          tourId: string | null;
+        }[];
+        tourId: string | null;
       }>
     ) {
-      const { lat, lng, places, tourId } = action.payload;
+      const { lat, lng, places } = action.payload;
 
-      // skip small movements
-      if (
-        state.last &&
-        haversine([state.last.lng, state.last.lat], [lng, lat]) < MIN_DISTANCE_CHANGE
-      )
-        return;
       state.last = { lat, lng };
 
+      if (!places.length) return;
+
       for (const p of places) {
-        const dist = haversine([lng, lat], [p.lng, p.lat]);
-        const key = `${tourId || "none"}::${p.id}`;
+        const d = distanceMeters({ lat, lng }, { lat: p.lat, lng: p.lng });
 
-        // ✅ Already handled once? skip forever
-        if (state.checked[p.id]) continue;
+        // Already queued? skip
+        const alreadyQueued = state.queue.some((q) => q.id === p.id);
+        if (alreadyQueued) continue;
 
-        // ✅ Enter for first time
-        if (dist <= p.radius && !state.inside[key]) {
-          state.queue.push({ ...p, distance: dist, _key: nanoid() });
-          state.inside[key] = true; // mark as inside
-          state.checked[p.id] = true; // ✅ permanently handled
-          console.log("🎯 Entered region:", p.name);
+        if (d <= p.radius) {
+          state.queue.push({
+            id: p.id,
+            name: p.name,
+            lat: p.lat,
+            lng: p.lng,
+            radius: p.radius,
+            blurb: p.blurb,
+
+            /* ⭐ Stamp required fields */
+            monumentId: p.monumentId,
+            tourpointId: p.tourpointId ?? p.id,
+            tourId: p.tourId,
+          });
         }
-
-        // ✅ optional: no need to handle exit, since we never re-arm
       }
     },
 
-    /** ✅ user confirms check-in */
+    /* ------------------------------------------------------
+       CONFIRM CHECK-IN for a given ID
+    ------------------------------------------------------ */
     confirm(state, action: PayloadAction<string>) {
-      const id = action.payload;
-      state.queue = state.queue.filter((q) => q.id !== id);
-      state.checked[id] = true;
+      state.queue = state.queue.filter((q) => q.id !== action.payload);
     },
 
-    /** ✅ user dismisses */
-    dismiss(state, action: PayloadAction<string>) {
-      const id = action.payload;
-      state.queue = state.queue.filter((q) => q.id !== id);
-      state.checked[id] = true;
-    },
-
+    /* ------------------------------------------------------
+       CLEAR all queued triggers
+    ------------------------------------------------------ */
     clearQueue(state) {
       state.queue = [];
     },
 
-    /** ✅ Reset on tour change / stop */
+    /* ------------------------------------------------------
+       RESET tracking when tour ends
+    ------------------------------------------------------ */
     resetAll(state) {
-      state.queue = [];
-      state.inside = {};
       state.last = null;
-      state.checked = {};
+      state.queue = [];
     },
   },
 });
 
-/* ----------------------------------------------------------------
-   📤 Exports
----------------------------------------------------------------- */
-export const { locationTick, confirm, dismiss, clearQueue, resetAll } =
+/* ============================================================
+   EXPORTS
+============================================================ */
+export const { locationTick, confirm, clearQueue, resetAll } =
   geofenceSlice.actions;
 
-export const selectGeofenceQueue = (s: RootState): QueueItem[] => s.geofence.queue;
-export const selectGeofenceChecked = (s: RootState): Record<string, boolean> =>
-  s.geofence.checked;
+export const selectGeofenceLast = (s: RootState) => s.geofence.last;
+export const selectGeofenceQueue = (s: RootState) => s.geofence.queue;
 
 export default geofenceSlice.reducer;

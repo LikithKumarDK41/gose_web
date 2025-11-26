@@ -9,18 +9,24 @@ import {
   clearQueue,
 } from "@/lib/store/slices/geofenceSlice";
 import { selectNav } from "@/lib/store/slices/navSlice";
+import { selectTourDetail } from "@/lib/store/slices/touristSlice";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+
 import {
   apiCreateVisitHistory,
   apiGetVisitHistoryById,
 } from "@/services/myListService";
+
+import { apiCreateStamp } from "@/services/userNavService";
+
 import type { QueueItem } from "@/lib/store/slices/geofenceSlice";
 import type { VisitHistoryPayload, VisitHistory } from "@/services/myListService";
 
-/* ------------------------------------------------------------
-   🧹 Safe HTML Sanitizer
------------------------------------------------------------- */
+/* ----------------------------------------------
+   🧹 Sanitize HTML
+---------------------------------------------- */
 function sanitizeHTML(input: string): string {
   if (!input) return "";
   return input
@@ -30,16 +36,16 @@ function sanitizeHTML(input: string): string {
     .replace(/on\w+="[^"]*"/gi, "");
 }
 
-/* ------------------------------------------------------------
-   🌍 Global Check-in Toasts
------------------------------------------------------------- */
+/* ----------------------------------------------
+   🌍 Global Geofence Toast Handler
+---------------------------------------------- */
 export default function GlobalCheckinToasts() {
   const dispatch = useAppDispatch();
 
-  // Redux sources
   const queue = useAppSelector(selectGeofenceQueue) as QueueItem[];
   const auth = useAppSelector((s) => s.auth.data);
-  const nav = useAppSelector(selectNav); // has activeTourId, status, etc.
+  const nav = useAppSelector(selectNav);
+  const tourDetail = useAppSelector(selectTourDetail);
 
   useEffect(() => {
     if (!queue.length) return;
@@ -56,13 +62,14 @@ export default function GlobalCheckinToasts() {
                 className="relative w-[90%] max-w-md p-6 rounded-2xl shadow-2xl
                            bg-white dark:bg-slate-900
                            text-gray-900 dark:text-gray-100
-                           border border-gray-200 dark:border-slate-700
-                           animate-[fadeIn_0.25s_ease-out]"
+                           border border-gray-200 dark:border-slate-700"
               >
+                {/* Title */}
                 <h3 className="font-semibold text-lg mb-3 break-words">
                   📍 You’re near: {item.name}
                 </h3>
 
+                {/* Description */}
                 {item.blurb ? (
                   <div
                     className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed prose dark:prose-invert"
@@ -76,30 +83,26 @@ export default function GlobalCheckinToasts() {
                   </p>
                 )}
 
+                {/* Coordinates */}
                 <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 space-y-1 text-left">
-                  <p>
-                    <strong>Latitude:</strong> {item.lat?.toFixed(6) ?? "—"}
-                  </p>
-                  <p>
-                    <strong>Longitude:</strong> {item.lng?.toFixed(6) ?? "—"}
-                  </p>
-                  <p>
-                    <strong>Radius:</strong> {item.radius ?? "—"} m
-                  </p>
+                  <p><strong>Latitude:</strong> {item.lat?.toFixed(6) ?? "—"}</p>
+                  <p><strong>Longitude:</strong> {item.lng?.toFixed(6) ?? "—"}</p>
+                  <p><strong>Radius:</strong> {item.radius ?? "—"} m</p>
                 </div>
 
+                {/* Buttons */}
                 <div className="flex justify-center gap-3">
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => toast.dismiss(t)}
-                    className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   >
                     Close
                   </Button>
 
                   <Button
                     size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={async () => {
                       try {
                         /* ------------------------------------------------
@@ -112,71 +115,68 @@ export default function GlobalCheckinToasts() {
                           null;
 
                         if (!userId) {
-                          toast.error("Please sign in to check-in");
+                          toast.error("Please sign in to check in");
                           toast.dismiss(t);
                           return;
                         }
 
                         /* ------------------------------------------------
-                           2️⃣ Determine correct history type
+                           2️⃣ Build Visit History Payload
                         ------------------------------------------------ */
-                        const hasActiveTour = Boolean(nav?.activeTourId);
-
-                        /* ------------------------------------------------
-                           3️⃣ Construct payload (timestamp + manual)
-                        ------------------------------------------------ */
-                        const payload: VisitHistoryPayload = {
+                        const visitPayload: VisitHistoryPayload = {
                           user: userId,
                           historytype: "monument",
                           monument: String(item.monumentId),
                           status: "active",
-                          visitmode: "manual", // ✅ always manual
-                          historytime: Date.now().toString(), // ✅ numeric timestamp string
+                          visitmode: "manual",
+                          historytime: Date.now().toString(),
                         };
 
-                        console.log("📦 Sending visit history:", payload);
-
                         /* ------------------------------------------------
-                           4️⃣ Create Visit History
+                           3️⃣ Create Visit History
                         ------------------------------------------------ */
-                        const created = await apiCreateVisitHistory(payload);
-                        console.log("✅ Created visit history:", created);
+                        const created = await apiCreateVisitHistory(visitPayload);
 
-                        /* ------------------------------------------------
-                           5️⃣ Fetch that history again
-                        ------------------------------------------------ */
                         if (created?._id) {
                           try {
-                            const fetched: VisitHistory =
-                              await apiGetVisitHistoryById(created._id);
-                            console.log("📥 Fetched created history:", fetched);
-                          } catch (fetchErr: any) {
-                            console.warn("⚠️ Could not fetch visit history:", fetchErr);
-                          }
+                            await apiGetVisitHistoryById(created._id);
+                          } catch {}
                         }
 
                         /* ------------------------------------------------
-                           6️⃣ Update State + Success Toast
+                           4️⃣ Create STAMP (NEW)
+                               Uses monumentId + tourpointId
+                        ------------------------------------------------ */
+                        if (item.monumentId && item.tourpointId) {
+                          await apiCreateStamp({
+                            monument: String(item.monumentId),
+                            tourpoint: String(item.tourpointId),
+                            user: String(userId),
+                            status: "active",
+                            stamptime: Date.now(),
+                          });
+                        }
+
+                        /* ------------------------------------------------
+                           5️⃣ Remove queue item + Toast Success
                         ------------------------------------------------ */
                         dispatch(confirm(String(item.id)));
                         toast.dismiss(t);
-                        toast.success(`✅ Checked in at ${item.name}`, {
-                          description: hasActiveTour
-                            ? "Your tour progress has been updated."
-                            : "Your visit has been recorded.",
-                          duration: 4000,
+
+                        toast.success(`🏅 Checked in at ${item.name}`, {
+                          description: nav.activeTourId
+                            ? "Visit + Stamp recorded (Tour Progress Updated)"
+                            : "Visit + Stamp recorded successfully.",
+                          duration: 5000,
                         });
+
                       } catch (err: any) {
-                        console.error("❌ Check-in failed:", err);
-                        toast.error("Failed to record visit history", {
-                          description:
-                            err?.message || "Please try again later.",
+                        console.error("❌ Check-in error:", err);
+                        toast.error("Failed to complete check-in", {
+                          description: err?.message || "Please try again."
                         });
                       }
                     }}
-                    className="bg-emerald-600 hover:bg-emerald-700
-                               dark:bg-emerald-500 dark:hover:bg-emerald-400
-                               text-white font-medium"
                   >
                     Check In
                   </Button>
@@ -189,9 +189,9 @@ export default function GlobalCheckinToasts() {
       );
     }
 
-    // ✅ Clear queue after all toasts created
+    // Clear queue
     dispatch(clearQueue());
-  }, [queue, dispatch, auth, nav]);
+  }, [queue, dispatch, auth, nav, tourDetail]);
 
   return null;
 }

@@ -8,20 +8,20 @@ import {
   type NavProfile,
 } from "@/services/userNavService";
 
-/* ============================================================
-   🧩 Types (state)
-============================================================ */
+/* ============================
+   TYPES
+============================= */
 export interface NavState {
   activeTourId: string | null;
-  status: NavStatus;
+  status: NavStatus; // idle | running | paused
   profile: NavProfile;
   syncing: boolean;
   error: string | null;
 }
 
-/* ============================================================
-   🧩 Initial State
-============================================================ */
+/* ============================
+   INITIAL STATE
+============================= */
 const initialState: NavState = {
   activeTourId: null,
   status: "idle",
@@ -30,11 +30,11 @@ const initialState: NavState = {
   error: null,
 };
 
-/* ============================================================
-   🛰️ Async Thunk — sync to /v1/usertours (delegates to service)
-============================================================ */
+/* ============================
+   SYNC USER TOUR
+============================= */
 export const syncUserTourStatus = createAsyncThunk<
-  any, // keep as any to match your current usage
+  any,
   SyncPayload,
   { rejectValue: string }
 >("nav/syncUserTourStatus", async (payload, { rejectWithValue }) => {
@@ -46,9 +46,9 @@ export const syncUserTourStatus = createAsyncThunk<
   }
 });
 
-/* ============================================================
-   🧭 Slice
-============================================================ */
+/* ============================
+   SLICE
+============================= */
 const navSlice = createSlice({
   name: "nav",
   initialState,
@@ -58,6 +58,9 @@ const navSlice = createSlice({
     },
     setProfile(state, action: PayloadAction<NavProfile>) {
       state.profile = action.payload;
+    },
+    setStatus(state, action: PayloadAction<NavStatus>) {
+      state.status = action.payload; // ⭐ NEW: Set from backend
     },
     startTour(state, action: PayloadAction<string | undefined>) {
       state.status = "running";
@@ -99,6 +102,7 @@ const navSlice = createSlice({
 export const {
   setActiveTour,
   setProfile,
+  setStatus,
   startTour,
   pauseTour,
   resumeTour,

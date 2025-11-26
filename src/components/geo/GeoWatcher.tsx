@@ -55,14 +55,18 @@ export default function GeoWatcher() {
         if (lat === undefined || lng === undefined) return null;
 
         return {
+          /** REQUIRED BY geofenceSlice */
           id: tp._id,
+          tourpointId: tp._id, // ⭐ FIX HERE
+          monumentId: tp.monument?._id ?? null,
+
+          /** EXTRAS */
           name: tp.monument?.title || tp.name || "Unknown",
           lat,
           lng,
           radius: tp.monument?.georadius ?? DEFAULT_RADIUS,
           blurb: tp.monument?.content?.brief ?? "",
           tourId: tour?._id ?? null,
-          monumentId: tp.monument?._id ?? null, // ✅ added here
         };
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);

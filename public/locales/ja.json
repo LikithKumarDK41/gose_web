@@ -463,5 +463,6 @@
   "no_monuments_found": "表示できる史跡がありません",
   "no_tours_found": "表示できるツアーがありません",
   "bookmark_or_visit_monuments_to_see_them_here": "史跡をブックマークまたは訪問すると、ここに表示されます",
-  "bookmark_or_visit_tours_to_see_them_here": "ツアーをブックマークまたは参加すると、ここに表示されます"
+  "bookmark_or_visit_tours_to_see_them_here": "ツアーをブックマークまたは参加すると、ここに表示されます",
+  "checked_in": "チェックイン済み"
 }

@@ -22,9 +22,14 @@ import {
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
+import { getPersistedUser } from "@/services/userAuthService";
+import { toast } from "sonner";
+import { apiCreateVisitHistory } from "@/services/myListService";
+import { apiCreateStamp } from "@/services/userNavService";
+import type { VisitHistoryPayload, VisitHistory } from "@/services/myListService";
 
 /* ------------------------------------------------------------------ */
-export default function MapTimelineRight({
+export default function TimelineRight({
   tourpoints,
   customStyle,
 }: {
@@ -34,6 +39,8 @@ export default function MapTimelineRight({
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useLocale();
   const { show, hide } = useGlobalLoader();
+  const persisted = getPersistedUser();
+  const userId = persisted?.user?._id ?? null;
 
   const loading = useSelector((s: any) => s.tourist.loading);
   const monumentDetail = useSelector((s: any) => s.tourist.monumentDetail);
@@ -43,13 +50,14 @@ export default function MapTimelineRight({
   const [modalLoading, setModalLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  const hasStart = tourpoints.some((tp) => tp.waypointtype === "start"); // 👈 check once
+
   const active = useMemo(
     () => tourpoints.find((p) => p._id === openId) ?? null,
     [openId, tourpoints]
   );
 
-  const hasStart = tourpoints.some((tp) => tp.waypointtype === "start");
-
+  /* -------------------- Load bookmarks -------------------- */
   useEffect(() => {
     if (loading) show();
     else hide();
@@ -83,7 +91,7 @@ export default function MapTimelineRight({
       ? monumentDetail
       : activeMonument ?? active?.monument;
 
-  /* ------------------------------------------------------------------ */
+  /* -------------------- Loading Skeleton -------------------- */
   if (initialLoading) {
     return (
       <div className="relative mx-auto w-full max-w-6xl animate-pulse">
@@ -132,15 +140,13 @@ export default function MapTimelineRight({
               return (
                 <Fragment key={p._id}>
                   <li
-                    className={`grid grid-cols-[90px_1fr] gap-6 ${
-                      hideBottom ? "pb-8" : "pb-10"
-                    }`}
+                    className={`grid grid-cols-[90px_1fr] gap-6 ${hideBottom ? "pb-8" : "pb-10"
+                      }`}
                   >
                     <div className="relative h-full w-[90px]">
                       <div
-                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${
-                          hideTop ? "top-[50%]" : "top-0"
-                        } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
+                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${hideTop ? "top-[50%]" : "top-0"
+                          } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
                       />
                       <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
                         <div
@@ -238,6 +244,28 @@ export default function MapTimelineRight({
                   />
 
                   <article className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl">
+                    {/* ⭐ CHECKED-IN BADGE (only if p.stamp exists) */}
+                    {/* {!p.stamp && Object.keys(p.stamp).length > 0 && (
+                      <div className="absolute top-3 right-3 z-20 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
+                        {t("checked_in") ?? "Checked-in"}
+                      </div>
+                    )} */}
+
+                    {p.stamp && (
+                      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-green-600/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {t("checked_in")}
+                      </div>
+                    )}
+
                     <div
                       className="relative w-full h-64 cursor-pointer"
                       onClick={() => handleOpen(p._id)}
@@ -301,17 +329,84 @@ export default function MapTimelineRight({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+                          onClick={async () => {
+                            try {
+                              /* ------------------------------------------------
+                                 1️⃣ Validate User Logged In
+                              ------------------------------------------------ */
+                              const user =
+                                persisted?.user?._id ||
+                                persisted?.user?.id ||
+                                persisted?.user?.uuid ||
+                                null;
+
+                              if (!user) {
+                                toast.error("Please sign in to check-in");
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 2️⃣ Monument & TourPoint Validation
+                              ------------------------------------------------ */
+                              const monumentId = p?.monument?._id;
+                              const tourpointId = p?._id;
+
+                              if (!monumentId || !tourpointId) {
+                                toast.error("Invalid point for check-in");
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 3️⃣ Create Visit History
+                              ------------------------------------------------ */
+                              const visitPayload: VisitHistoryPayload = {
+                                user: String(user),
+                                historytype: "monument",
+                                monument: String(monumentId),
+                                status: "active",
+                                visitmode: "manual",
+                                historytime: Date.now().toString(),
+                              };
+
+                              await apiCreateVisitHistory(visitPayload);
+
+                              /* ------------------------------------------------
+                                 4️⃣ Create Stamp
+                              ------------------------------------------------ */
+                              await apiCreateStamp({
+                                monument: String(monumentId),
+                                tourpoint: String(tourpointId),
+                                user: String(user),
+                                status: "active",
+                                stamptime: Date.now(),
+                              });
+
+                              /* ------------------------------------------------
+                                 5️⃣ SUCCESS Toast
+                              ------------------------------------------------ */
+                              toast.success(`🏅 Checked-in at ${m?.name ?? "location"}`, {
+                                description: "Visit + Stamp recorded successfully",
+                                duration: 5000,
+                              });
+
+                            } catch (err: any) {
+                              console.error("❌ Check-in failed:", err);
+                              toast.error("Check-in failed", {
+                                description: err?.message || "Please try again.",
+                              });
+                            }
+                          }}
                         >
                           <MapPin className="h-5 w-5" />
                           {t("tourDetails.checkIn")}
                         </Button>
+
                       </div>
                     </div>
                   </article>
                 </li>
 
-                {/* Connector to next point */}
                 {next && (
                   <li className="flex items-center gap-2 ml-[78px] mt-3 text-gray-600 dark:text-gray-300">
                     <TravelConnector
@@ -384,9 +479,7 @@ function TravelConnector({
 }) {
   const travelMode: TravelMode = (info?.name as TravelMode) || "walk";
   const travelTitle =
-    next?.pointtype === "lunch"
-      ? "lunch_break"
-      : info?.title || travelMode;
+    next?.pointtype === "lunch" ? "lunch_break" : info?.title || travelMode;
   const icon =
     next?.pointtype === "lunch" ? (
       <UtensilsCrossed className="h-6 w-6 text-orange-500" />
@@ -426,7 +519,7 @@ function capitalize(str?: string) {
 }
 
 function dynamicColor(i: number, type?: "start" | "place" | "end") {
-  if (type === "start") return "#10b981";
-  if (type === "end") return "#ef4444";
-  return "#f97316";
+  if (type === "start") return "#10b981"; // green
+  if (type === "end") return "#ef4444"; // red
+  return "#f97316"; // orange
 }

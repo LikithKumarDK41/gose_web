@@ -14,11 +14,15 @@ import {
   stopTour as navStop,
   setProfile,
   setActiveTour,
+  setStatus,
   syncUserTourStatus,
 } from "@/lib/store/slices/navSlice";
 import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
+
+import { apiGetUserTourStatus } from "@/services/userNavService";
 import { useLocale } from "@/providers/LocaleProvider";
 import { toast } from "sonner";
+
 import {
   Dialog,
   DialogContent,
@@ -31,7 +35,6 @@ import {
 type Props = {
   tourId?: string;
   defaultProfile?: "walking" | "driving" | "cycling";
-  autoStart?: boolean;
   listOpen?: boolean;
   onOpenList?: () => void;
   onCloseList?: () => void;
@@ -68,15 +71,6 @@ function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng:
 async function getOneShotLocation(): Promise<{ lat: number; lng: number } | null> {
   if (!("geolocation" in navigator)) return null;
 
-  try {
-    if ("permissions" in navigator) {
-      const p = await navigator.permissions.query({ name: "geolocation" as PermissionName });
-      if (p.state === "denied") return null;
-    }
-  } catch {
-    /* ignore */
-  }
-
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -92,18 +86,17 @@ async function getOneShotLocation(): Promise<{ lat: number; lng: number } | null
 export default function NavigationOverlay({
   tourId,
   defaultProfile = "walking",
-  autoStart = false,
   listOpen = false,
   onOpenList,
   onCloseList,
 }: Props) {
   const router = useRouter();
-  const loader = useGlobalLoader(); // ✅ Hook used only at top-level
+  const loader = useGlobalLoader();
   const nav = useAppSelector(selectNav);
   const auth = useAppSelector((s) => s.auth);
   const geofence = useAppSelector((s) => s.geofence);
-  const tours = useAppSelector((s) => s.tourist.list);
   const detail = useAppSelector((s) => s.tourist.detail);
+
   const dispatch = useAppDispatch();
   const { locale, t } = useLocale();
 
@@ -119,192 +112,137 @@ export default function NavigationOverlay({
     for (const p of tourpoints) {
       const pos = normalizeLngLat(p?.monument?.location ?? p?.location);
       if (!pos) continue;
-      const geoRadius =
-        typeof p?.monument?.georadius === "number" && p.monument.georadius > 0
-          ? p.monument.georadius
-          : 50;
-      if (haversineMeters(user, pos) <= geoRadius) return true;
+
+      const radius = typeof p?.monument?.georadius === "number" ? p.monument.georadius : 50;
+
+      if (haversineMeters(user, pos) <= radius) return true;
     }
     return false;
   }
 
-  /* restore from localStorage */
+  /* =========================================================
+     ⭐ Load tour status from backend on mount
+     Backend decides UI controls — not local state
+  ========================================================= */
   useEffect(() => {
+    async function loadStatus() {
+      if (!tourId || !auth.data?.user?._id) return;
+
+      try {
+        const res = await apiGetUserTourStatus(tourId);
+        const serverStatus = res?.usertours?.status;
+
+        dispatch(setActiveTour(tourId));
+
+        if (serverStatus === "start") {
+          dispatch(setStatus("running"));
+        } else if (serverStatus === "pause") {
+          dispatch(setStatus("paused"));
+        } else {
+          dispatch(setStatus("idle"));
+        }
+      } catch (err) {
+        console.error("Failed to load tour status", err);
+        dispatch(setStatus("idle"));
+      }
+    }
+
+    loadStatus();
+  }, [tourId, auth.data, dispatch]);
+
+
+  /* =========================================================
+     ⭐ START TOUR — Fixed logic for empty/null usertour
+  ========================================================= */
+  const handleStart = async () => {
+    if (!tourId) return;
+
+    if (!detail?.tourpoints?.length) {
+      toast.error("⚠️ Tourpoints not available");
+      return;
+    }
+
+    let usertour = null;
+
     try {
-      const saved = localStorage.getItem("navState");
-      if (!saved) return;
-      const parsed = JSON.parse(saved);
-      if (!parsed?.tourId) return;
+      const res = await apiGetUserTourStatus(tourId);
+      usertour = res?.usertours ?? null;
 
-      dispatch(setActiveTour(parsed.tourId));
-      dispatch(setProfile(parsed.profile ?? defaultProfile));
+      // ⭐ CASE 1: No status exists → START ALLOWED
+      if (
+        !usertour ||
+        usertour === null ||
+        Object.keys(usertour).length === 0
+      ) {
+        console.log("🟢 No active usertour → starting fresh");
+      } else {
+        const serverStatus = usertour.status;
+        const serverTourId = usertour?.tour?._id;
 
-      if (parsed.status === "running") {
-        dispatch(navStart(parsed.tourId));
-        toast.success("✅ Tour resumed");
-      } else if (parsed.status === "paused") {
-        dispatch(navPause());
+        // ⭐ CASE 2: Running a DIFFERENT tour → BLOCK
+        if (serverStatus === "start" && serverTourId !== tourId) {
+          toast.error("⚠️ You already have a running tour. Stop that tour first.");
+          return;
+        }
+
+        // ⭐ CASE 3: Running SAME tour → INFORM (do not restart)
+        if (serverStatus === "start" && serverTourId === tourId) {
+          toast.info("✔ This tour is already running.");
+          return;
+        }
       }
     } catch (err) {
-      console.warn("restore nav state:", err);
+      // ⭐ CASE 4: API Error (404, no record, etc.) → treat as new
+      console.log("ℹ️ No usertour found → starting new tour");
     }
-  }, [dispatch, defaultProfile]);
 
-  /* persist to localStorage */
-  useEffect(() => {
-    if (nav.status === "idle") {
-      localStorage.removeItem("navState");
-      return;
-    }
-    localStorage.setItem(
-      "navState",
-      JSON.stringify({ status: nav.status, tourId: nav.activeTourId, profile: nav.profile })
-    );
-  }, [nav.status, nav.activeTourId, nav.profile]);
-
-  /* auto start */
-  useEffect(() => {
-    if (autoStart && nav.status === "idle" && tourId) {
-      dispatch(setActiveTour(tourId));
-      dispatch(setProfile(defaultProfile));
-      dispatch(navStart(tourId));
-      const loc = geofence.last || null;
-      if (auth.data?.user?._id) {
-        dispatch(
-          syncUserTourStatus({
-            userId: auth.data.user._id,
-            tourId,
-            status: "start",
-            location: toSyncLoc(loc),
-          })
-        );
-      }
-    }
-  }, [autoStart, nav.status, tourId, defaultProfile, dispatch, auth.data, geofence.last]);
-
-  /* pause/resume on tab hide/show */
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      const saved = localStorage.getItem("navState");
-      if (document.visibilityState === "hidden" && nav.status === "running") {
-        dispatch(navPause());
-        localStorage.setItem(
-          "navState",
-          JSON.stringify({ status: "paused", tourId: nav.activeTourId, profile: nav.profile })
-        );
-        toast.warning("⏸️ Tour paused (tab inactive)");
-
-        if (auth.data?.user?._id && nav.activeTourId) {
-          const loc = geofence.last || null;
-          dispatch(
-            syncUserTourStatus({
-              userId: auth.data.user._id,
-              tourId: nav.activeTourId,
-              status: "pause",
-              location: toSyncLoc(loc),
-            })
-          );
-        }
-      } else if (document.visibilityState === "visible") {
-        const parsed = saved ? JSON.parse(saved) : null;
-        if (parsed?.status === "paused" && parsed?.tourId) {
-          dispatch(navResume());
-          toast.success("▶️ Tour resumed");
-
-          if (auth.data?.user?._id) {
-            const loc = geofence.last || null;
-            dispatch(
-              syncUserTourStatus({
-                userId: auth.data.user._id,
-                tourId: parsed.tourId,
-                status: "start",
-                location: toSyncLoc(loc),
-              })
-            );
-          }
-        }
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [dispatch, nav.status, nav.activeTourId, nav.profile, auth.data, geofence.last]);
-
-  /* handlers */
-  const handleStart = async () => {
-    if (nav.status === "running" || !tourId) return;
-
-    const tour =
-      tours.find((t) => t._id === tourId) || (detail?._id === tourId ? detail : null);
-
-    if (!tour?.tourpoints?.length) {
-      toast.error("⚠️ Tourpoints not available yet");
+    // ⭐ Get user GPS / fallback
+    const gps = geofence.last || (await getOneShotLocation());
+    if (!gps) {
+      toast.error("⚠ Unable to get location. Enable GPS.");
       return;
     }
 
-    const firstPos =
-      normalizeLngLat(
-        tour.tourpoints[0]?.monument?.location ?? tour.tourpoints[0]?.location
-      ) || null;
-
-    let userLoc = geofence.last || null;
-    let source: "redux" | "gps" | "first" | null = null;
-
-    if (userLoc) {
-      source = "redux";
-    } else {
-      const gps = await getOneShotLocation();
-      if (gps) {
-        userLoc = gps;
-        source = "gps";
-      } else if (firstPos) {
-        userLoc = firstPos;
-        source = "first";
-      }
-    }
-
-    if (!userLoc) {
-      toast.error(
-        "⚠️ Couldn’t get your location. Enable GPS/HTTPS or move near a tour point."
-      );
-      return;
-    }
-
-    const inside = isInsideRegion(userLoc, tour.tourpoints);
+    // ⭐ Region check
+    const inside = isInsideRegion(gps, detail.tourpoints);
     if (!inside) {
       setShowDialog(true);
       return;
     }
 
+    // ⭐ Update Redux UI
     dispatch(setActiveTour(tourId));
     dispatch(setProfile(defaultProfile));
     dispatch(navStart(tourId));
-    toast.success(
-      source === "gps"
-        ? "🎯 Tour started (using GPS)"
-        : source === "redux"
-          ? "🎯 Tour started"
-          : "🎯 Tour started (using nearest point)"
-    );
 
+    toast.success("🎯 Tour started");
+
+    // ⭐ Sync backend
     if (auth.data?.user?._id) {
       dispatch(
         syncUserTourStatus({
           userId: auth.data.user._id,
           tourId,
           status: "start",
-          location: toSyncLoc(userLoc),
+          location: toSyncLoc(gps),
         })
       );
     }
   };
 
+  /* =========================================================
+     ⭐ PAUSE / RESUME
+  ========================================================= */
   const handlePauseResume = () => {
     if (!tourId) return;
+
+    const loc = geofence.last || null;
+
     if (nav.status === "running") {
       dispatch(navPause());
       toast.warning("⏸️ Tour paused");
+
       if (auth.data?.user?._id) {
-        const loc = geofence.last || null;
         dispatch(
           syncUserTourStatus({
             userId: auth.data.user._id,
@@ -317,8 +255,8 @@ export default function NavigationOverlay({
     } else if (nav.status === "paused") {
       dispatch(navResume());
       toast.success("▶️ Tour resumed");
+
       if (auth.data?.user?._id) {
-        const loc = geofence.last || null;
         dispatch(
           syncUserTourStatus({
             userId: auth.data.user._id,
@@ -331,20 +269,25 @@ export default function NavigationOverlay({
     }
   };
 
+  /* =========================================================
+     ⭐ STOP TOUR
+  ========================================================= */
   const handleStop = () => {
     if (!tourId) return;
+
     dispatch(navStop());
     dispatch(resetGeofence());
-    localStorage.removeItem("navState");
+    dispatch(setStatus("idle"));
+
     toast.info("🛑 Tour stopped");
+
     if (auth.data?.user?._id) {
-      const loc = geofence.last || null;
       dispatch(
         syncUserTourStatus({
           userId: auth.data.user._id,
           tourId,
           status: "end",
-          location: toSyncLoc(loc),
+          location: toSyncLoc(geofence.last || null),
         })
       );
     }
@@ -367,21 +310,19 @@ export default function NavigationOverlay({
 
   return (
     <>
-      {/* Back button */}
+      {/* Back Button */}
       <div className="fixed left-3 top-3 z-[60]">
         <Button
           size="icon"
           variant="outline"
-          className="rounded-full shadow bg-white/80 dark:bg-black/50 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-black/60"
+          className="rounded-full shadow bg-white/80 dark:bg-black/50 backdrop-blur-sm"
           onClick={handleBack}
-          aria-label={labels.back}
-          title={labels.back}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
       </div>
 
-      {/* Map/List toggle */}
+      {/* Map / List toggle */}
       <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[60] pointer-events-none">
         <div className="pointer-events-auto inline-flex items-center rounded-full border bg-white/80 dark:bg-black/50 backdrop-blur px-1 py-1 shadow">
           <button
@@ -397,6 +338,7 @@ export default function NavigationOverlay({
           >
             {labels.map}
           </button>
+
           <button
             type="button"
             onClick={onOpenList}
@@ -413,14 +355,13 @@ export default function NavigationOverlay({
         </div>
       </div>
 
-      {/* Bottom controls */}
+      {/* Bottom Controls */}
       <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center gap-3">
         {nav.status === "idle" && (
           <Button
             size="lg"
-            className="pointer-events-auto rounded-full px-6 shadow-lg bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400"
+            className="pointer-events-auto rounded-full px-6 shadow-lg bg-sky-600 text-white"
             onClick={handleStart}
-            aria-label={labels.start}
           >
             <Play className="mr-2 h-5 w-5" /> {labels.start}
           </Button>
@@ -431,17 +372,16 @@ export default function NavigationOverlay({
             <Button
               size="lg"
               variant="outline"
-              className="pointer-events-auto rounded-full px-6 shadow-lg bg-white/90 dark:bg-black/40 backdrop-blur-sm"
+              className="pointer-events-auto rounded-full px-6 shadow-lg bg-white/90 dark:bg-black/40"
               onClick={handlePauseResume}
-              aria-label={labels.pause}
             >
               <Pause className="mr-2 h-5 w-5" /> {labels.pause}
             </Button>
+
             <Button
               size="lg"
-              className="pointer-events-auto rounded-full px-6 shadow-lg bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400"
+              className="pointer-events-auto rounded-full px-6 shadow-lg bg-rose-600 text-white"
               onClick={handleStop}
-              aria-label={labels.stop}
             >
               <StopCircle className="mr-2 h-5 w-5" /> {labels.stop}
             </Button>
@@ -452,17 +392,16 @@ export default function NavigationOverlay({
           <>
             <Button
               size="lg"
-              className="pointer-events-auto rounded-full px-6 shadow-lg bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+              className="pointer-events-auto rounded-full px-6 shadow-lg bg-emerald-600 text-white"
               onClick={handlePauseResume}
-              aria-label={labels.resume}
             >
               <Play className="mr-2 h-5 w-5" /> {labels.resume}
             </Button>
+
             <Button
               size="lg"
-              className="pointer-events-auto rounded-full px-6 shadow-lg bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400"
+              className="pointer-events-auto rounded-full px-6 shadow-lg bg-rose-600 text-white"
               onClick={handleStop}
-              aria-label={labels.stop}
             >
               <StopCircle className="mr-2 h-5 w-5" /> {labels.stop}
             </Button>
@@ -470,7 +409,7 @@ export default function NavigationOverlay({
         )}
       </div>
 
-      {/* Out-of-region dialog */}
+      {/* Out-of-region Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-sm rounded-xl">
           <DialogHeader>
@@ -479,7 +418,7 @@ export default function NavigationOverlay({
               You’re not in the region
             </DialogTitle>
             <DialogDescription className="text-gray-600 mt-2">
-              Please move closer to one of the tour’s points to begin your trip.
+              Move closer to one of the tour’s points to begin your trip.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex justify-end mt-4">

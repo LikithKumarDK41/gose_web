@@ -107,6 +107,15 @@ export interface Monument {
     imagecredit?: string | { en?: string; ja?: string };
     popularity?: number;
     __v?: number;
+    stamp: {
+        _id: string;
+        user: string;
+        monument: string;
+        tourpoint: string;
+        usertour?: string;
+        stamptime: number;
+        status: string;
+    };
 }
 
 /* ------------------------------------------------------------
@@ -131,6 +140,9 @@ export interface TourPoint {
     state?: string;
     pointtype?: "monument" | "station" | "lunch";
     location?: { lat?: number; lng?: number } | [number, number];
+    stamp?: any;
+    sortOrder?: number;
+    pointtitle?: string;
 }
 
 export interface Tour {
