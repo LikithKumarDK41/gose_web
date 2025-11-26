@@ -9,7 +9,7 @@ import {
   type TourPoint,
   type Monument,
   type TravelMode,
-} from "@/services/userTourService";
+} from "@/lib/types/userTour.types";
 import { Button } from "@/components/ui/button";
 import {
   ImageIcon,

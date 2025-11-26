@@ -17,7 +17,7 @@ import {
   apiFetchMonumentDetails,
   apiFetchMonumentSorts,
 } from "@/services/userTourService";
-import type { Monument, MonumentSort } from "@/services/userTourService";
+import type { Monument, MonumentSort } from "@/lib/types/userTour.types";
 import { useLocale } from "@/providers/LocaleProvider";
 import {
   DropdownMenu,

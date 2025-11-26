@@ -24,7 +24,7 @@ import {
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { apiFetchTours } from "@/services/userTourService";
-import type { Tour } from "@/services/userTourService";
+import type { Tour } from "@/lib/types/userTour.types";
 
 /* =========================================================
    🧹 Safe HTML Sanitizer

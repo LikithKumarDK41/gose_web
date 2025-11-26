@@ -3,13 +3,14 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { RootState } from "../index";
 
 import {
-  apiFetchTourById,
-  apiFetchTourPoints,
-  apiFetchMonumentDetails,
-  // types
   type TourPoint,
   type Monument,
   type Tour,
+} from "@/lib/types/userTour.types";
+import {
+  apiFetchTourById,
+  apiFetchTourPoints,
+  apiFetchMonumentDetails,
 } from "@/services/userTourService";
 
 /* -------------------- Redux State -------------------- */

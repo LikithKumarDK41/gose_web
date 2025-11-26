@@ -13,9 +13,7 @@ import {
   selectTourDetail,
 } from "@/lib/store/slices/touristSlice";
 
-import { selectNav } from "@/lib/store/slices/navSlice";
-
-import { type TourPoint, type Tour } from "@/services/userTourService";
+import type { TourPoint, Tour } from "@/lib/types/userTour.types";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useLocale } from "@/providers/LocaleProvider";
 import { X } from "lucide-react";
