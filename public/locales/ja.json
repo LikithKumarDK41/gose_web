@@ -425,11 +425,11 @@
     "label_terms": "利用規約",
     "label_privacy": "プライバシーポリシー",
     "please_wait": "お待ちください...",
-     "label_profile_image": "プロフィール写真",
+    "label_profile_image": "プロフィール写真",
     "label_upload_photo": "写真をアップロード",
     "label_change_photo": "写真を変更"
   },
-   "profile": {
+  "profile": {
     "editProfile": "プロフィールを編集",
     "email": "メールアドレス",
     "name": "氏名",
@@ -446,20 +446,22 @@
     "success": "プロフィールが正常に更新されました",
     "error": "プロフィールの更新に失敗しました",
     "userNotFound": "ユーザーが見つかりません",
-
     "gender_male": "男性",
     "gender_female": "女性",
     "gender_other": "その他",
-
     "age_10s": "10〜20代",
     "age_20s": "20〜30代",
     "age_30s": "30〜40代",
     "age_40s": "40〜50代",
     "age_50s": "50〜60代",
     "age_60s": "60〜70代",
-     "guestUser": "ゲストユーザー",
+    "guestUser": "ゲストユーザー",
     "noEmail": "メール情報がありません",
     "viewProfile": "プロフィールを見る",
     "logout": "ログアウト"
-  }
+  },
+  "no_monuments_found": "表示できる史跡がありません",
+  "no_tours_found": "表示できるツアーがありません",
+  "bookmark_or_visit_monuments_to_see_them_here": "史跡をブックマークまたは訪問すると、ここに表示されます",
+  "bookmark_or_visit_tours_to_see_them_here": "ツアーをブックマークまたは参加すると、ここに表示されます"
 }

@@ -112,6 +112,36 @@ export interface VisitHistoryResponse {
     };
 }
 
+export interface MonumentVisitHistory {
+    _id: string;
+    user: string;
+    visitmode: "manual" | "auto";
+    historytime: string;
+    historytype: "monument";
+    status: string;
+    monument: Monument;
+    historytimes?: string[];
+    historytimesObj?: {
+        historytime: string;
+        byTour: boolean;
+    }[];
+}
+
+export interface TourVisitHistory {
+    _id: string;
+    user: string;
+    status: string; // start, end, etc.
+    createdtime: string;
+    updatedtime: string;
+    tour: Tour;
+}
+
+export interface UserVisitHistoryResponse {
+    monuments: MonumentVisitHistory[];
+    tours: TourVisitHistory[];
+}
+
+
 /* ------------------------------------------------------------
    ⚙️ Helpers
 ------------------------------------------------------------ */
@@ -211,4 +241,78 @@ export async function apiCreateVisitHistory(
         throw new Error(parseAxiosError(err, "Failed to create visit history"));
     }
 }
+
+/**
+ * 🧭 Get visit history grouped by monuments and tours for the current user
+ * GET /v2/visithistory
+ */
+export async function apiGetVisitHistoryByUser(): Promise<UserVisitHistoryResponse> {
+    try {
+        const { data } = await api.post<UserVisitHistoryResponse>("/v2/visithistory");
+        return data;
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to fetch user's visit history"));
+    }
+}
+
+/**
+ * 🗑️ Soft-delete a visit history entry (tour or monument)
+ * PATCH /v1/visithistories/:id
+ * Payload: { status: "remove" }
+ */
+export async function apiDeleteVisitHistory(id: string): Promise<VisitHistory> {
+    try {
+        const { data } = await api.patch<VisitHistory>(
+            `/v1/visithistories/${id}`,
+            { status: "remove" }
+        );
+        return data;
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to delete visit history"));
+    }
+}
+
+/* ------------------------------------------------------------
+   🌐 API Services - User Bookmark List (v2)
+------------------------------------------------------------ */
+
+/**
+ * 🆕 Get monuments + tours bookmarked by the current user
+ * POST /v2/userbookmark
+ */
+export async function apiGetUserBookmarks(): Promise<{
+    monuments: any[];
+    tours: any[];
+}> {
+    try {
+        const { data } = await api.post("/v2/userbookmark");
+        return data;
+    } catch (err: any) {
+        throw new Error(
+            parseAxiosError(err, "Failed to fetch user's bookmark list")
+        );
+    }
+}
+
+/* ------------------------------------------------------------
+   🗑️ Delete (soft-remove) a bookmark
+   PATCH /v1/bookmarks/:id
+------------------------------------------------------------ */
+export async function apiDeleteBookmark(id: string): Promise<Bookmark> {
+    try {
+        const { data } = await api.patch<Bookmark>(
+            `/v1/bookmarks/${id}`,
+            { status: "remove" }
+        );
+        return data;
+    } catch (err: any) {
+        throw new Error(
+            parseAxiosError(err, `Failed to delete bookmark with ID: ${id}`)
+        );
+    }
+}
+
+
+
+
 

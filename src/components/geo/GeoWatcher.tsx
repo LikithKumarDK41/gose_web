@@ -8,7 +8,7 @@ import {
   resumeTour as navResume,
 } from "@/lib/store/slices/navSlice";
 import { locationTick } from "@/lib/store/slices/geofenceSlice";
-import { makeSelectTourPreferringDetail } from "@/lib/store/slices/touristSlice";
+import { selectTourDetail } from "@/lib/store/slices/touristSlice";
 import { toast } from "sonner";
 
 const DEFAULT_RADIUS = 5000;
@@ -19,10 +19,7 @@ const RETRY_DELAY = 5000;
 export default function GeoWatcher() {
   const dispatch = useAppDispatch();
   const nav = useAppSelector(selectNav);
-  const selectById = useMemo(() => makeSelectTourPreferringDetail(), []);
-  const tour = useAppSelector((s) =>
-    nav.activeTourId ? selectById(s, nav.activeTourId) : null
-  );
+  const tour = useAppSelector(selectTourDetail);
 
   const watchIdRef = useRef<number | null>(null);
   const lastSentRef = useRef<number>(0);

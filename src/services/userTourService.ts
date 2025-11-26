@@ -323,4 +323,23 @@ export async function apiFetchAllMonumentsWithQuery({
     }
 }
 
+/* ------------------------------------------------------------
+   🗑️ Delete (soft-remove) a User Tour
+   PATCH /v1/usertours/:id
+------------------------------------------------------------ */
+export async function apiDeleteUserTour(id: string): Promise<any> {
+    try {
+        const { data } = await api.patch(
+            `/v1/usertours/${id}`,
+            { status: "remove" }
+        );
+        return data;
+    } catch (err: any) {
+        throw new Error(
+            parseAxiosError(err, `Failed to delete user tour with ID: ${id}`)
+        );
+    }
+}
+
+
 

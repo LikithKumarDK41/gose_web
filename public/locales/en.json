@@ -447,20 +447,22 @@
     "success": "Profile updated successfully",
     "error": "Failed to update profile",
     "userNotFound": "User not found",
-
     "gender_male": "Male",
     "gender_female": "Female",
     "gender_other": "Other",
-
     "age_10s": "10s",
     "age_20s": "20s",
     "age_30s": "30s",
     "age_40s": "40s",
     "age_50s": "50s",
     "age_60s": "60s",
-     "guestUser": "Guest User",
+    "guestUser": "Guest User",
     "noEmail": "No email available",
     "viewProfile": "View Profile",
     "logout": "Logout"
-  }
+  },
+  "no_monuments_found": "No monuments found",
+  "no_tours_found": "No tours found",
+  "bookmark_or_visit_monuments_to_see_them_here": "Bookmark or visit monuments to see them here",
+  "bookmark_or_visit_tours_to_see_them_here": "Bookmark or visit tours to see them here"
 }

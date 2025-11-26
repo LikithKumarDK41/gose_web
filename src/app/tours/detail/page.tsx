@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import {
   fetchTourById,
   fetchTourPoints,
-  makeSelectTourPreferringDetail,
+  selectTourDetail,
 } from "@/lib/store/slices/touristSlice";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import {
@@ -41,8 +41,7 @@ export default function TourDetailsClientPage() {
   const [bookmarked, setBookmarked] = useState(false); // TODO: replace with real user from auth/store
 
   const [bookmarkCheckLoading, setBookmarkCheckLoading] = useState(true);
-  const selectById = useMemo(() => makeSelectTourPreferringDetail(), []);
-  const tour = useAppSelector((state) => selectById(state, id));
+  const tour = useAppSelector(selectTourDetail);
   const [bookmarkId, setBookmarkId] = useState<string | null>(null);
   const [bookmarkLoading, setBookmarkLoading] = useState(true); // 👈 added loader flag
 

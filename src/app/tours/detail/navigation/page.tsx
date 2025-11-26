@@ -9,7 +9,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
 import {
   fetchTourById,
   fetchTourPoints,
-  makeSelectTourPreferringDetail,
+  selectTourDetail,
 } from "@/lib/store/slices/touristSlice";
 import {
   type Tour,
@@ -25,13 +25,12 @@ export default function NavigationPage() {
   const { locale } = useLocale();
   const dispatch = useAppDispatch();
   const { show, hide } = useGlobalLoader();
- const { t } = useLocale();
+  const { t } = useLocale();
   // NEW: list modal open state
   const [listOpen, setListOpen] = useState(false);
 
   // Stable selector instance
-  const selectById = useMemo(() => makeSelectTourPreferringDetail(), []);
-  const tour = useAppSelector((state) => selectById(state, id));
+  const tour = useAppSelector(selectTourDetail);
 
   useEffect(() => {
     if (!id) router.replace("/tours");
@@ -102,13 +101,13 @@ function TourPointsModal({
   onClose: () => void;
   tour: Tour;
 }) {
-   const { t } = useLocale();
+  const { t } = useLocale();
   if (!open) return null;
 
   const points = tour?.tourpoints ?? [];
 
   return (
-    
+
     <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center">
       {/* Panel */}
       <div className="relative w-full h-[100vh] bg-background shadow-2xl overflow-hidden flex flex-col border">

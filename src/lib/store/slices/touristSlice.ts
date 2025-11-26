@@ -1,27 +1,19 @@
 // src/lib/store/slices/touristSlice.ts
-import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { RootState } from "../index";
+
 import {
-  apiFetchTours,
   apiFetchTourById,
   apiFetchTourPoints,
   apiFetchMonumentDetails,
   // types
-  type TravelMode,
-  type CloudinaryImage,
-  type CloudinaryIcon,
-  type RelatedTour,
-  type Region,
-  type Theme,
-  type Monument,
-  type TravelType,
   type TourPoint,
+  type Monument,
   type Tour,
 } from "@/services/userTourService";
 
 /* -------------------- Redux State -------------------- */
 interface TouristState {
-  list: Tour[];
   detail: Tour | null;
   monumentDetail: Monument | null;
   loading: boolean;
@@ -29,49 +21,41 @@ interface TouristState {
 }
 
 const initialState: TouristState = {
-  list: [],
   detail: null,
   monumentDetail: null,
   loading: false,
   error: null,
 };
 
-/* -------------------- Async Thunks (delegating to service) -------------------- */
-export const fetchTours = createAsyncThunk<Tour[], void, { rejectValue: string }>(
-  "tourist/fetchTours",
-  async (_, { rejectWithValue }) => {
-    try {
-      return await apiFetchTours();
-    } catch (err: any) {
-      return rejectWithValue(err.message || "Failed to load tours");
-    }
-  }
-);
+/* -------------------- Async Thunks (Single-Tour Only) -------------------- */
 
-export const fetchTourById = createAsyncThunk<Tour, string, { rejectValue: string }>(
-  "tourist/fetchTourById",
-  async (id, { rejectWithValue }) => {
-    try {
-      return await apiFetchTourById(id);
-    } catch (err: any) {
-      return rejectWithValue(err.message ?? "Failed to load tour");
-    }
+// Fetch only one tour
+export const fetchTourById = createAsyncThunk<
+  Tour,
+  string,
+  { rejectValue: string }
+>("tourist/fetchTourById", async (id, { rejectWithValue }) => {
+  try {
+    return await apiFetchTourById(id);
+  } catch (err: any) {
+    return rejectWithValue(err.message ?? "Failed to load tour");
   }
-);
+});
 
+// Fetch tour points only for the current tour
 export const fetchTourPoints = createAsyncThunk<
-  { tourId: string; points: TourPoint[] },
+  TourPoint[],
   string,
   { rejectValue: string }
 >("tourist/fetchTourPoints", async (tourId, { rejectWithValue }) => {
   try {
-    const points = await apiFetchTourPoints(tourId);
-    return { tourId, points };
+    return await apiFetchTourPoints(tourId);
   } catch (err: any) {
     return rejectWithValue(err.message ?? "Failed to load tourpoints");
   }
 });
 
+// Fetch monument details
 export const fetchMonumentDetails = createAsyncThunk<
   Monument,
   string,
@@ -85,6 +69,7 @@ export const fetchMonumentDetails = createAsyncThunk<
 });
 
 /* -------------------- Slice -------------------- */
+
 const touristSlice = createSlice({
   name: "tourist",
   initialState,
@@ -96,21 +81,10 @@ const touristSlice = createSlice({
       state.monumentDetail = null;
     },
   },
+
   extraReducers: (builder) => {
     builder
-      .addCase(fetchTours.pending, (s) => {
-        s.loading = true;
-        s.error = null;
-      })
-      .addCase(fetchTours.fulfilled, (s, { payload }) => {
-        s.loading = false;
-        s.list = payload;
-      })
-      .addCase(fetchTours.rejected, (s, { payload }) => {
-        s.loading = false;
-        s.error = (payload as string) || "Failed to load tours";
-      })
-
+      /* Fetch ONE tour */
       .addCase(fetchTourById.pending, (s) => {
         s.loading = true;
         s.error = null;
@@ -118,25 +92,21 @@ const touristSlice = createSlice({
       .addCase(fetchTourById.fulfilled, (s, { payload }) => {
         s.loading = false;
         s.detail = payload;
-        const i = s.list.findIndex((t) => t._id === payload._id);
-        if (i === -1) s.list.push(payload);
-        else s.list[i] = payload;
       })
       .addCase(fetchTourById.rejected, (s, { payload }) => {
         s.loading = false;
-        s.error = (payload as string) || "Failed to load tour";
+        s.error = payload || "Failed to load tour";
       })
 
+      /* Tour Points → attach only to current detail */
       .addCase(fetchTourPoints.fulfilled, (s, { payload }) => {
-        const { tourId, points } = payload;
-        if (s.detail && s.detail._id === tourId) s.detail.tourpoints = points;
-        const i = s.list.findIndex((t) => t._id === tourId);
-        if (i !== -1) s.list[i].tourpoints = points;
+        if (s.detail) s.detail.tourpoints = payload;
       })
       .addCase(fetchTourPoints.rejected, (s, { payload }) => {
-        s.error = (payload as string) ?? s.error;
+        s.error = payload ?? s.error;
       })
 
+      /* Monument Details */
       .addCase(fetchMonumentDetails.pending, (s) => {
         s.loading = true;
         s.error = null;
@@ -147,7 +117,7 @@ const touristSlice = createSlice({
       })
       .addCase(fetchMonumentDetails.rejected, (s, { payload }) => {
         s.loading = false;
-        s.error = (payload as string) || "Failed to load monument details";
+        s.error = payload || "Failed to load monument details";
       });
   },
 });
@@ -155,26 +125,9 @@ const touristSlice = createSlice({
 export const { clearTourDetail, clearMonumentDetail } = touristSlice.actions;
 
 /* -------------------- Selectors -------------------- */
-export const selectTours = (s: RootState) => s.tourist.list;
 export const selectTourDetail = (s: RootState) => s.tourist.detail;
-export const selectMonumentDetail = (s: RootState) => s.tourist.monumentDetail;
 export const selectTouristLoading = (s: RootState) => s.tourist.loading;
 export const selectTouristError = (s: RootState) => s.tourist.error;
-
-export const selectTourById =
-  (id: string) => (s: RootState) =>
-    s.tourist.list.find((t) => t._id === id) ||
-    (s.tourist.detail?._id === id ? s.tourist.detail : undefined);
-
-export const makeSelectTourPreferringDetail = () =>
-  createSelector(
-    [
-      (s: RootState) => s.tourist.detail,
-      (s: RootState) => s.tourist.list,
-      (_: RootState, id: string) => id,
-    ],
-    (detail, list, id) =>
-      detail?._id === id ? detail : list.find((t) => t._id === id) ?? null
-  );
+export const selectMonumentDetail = (s: RootState) => s.tourist.monumentDetail;
 
 export default touristSlice.reducer;
