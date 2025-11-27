@@ -464,5 +464,19 @@
   "no_tours_found": "表示できるツアーがありません",
   "bookmark_or_visit_monuments_to_see_them_here": "史跡をブックマークまたは訪問すると、ここに表示されます",
   "bookmark_or_visit_tours_to_see_them_here": "ツアーをブックマークまたは参加すると、ここに表示されます",
-  "checked_in": "チェックイン済み"
+  "checked_in": "チェックイン済み",
+  "back_to_tours": "ツアー一覧へ戻る",
+  "tour_completed": "ツアー完了！",
+  "congratulations": "おめでとうございます",
+  "you_collected": "あなたは",
+  "out_of": "／",
+  "checkpoints": "チェックポイントを回収しました",
+  "travel_time": "移動時間",
+  "tour_description": "ツアー説明",
+  "completed_points": "達成したポイント",
+  "no_points_completed": "まだ達成したポイントはありません。",
+  "completed_by": "達成者",
+  "share_achievement": "成果を共有する",
+  "tour_not_started": "ツアーが開始されていません",
+  "unknown_point": "不明なスポット"
 }

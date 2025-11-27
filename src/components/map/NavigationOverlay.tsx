@@ -24,6 +24,7 @@ import {
   setActiveTour,
   setStatus,
   syncUserTourStatus,
+  selectUserTourPoints,
 } from "@/lib/store/slices/navSlice";
 import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
 
@@ -126,7 +127,7 @@ export default function NavigationOverlay({
   listOpen?: boolean;
   onOpenList?: () => void;
   onCloseList?: () => void;
-  tourPoints?: TourPoint[];
+  tourPoints?: TourPoint[]; // kept as fallback
   onRefreshTourPoints?: () => Promise<void>;
 }) {
   const router = useRouter();
@@ -138,6 +139,9 @@ export default function NavigationOverlay({
   const detail = useAppSelector((s) => s.tourist.detail);
   const dispatch = useAppDispatch();
   const { locale, t } = useLocale();
+
+  // Prefer Redux-stored tourpoints from nav slice
+  const reduxTourPoints = useAppSelector(selectUserTourPoints);
 
   const [showDialog, setShowDialog] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -166,16 +170,22 @@ export default function NavigationOverlay({
   };
 
   /* =========================================================
-     ⭐ Monitor tourPoints changes
+     ⭐ Monitor tourPoints changes (use Redux data first)
+     Use reduxTourPoints when available; fallback to prop tourPoints
+     This makes finish button depend on Redux nav slice data
   ========================================================= */
   useEffect(() => {
-    const isFinished = allStamped(tourPoints);
+    const source = Array.isArray(reduxTourPoints) && reduxTourPoints.length
+      ? reduxTourPoints
+      : tourPoints;
+
+    const isFinished = allStamped(source);
     setFinished(isFinished);
 
-    if (isFinished && tourPoints.length > 0) {
-      console.log("✅ All stamps collected! Finish button available.");
+    if (isFinished && source.length > 0) {
+      console.log("✅ All stamps collected! Finish button available (based on Redux tourpoints).");
     }
-  }, [tourPoints]);
+  }, [reduxTourPoints, tourPoints]);
 
   /* =========================================================
      ⭐ Load tour status on mount
@@ -202,6 +212,7 @@ export default function NavigationOverlay({
 
   /* =========================================================
      ⭐ Auto-refresh tourpoints every 5 seconds when running
+     (still triggers onRefreshTourPoints if provided)
   ========================================================= */
   useEffect(() => {
     if (nav.status !== "running" || !tourId) return;
@@ -218,6 +229,8 @@ export default function NavigationOverlay({
 
     return () => clearInterval(interval);
   }, [nav.status, tourId, onRefreshTourPoints]);
+
+  // ...existing code (handleStart, handlePauseResume, handleFinish, UI) ...
 
   /* =========================================================
      ⭐ START
@@ -329,12 +342,13 @@ export default function NavigationOverlay({
 
   /* =========================================================
      ⭐ FINISH (only when all stamps collected)
+     Uses Redux tourpoints to decide availability
   ========================================================= */
   const handleFinish = async () => {
     if (!tourId) return;
 
-    dispatch(navStop());
-    dispatch(resetGeofence());
+    // dispatch(navStop());
+    // dispatch(resetGeofence());
     dispatch(setStatus("idle"));
     toast.success("✅ Tour finished!");
 
@@ -359,9 +373,6 @@ export default function NavigationOverlay({
     requestAnimationFrame(() => router.back());
   };
 
-  /* =========================================================
-     LABELS
-  ========================================================= */
   const labels = {
     start: t("Start"),
     pause: t("Pause"),
@@ -372,9 +383,6 @@ export default function NavigationOverlay({
     back: t("Back"),
   };
 
-  /* =========================================================
-     UI
-  ========================================================= */
   return (
     <>
       {/* Back */}

@@ -257,6 +257,7 @@ function ConfirmPopupButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const { t } = useLocale();
+
   const handleClick = (e: React.MouseEvent) => {
     const currentDetailId = tourist?.detail?._id;
 
@@ -277,13 +278,25 @@ function ConfirmPopupButton({
   };
 
   const handleConfirm = async () => {
-    dispatch(resetGeofence());
-    dispatch(stopTour());
-    dispatch(setActiveTour(null));
-    localStorage.removeItem("navState");
+    try {
+      console.log("🔄 Resetting nav state for new tour...");
+      
+      // Reset all related slices
+      dispatch(resetGeofence());
+      dispatch(stopTour());
+      dispatch(setActiveTour(null));
+      
+      // Clear localStorage
+      localStorage.removeItem("navState");
+      
+      console.log("✅ Nav state reset successfully");
 
-    setOpen(false);
-    router.push(href);
+      setOpen(false);
+      router.push(href);
+    } catch (err) {
+      console.error("Error during tour switch:", err);
+      router.push(href);
+    }
   };
 
   return (
@@ -319,7 +332,6 @@ function ConfirmPopupButton({
     </Dialog>
   );
 }
-
 /* =========================================================
    🌈 Reusable Shortcuts Grid
 ========================================================= */

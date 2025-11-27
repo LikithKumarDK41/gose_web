@@ -465,5 +465,19 @@
   "no_tours_found": "No tours found",
   "bookmark_or_visit_monuments_to_see_them_here": "Bookmark or visit monuments to see them here",
   "bookmark_or_visit_tours_to_see_them_here": "Bookmark or visit tours to see them here",
-  "checked_in": "Checked-in"
+  "checked_in": "Checked-in",
+  "back_to_tours": "Back to Tours",
+  "tour_completed": "Tour Completed",
+  "congratulations": "Congratulations",
+  "you_collected": "You collected",
+  "out_of": "out of",
+  "checkpoints": "checkpoints",
+  "travel_time": "Travel Time",
+  "tour_description": "Tour Description",
+  "completed_points": "Completed Points",
+  "no_points_completed": "No points completed yet.",
+  "completed_by": "Completed by",
+  "share_achievement": "Share Achievement",
+  "tour_not_started": "Tour not started",
+  "unknown_point": "Unknown Point"
 }
