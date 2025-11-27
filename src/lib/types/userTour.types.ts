@@ -1,9 +1,5 @@
-/* ------------------------------------------------------------
-   Shared Types
------------------------------------------------------------- */
 export type TravelMode = "car" | "walk" | "train";
 
-/** Cloudinary Image Type */
 export interface CloudinaryImage {
     public_id?: string;
     version?: number;
@@ -18,9 +14,6 @@ export interface CloudinaryImage {
 }
 export type CloudinaryIcon = CloudinaryImage;
 
-/* ------------------------------------------------------------
-   Related Types
------------------------------------------------------------- */
 export interface RelatedTour {
     _id?: string;
     title?: string;
@@ -51,39 +44,25 @@ export interface Theme {
     theme?: string[];
 }
 
-/* ------------------------------------------------------------
-   Monument Interface
------------------------------------------------------------- */
 export interface Monument {
     _id: string;
     slug?: string;
     sortOrder?: number;
-
     name: string;
     title?: string;
     description?: string;
-
-    /** Images */
     image?: CloudinaryImage;
     gallery?: CloudinaryImage[];
-
-    /** Geo & Region */
     location?: { lat?: number; lng?: number } | [number, number];
     region?: Region;
-
-    /** Classification */
     subtheme?: Theme[];
     theme?: Theme[];
     artemplates?: any[];
-
-    /** Flags */
     arenabled?: boolean;
     avenabled?: boolean;
     featured?: boolean;
     rare?: boolean;
     tourpoint?: boolean;
-
-    /** Meta Info */
     era?: string;
     year?: string;
     size?: string;
@@ -91,16 +70,10 @@ export interface Monument {
     access?: string;
     georadius?: number;
     state?: string;
-
-    /** Content */
     content?: { brief?: string; extended?: string };
-
-    /** Relations */
     nearbyservices?: any[];
     nearbymonuments?: any[];
     relatedtours?: RelatedTour[];
-
-    /** Other Metadata */
     imagecredit?: string | { en?: string; ja?: string };
     popularity?: number;
     __v?: number;
@@ -115,9 +88,6 @@ export interface Monument {
     };
 }
 
-/* ------------------------------------------------------------
-   Tour Types
------------------------------------------------------------- */
 export interface TravelType {
     _id: string;
     title?: string;
@@ -161,9 +131,6 @@ export interface Tour {
     tourpoints?: TourPoint[];
 }
 
-/* ------------------------------------------------------------
-   Monument Sort Interface
------------------------------------------------------------- */
 export interface MonumentSort {
     _id: string;
     name?: string;
@@ -174,4 +141,21 @@ export interface MonumentSort {
     link?: string;
 }
 
-type ToursEnvelope = { tours?: { results?: Tour[] } } | { results?: Tour[] } | Tour[];
+export interface QueueItem {
+  id: string;                   
+  name: string;
+  lat: number;
+  lng: number;
+  radius: number;
+  blurb?: string;
+  monumentId: string | null;
+  tourpointId: string | null;
+  tourId: string | null;
+}
+
+export interface TouristState {
+  detail: Tour | null;
+  monumentDetail: Monument | null;
+  loading: boolean;
+  error: string | null;
+}

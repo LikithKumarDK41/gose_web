@@ -11,12 +11,13 @@ const nextConfig: NextConfig = {
       // Proxy v1
       {
         source: "/api/v1/:path*",
-        destination: "https://api.gose.nichi.in/api/v1/:path*",
+        // destination: "https://api.gose.nichi.in/api/v1/:path*",
+        destination: "http://192.168.0.29:3000/api/v1/:path*",
       },
       // Proxy v2
       {
         source: "/api/v2/:path*",
-        destination: "https://api.gose.nichi.in/api/v2/:path*",
+        destination: "http://192.168.0.29:3000/api/v2/:path*",
       },
     ];
   },

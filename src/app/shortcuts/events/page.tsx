@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "@/lib/store";
 import { apiFetchEvents } from "@/services/userGlobalservice";
-import type { EventItem } from "@/services/userGlobalservice";
+import type { EventItem } from "@/lib/types/userGlobal.types";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

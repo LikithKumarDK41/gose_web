@@ -29,11 +29,13 @@ import { useLocale } from "@/providers/LocaleProvider";
 import { useRef, useEffect, useState } from "react";
 import {
   apiFetchEventsByMonument,
-  EventItem,
   apiFetchBookmarkByRef,
   apiRemoveBookmark,
   apiCreateBookmark,
 } from "@/services/userGlobalservice";
+import type {
+  EventItem,
+} from "@/lib/types/userGlobal.types";
 import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */

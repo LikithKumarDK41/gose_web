@@ -12,14 +12,7 @@ import {
   apiFetchTourPoints,
   apiFetchMonumentDetails,
 } from "@/services/userTourService";
-
-/* -------------------- Redux State -------------------- */
-interface TouristState {
-  detail: Tour | null;
-  monumentDetail: Monument | null;
-  loading: boolean;
-  error: string | null;
-}
+import type { TouristState } from "@/lib/types/userTour.types";
 
 const initialState: TouristState = {
   detail: null,
@@ -28,9 +21,6 @@ const initialState: TouristState = {
   error: null,
 };
 
-/* -------------------- Async Thunks (Single-Tour Only) -------------------- */
-
-// Fetch only one tour
 export const fetchTourById = createAsyncThunk<
   Tour,
   string,
@@ -43,7 +33,6 @@ export const fetchTourById = createAsyncThunk<
   }
 });
 
-// Fetch tour points only for the current tour
 export const fetchTourPoints = createAsyncThunk<
   TourPoint[],
   string,
@@ -56,7 +45,6 @@ export const fetchTourPoints = createAsyncThunk<
   }
 });
 
-// Fetch monument details
 export const fetchMonumentDetails = createAsyncThunk<
   Monument,
   string,
@@ -68,8 +56,6 @@ export const fetchMonumentDetails = createAsyncThunk<
     return rejectWithValue(err.message ?? "Failed to load monument details");
   }
 });
-
-/* -------------------- Slice -------------------- */
 
 const touristSlice = createSlice({
   name: "tourist",
@@ -85,7 +71,6 @@ const touristSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      /* Fetch ONE tour */
       .addCase(fetchTourById.pending, (s) => {
         s.loading = true;
         s.error = null;
@@ -99,7 +84,6 @@ const touristSlice = createSlice({
         s.error = payload || "Failed to load tour";
       })
 
-      /* Tour Points → attach only to current detail */
       .addCase(fetchTourPoints.fulfilled, (s, { payload }) => {
         if (s.detail) s.detail.tourpoints = payload;
       })
@@ -107,7 +91,6 @@ const touristSlice = createSlice({
         s.error = payload ?? s.error;
       })
 
-      /* Monument Details */
       .addCase(fetchMonumentDetails.pending, (s) => {
         s.loading = true;
         s.error = null;
@@ -125,7 +108,6 @@ const touristSlice = createSlice({
 
 export const { clearTourDetail, clearMonumentDetail } = touristSlice.actions;
 
-/* -------------------- Selectors -------------------- */
 export const selectTourDetail = (s: RootState) => s.tourist.detail;
 export const selectTouristLoading = (s: RootState) => s.tourist.loading;
 export const selectTouristError = (s: RootState) => s.tourist.error;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetchAbouts } from "@/services/userGlobalservice";
-import type { About } from "@/services/userGlobalservice";
+import type { About } from "@/lib/types/userGlobal.types";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 

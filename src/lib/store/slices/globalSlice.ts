@@ -3,22 +3,13 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "../index";
 import {
   apiFetchShortcuts,
-  type Shortcut, // re-use service types
 } from "@/services/userGlobalservice";
+import type {
+  Shortcut,
+} from "@/lib/types/userGlobal.types";
 
-/* ------------------------------------------------------------
-   🧱 State Definition
------------------------------------------------------------- */
-interface GlobalState {
-  shortcuts: Shortcut[];
-  loading: boolean;
-  error: string | null;
-  activeThemeId: string | null; // ✅ added field
-}
+import type { GlobalState } from "@/lib/types/userGlobal.types";
 
-/* ------------------------------------------------------------
-   🌱 Initial State
------------------------------------------------------------- */
 const initialState: GlobalState = {
   shortcuts: [],
   loading: false,
@@ -26,9 +17,6 @@ const initialState: GlobalState = {
   activeThemeId: null,
 };
 
-/* ------------------------------------------------------------
-   ⚡ Async Thunk (Fetch Shortcuts)
------------------------------------------------------------- */
 export const fetchShortcuts = createAsyncThunk<
   Shortcut[],
   void,
@@ -42,14 +30,10 @@ export const fetchShortcuts = createAsyncThunk<
   }
 });
 
-/* ------------------------------------------------------------
-   🧩 Slice
------------------------------------------------------------- */
 const globalSlice = createSlice({
   name: "global",
   initialState,
   reducers: {
-    // ✅ store theme ID globally when shortcut clicked
     setActiveTheme(state, action: PayloadAction<string | null>) {
       state.activeThemeId = action.payload;
     },
@@ -74,21 +58,11 @@ const globalSlice = createSlice({
   },
 });
 
-/* ------------------------------------------------------------
-   📤 Actions
------------------------------------------------------------- */
 export const { setActiveTheme, clearActiveTheme } = globalSlice.actions;
-
-/* ------------------------------------------------------------
-   🔍 Selectors
------------------------------------------------------------- */
 export const selectShortcuts = (state: RootState) => state.global.shortcuts;
 export const selectGlobalLoading = (state: RootState) => state.global.loading;
 export const selectGlobalError = (state: RootState) => state.global.error;
 export const selectActiveThemeId = (state: RootState) =>
   state.global.activeThemeId;
 
-/* ------------------------------------------------------------
-   🚀 Export Reducer
------------------------------------------------------------- */
 export default globalSlice.reducer;

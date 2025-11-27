@@ -25,11 +25,9 @@ import {
   prepareSocialRegistration,
   setOtpMode,
   fetchCountries,
-  Country,
-  AccountType,
   resetOtpState,
 } from '@/lib/store/slices/authSlice';
-
+import type { AccountType, Country } from "@/lib/types/userAuth.types";
 import { auth, loginWithGoogle, loginWithFacebook } from '@/lib/firebase';
 
 /* ⭐ Translation Hook */
@@ -51,8 +49,8 @@ function inferCountryFromE164(e164: string, list: Country[]): string | null {
 
 export default function SignInPage() {
   const { t } = useLocale(); // ⭐ Translation hook
-const [profileImage, setProfileImage] = React.useState<File | null>(null);
-const [profilePreview, setProfilePreview] = React.useState<string>("");
+  const [profileImage, setProfileImage] = React.useState<File | null>(null);
+  const [profilePreview, setProfilePreview] = React.useState<string>("");
 
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -210,20 +208,20 @@ const [profilePreview, setProfilePreview] = React.useState<string>("");
     if (showSocialRegister) {
       if (!validateRegister()) return;
 
-    const payload = {
-  state: "active" as const,
-  email: emailReg.trim(),
-  account: accountLabel(),
-  name: name.trim(),
-  gender: gender.trim(),
-  agegroup: agegroup.trim(),
-  country: country.trim(),
-  nationality: nationality.trim(),
-  phoneNumber: Number(phoneNumber.replace(/\D/g, "")),
-  firebaseUserId: "",
-};
+      const payload = {
+        state: "active" as const,
+        email: emailReg.trim(),
+        account: accountLabel(),
+        name: name.trim(),
+        gender: gender.trim(),
+        agegroup: agegroup.trim(),
+        country: country.trim(),
+        nationality: nationality.trim(),
+        phoneNumber: Number(phoneNumber.replace(/\D/g, "")),
+        firebaseUserId: "",
+      };
 
-const regAction = await dispatch(registerNewUser(payload));
+      const regAction = await dispatch(registerNewUser(payload));
 
 
 

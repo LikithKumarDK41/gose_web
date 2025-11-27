@@ -1,15 +1,9 @@
 // src/lib/store/slices/authSlice.ts
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
-  AUTH_USER_KEY,
-  // types
-  AccountType,
-  Country,
-  CountriesResponse,
   AuthResponse,
   RegisterPayload,
   SigninPayload,
-  // service fns
   apiSignin,
   apiSendEmailOtp,
   apiSendPhoneOtp,
@@ -20,19 +14,14 @@ import {
   clearPersistedUser,
 } from "@/services/userAuthService";
 import { apiUpdateUserProfile, apiUploadProfileImage } from "@/services/userGlobalservice";
+import type { AccountType, Country, OtpMode } from "@/lib/types/userAuth.types";
 
-// Re-export types so existing imports from this slice keep working:
-export type { Country, AccountType, AuthResponse, RegisterPayload, SigninPayload };
-
-/** ===== Local-only OTP types (no server calls) ===== */
-type OtpMode = "email" | "phone";
 interface VerifyOtpPayload {
   mode: OtpMode;
-  target: string; // emailid for email, phonenumber for phone
+  target: string;
   otp: string;
 }
 
-/** ===== State ===== */
 export interface AuthState {
   data: AuthResponse | null;
   loading: boolean;
@@ -71,7 +60,6 @@ const initialState: AuthState = {
   countriesError: null,
 };
 
-/** ===== Thunks (now delegating to the service) ===== */
 export const signin = createAsyncThunk<
   AuthResponse,
   SigninPayload,
@@ -115,7 +103,6 @@ export const sendPhoneOtp = createAsyncThunk<
   }
 });
 
-// purely client-side check against otp stored in state
 export const verifyOtp = createAsyncThunk<
   { target: string; mode: OtpMode },
   VerifyOtpPayload,
@@ -143,6 +130,7 @@ export const registerNewUser = createAsyncThunk<
     return rejectWithValue(err.message || "Failed to create user profile");
   }
 });
+
 interface UpdateUserProfilePayload {
   id: string;
   payload: {
@@ -176,10 +164,6 @@ export const updateUserProfile = createAsyncThunk<
   }
 });
 
-
-
-
-/* ========== UPLOAD PROFILE IMAGE ========== */
 export const uploadProfileImage = createAsyncThunk<
   AuthResponse,
   { userId: string; file: File },
@@ -199,7 +183,6 @@ export const uploadProfileImage = createAsyncThunk<
     return rejectWithValue(err.message || "Failed to upload profile image");
   }
 });
-
 
 export const prepareSocialRegistration = createAsyncThunk<
   { account: AccountType; emailid: string; firebaseUserId: string },
@@ -224,7 +207,6 @@ export const logout = createAsyncThunk("auth/logout", async () => {
   return true;
 });
 
-/** ===== Slice ===== */
 const slice = createSlice({
   name: "auth",
   initialState,
@@ -243,19 +225,17 @@ const slice = createSlice({
       state.pendingEmailid = null;
       state.pendingFirebaseUid = "";
 
-
-      
       clearPersistedUser();
     },
     resetOtpState(state) {
-  state.otpServer = null;
-  state.otpVerified = false;
-  state.otpTarget = null;
-  state.otpMode = null;
-  state.pendingAccount = null;
-  state.pendingEmailid = null;
-  state.pendingFirebaseUid = "";
-},
+      state.otpServer = null;
+      state.otpVerified = false;
+      state.otpTarget = null;
+      state.otpMode = null;
+      state.pendingAccount = null;
+      state.pendingEmailid = null;
+      state.pendingFirebaseUid = "";
+    },
 
     setOtpMode(state, action: { payload: OtpMode | null }) {
       state.otpMode = action.payload;
@@ -390,77 +370,70 @@ const slice = createSlice({
       s.countriesLoading = false;
       s.countriesError = null;
     });
-b.addCase(updateUserProfile.fulfilled, (s, { payload }) => {
-  console.log("🟢 RAW BACKEND RESPONSE (updateUserProfile) =", payload);
+    b.addCase(updateUserProfile.fulfilled, (s, { payload }) => {
+      console.log("🟢 RAW BACKEND RESPONSE (updateUserProfile) =", payload);
 
-  s.loading = false;
-  if (!s.data) return;
+      s.loading = false;
+      if (!s.data) return;
 
-  // FIX → Use `userprofile` instead of `user`
-  const updatedUser = payload.user;
+      const updatedUser = payload.user;
 
-  console.log("🟢 Extracted updatedUser =", updatedUser);
+      if (!updatedUser) {
+        console.warn("⚠️ No updated userprofile in response:", payload);
+        return;
+      }
 
-  if (!updatedUser) {
-    console.warn("⚠️ No updated userprofile in response:", payload);
-    return;
-  }
+      s.data = {
+        ...s.data,
+        user: {
+          ...s.data.user,
+          ...updatedUser,
+        },
+      };
 
-  s.data = {
-    ...s.data,
-    user: {
-      ...s.data.user,
-      ...updatedUser,
-    },
-  };
+      persistUser(s.data);
+    });
 
-  persistUser(s.data);
-});
+    b.addCase(updateUserProfile.rejected, (s, { payload }) => {
+      s.loading = false;
+      s.error = (payload as string) || "Failed to update profile";
+    });
 
+    b.addCase(uploadProfileImage.pending, (s) => {
+      s.loading = true;
+      s.error = null;
+    });
+    b.addCase(uploadProfileImage.fulfilled, (s, { payload }) => {
+      console.log("🟣 RAW BACKEND RESPONSE (uploadProfileImage) =", payload);
 
+      s.loading = false;
+      if (!s.data) return;
 
+      const updatedUser = payload.user;
 
-b.addCase(updateUserProfile.rejected, (s, { payload }) => {
-  s.loading = false;
-  s.error = (payload as string) || "Failed to update profile";
-});
+      console.log("🟣 Extracted updatedUser =", updatedUser);
 
-// --- UPLOAD PROFILE IMAGE ---
-b.addCase(uploadProfileImage.pending, (s) => {
-  s.loading = true;
-  s.error = null;
-});
-b.addCase(uploadProfileImage.fulfilled, (s, { payload }) => {
-  console.log("🟣 RAW BACKEND RESPONSE (uploadProfileImage) =", payload);
+      if (!updatedUser) {
+        console.warn("⚠️ No updated userprofile in response:", payload);
+        return;
+      }
 
-  s.loading = false;
-  if (!s.data) return;
+      s.data = {
+        ...s.data,
+        user: {
+          ...s.data.user,
+          ...updatedUser,
+        },
+      };
 
-  const updatedUser = payload.user;  // FIX
-
-  console.log("🟣 Extracted updatedUser =", updatedUser);
-
-  if (!updatedUser) {
-    console.warn("⚠️ No updated userprofile in response:", payload);
-    return;
-  }
-
-  s.data = {
-    ...s.data,
-    user: {
-      ...s.data.user,
-      ...updatedUser,
-    },
-  };
-
-  persistUser(s.data);
-});
+      persistUser(s.data);
+    });
 
 
-b.addCase(uploadProfileImage.rejected, (s, { payload }) => {
-  s.loading = false;
-  s.error = (payload as string) || "Failed to upload image";
-});
+    b.addCase(uploadProfileImage.rejected, (s, { payload }) => {
+      s.loading = false;
+      s.error = (payload as string) || "Failed to upload image";
+    });
 
   },
 });

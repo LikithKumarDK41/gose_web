@@ -1,10 +1,10 @@
 // src/lib/services/userNav.service.ts
 import api from "@/lib/api";
 
-/* TYPES */
-export type NavProfile = "walking" | "driving" | "cycling";
-export type NavStatus = "idle" | "running" | "paused" | "stopped";
-export type SyncStatus = "start" | "pause" | "end";
+import type { CloudinaryImage, TourPoint } from "@/lib/types/userTour.types";
+import type {
+  SyncStatus,
+} from "@/lib/types/userNav.types";
 
 export interface SyncPayload {
     userId: string;
@@ -48,16 +48,6 @@ export async function apiSyncUserTourStatus(
    GET USER TOUR STATUS
    POST /v2/usertourstatus
 ======================= */
-
-export interface CloudinaryImage {
-    public_id?: string;
-    secure_url?: string;
-    url?: string;
-    width?: number;
-    height?: number;
-    [k: string]: any;
-}
-
 export interface UserTourStatusResponse {
     usertours: {
         _id: string;
@@ -139,41 +129,6 @@ export async function apiCreateStamp(
 /* =========================================================================
    ⭐ Get User Tourpoints (POST /v2/usertourpoint)
    ========================================================================= */
-
-export interface TourPointLocation {
-    lat?: number;
-    lng?: number;
-}
-
-export interface TourPointMonument {
-    _id?: string;
-    title?: string;
-    name?: string;
-    location?: TourPointLocation | null;
-    content?: {
-        brief?: string;
-        extended?: string;
-    };
-    image?: CloudinaryImage | null;
-    [k: string]: any;
-}
-
-export interface TourPoint {
-    _id: string;
-    sortOrder?: number;
-    name?: string;
-    traveltime?: string;
-    starttime?: string;
-    state?: string;
-    monument?: TourPointMonument | {};
-    traveltype?: any;
-    pointtype?: "monument" | "station" | "lunch";
-    waypointtype?: "start" | "place" | "end";
-    pointtitle?: string;
-    location?: TourPointLocation | null;
-    stamp?: any;
-}
-
 export interface UserTourPointResponse {
     tourpoints: TourPoint[];
 }

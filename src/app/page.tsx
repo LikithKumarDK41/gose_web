@@ -431,12 +431,16 @@ import {
   apiFetchSearchFilters,
   apiFetchSearchSuggestionsAdv,
   apiFetchFreeTextSearch,
-  SearchFilter,
 } from "@/services/userGlobalservice";
+import type {
+  SearchFilter,
+} from "@/lib/types/userGlobal.types";
 import {
   apiFetchAllMonumentsWithQuery,
-  Monument,
 } from "@/services/userTourService";
+import type {
+  Monument,
+} from "@/lib/types/userTour.types";
 
 function SearchFab() {
   const [open, setOpen] = useState(false);

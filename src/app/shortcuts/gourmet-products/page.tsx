@@ -20,7 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { apiFetchPlaces, PlaceItem } from "@/services/userGlobalservice";
+import { apiFetchPlaces } from "@/services/userGlobalservice";
+import type { PlaceItem } from "@/lib/types/userGlobal.types";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import PlaceDetailModal from "@/components/tour/PlaceDetailModal";
 

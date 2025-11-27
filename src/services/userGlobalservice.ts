@@ -1,30 +1,9 @@
 // src/lib/services/userGlobalservice.ts
 import api from "@/lib/api";
 
-/* ===== Types ===== */
-export interface Shortcut {
-  _id: string;
-  title: string;
-  icon?: {
-    secure_url?: string;
-    url?: string;
-  };
-  link?: string;
-  pdffile?: {
-    url?: string;
-    mimetype?: string;
-    filename?: string;
-    size?: number;
-  };
-  screentype?: string;
-  content?: {
-    brief?: string;
-    extended?: string;
-  };
-  priority?: number;
-  primarymenu?: boolean;
-  authrequired?: boolean;
-}
+import type { Shortcut, About, EventItem, PlaceItem, ThemeItem, SubthemeItem, SearchFilter, SearchSuggestion } from "@/lib/types/userGlobal.types";
+
+/* ===== Shortcuts API'S ===== */
 
 export type ShortcutsEnvelope =
   | { shortcuts: { results: Shortcut[] } }
@@ -35,7 +14,6 @@ function parseAxiosError(err: any, fallback: string) {
   return err?.response?.data?.message || err?.message || fallback;
 }
 
-/** Normalize whatever the backend returns into Shortcut[] */
 function extractShortcuts(data: ShortcutsEnvelope): Shortcut[] {
   if (Array.isArray(data)) return data;
   if ("shortcuts" in data && Array.isArray((data as any).shortcuts?.results)) {
@@ -47,7 +25,6 @@ function extractShortcuts(data: ShortcutsEnvelope): Shortcut[] {
   return [];
 }
 
-/* ===== Service API ===== */
 export async function apiFetchShortcuts(): Promise<Shortcut[]> {
   try {
     const { data } = await api.get<ShortcutsEnvelope>("/v1/shortcuts");
@@ -57,30 +34,13 @@ export async function apiFetchShortcuts(): Promise<Shortcut[]> {
   }
 }
 
-/* ========= About Types ========= */
-export interface About {
-  _id: string;
-  name: string;
-  state?: string;
-  title?: string;
-  image?: {
-    secure_url?: string;
-    url?: string;
-  } | null;
-  link?: string;
-  content?: {
-    brief?: string;
-    extended?: string;
-  };
-  relatedtours?: any[];
-}
+/* ===== About API'S ===== */
 
 export type AboutsEnvelope =
   | { abouts: { results: About[] } }
   | { results: About[] }
   | About[];
 
-/** Normalize /v1/abouts/ response */
 function extractAbouts(data: AboutsEnvelope): About[] {
   if (Array.isArray(data)) return data;
   if ("abouts" in data && Array.isArray((data as any).abouts?.results)) {
@@ -92,7 +52,6 @@ function extractAbouts(data: AboutsEnvelope): About[] {
   return [];
 }
 
-/* ========= About API ========= */
 export async function apiFetchAbouts(): Promise<About[]> {
   try {
     const { data } = await api.get<AboutsEnvelope>("/v1/abouts");
@@ -102,31 +61,13 @@ export async function apiFetchAbouts(): Promise<About[]> {
   }
 }
 
-/* ========= Events Types ========= */
-export interface EventItem {
-  _id: string;
-  title: string;
-  description?: string;
-  image?: {
-    secure_url?: string;
-    url?: string;
-  } | null;
-  displaydate?: string;
-  eventmonth?: string;
-  state?: string;
-  priority?: number;
-  monument?: {
-    _id: string;
-    title: string;
-  } | null;
-}
+/* ===== Event API'S ===== */
 
 export type EventsEnvelope =
   | { events: { results: EventItem[]; total?: number } }
   | { results: EventItem[] }
   | EventItem[];
 
-/** Normalize /v1/events response */
 function extractEvents(data: EventsEnvelope): EventItem[] {
   if (Array.isArray(data)) return data;
   if ("events" in data && Array.isArray((data as any).events?.results)) {
@@ -138,7 +79,6 @@ function extractEvents(data: EventsEnvelope): EventItem[] {
   return [];
 }
 
-/* ========= Events API ========= */
 export async function apiFetchEvents(): Promise<EventItem[]> {
   try {
     const { data } = await api.get<EventsEnvelope>("/v1/events");
@@ -148,33 +88,20 @@ export async function apiFetchEvents(): Promise<EventItem[]> {
   }
 }
 
-// Place Types
-export interface PlaceImage {
-  secure_url?: string;
-  url?: string;
-  public_id?: string;
+export async function apiFetchEventsByMonument(monumentId: string): Promise<EventItem[]> {
+  try {
+    // Build encoded filter query
+    const filter = encodeURIComponent(JSON.stringify({ relatedmonument: monumentId }));
+    const url = `/v1/events?filter=${filter}`;
+
+    const { data } = await api.get<EventsEnvelope>(url);
+    return extractEvents(data);
+  } catch (err: any) {
+    throw new Error(parseAxiosError(err, "Failed to load events for monument"));
+  }
 }
 
-export interface PlaceCategory {
-  _id: string;
-  title: string;
-  name: string;
-  image?: PlaceImage;
-}
-
-export interface PlaceItem {
-  _id: string;
-  title: string;
-  name: string;
-  location?: [number, number];
-  content?: {
-    brief: string;
-    extended: string;
-  };
-  image?: PlaceImage;
-  state?: string;
-  category?: PlaceCategory;
-}
+/* ===== Place API'S ===== */
 
 export interface PlacesEnvelope {
   places?: {
@@ -184,7 +111,6 @@ export interface PlacesEnvelope {
   results?: PlaceItem[];
 }
 
-/** Normalize /v1/place response */
 function extractPlaces(data: any): PlaceItem[] {
   if (Array.isArray(data)) return data;
 
@@ -199,7 +125,6 @@ function extractPlaces(data: any): PlaceItem[] {
   return [];
 }
 
-/* ========= Places API ========= */
 export async function apiFetchPlaces(): Promise<PlaceItem[]> {
   try {
     const { data } = await api.get<PlacesEnvelope>("/v1/places");
@@ -209,15 +134,7 @@ export async function apiFetchPlaces(): Promise<PlaceItem[]> {
   }
 }
 
-/* ========= Theme Types ========= */
-export interface ThemeItem {
-  _id: string;
-  title: string;
-  image?: {
-    secure_url?: string;
-    url?: string;
-  } | null;
-}
+/* ===== Theme API'S ===== */
 
 export interface ThemesEnvelope {
   themes?: {
@@ -227,7 +144,6 @@ export interface ThemesEnvelope {
   results?: ThemeItem[];
 }
 
-/** Normalize /v1/themes response */
 function extractThemes(data: any): ThemeItem[] {
   if (Array.isArray(data)) return data;
   if (data?.themes?.results && Array.isArray(data.themes.results)) {
@@ -239,11 +155,6 @@ function extractThemes(data: any): ThemeItem[] {
   return [];
 }
 
-/* ========= Themes API ========= */
-/**
- * 🔹 Fetch all themes
- * GET /v1/themes
- */
 export async function apiFetchThemes(): Promise<ThemeItem[]> {
   try {
     const { data } = await api.get<ThemesEnvelope>("/v1/themes");
@@ -253,27 +164,7 @@ export async function apiFetchThemes(): Promise<ThemeItem[]> {
   }
 }
 
-/* ========= Subtheme Types ========= */
-export interface SubthemeItem {
-  _id: string;
-  slug?: string;
-  name?: string;
-  state?: string;
-  title?: string;
-  description?: string;
-  sortOrder?: number;
-  priority?: number | null;
-  image?: {
-    secure_url?: string;
-    url?: string;
-  } | null;
-  theme?: {
-    _id: string;
-    slug?: string;
-    name?: string;
-    title?: string;
-  }[];
-}
+/* ===== Subtheme API'S ===== */
 
 export interface SubthemesEnvelope {
   subthemes?: {
@@ -283,7 +174,6 @@ export interface SubthemesEnvelope {
   results?: SubthemeItem[];
 }
 
-/** Normalize /v1/subthemes response */
 function extractSubthemes(data: any): SubthemeItem[] {
   if (Array.isArray(data)) return data;
   if (data?.subthemes?.results && Array.isArray(data.subthemes.results)) {
@@ -295,18 +185,6 @@ function extractSubthemes(data: any): SubthemeItem[] {
   return [];
 }
 
-/* ========= Subthemes API ========= */
-/**
- * 🔹 Fetch subthemes dynamically with filter & sort (raw URL, no encoding)
- * Example:
- * apiFetchSubthemesWithQuery({
- *   filter: { theme: "609e37a8c463476d312ba4b9" },
- *   sort: "sortOrder"
- * });
- *
- * ✅ Calls:
- * /v1/subthemes?filter={"theme":"609e37a8c463476d312ba4b9"}&sort=sortOrder
- */
 export async function apiFetchSubthemesWithQuery({
   filter,
   sort,
@@ -315,7 +193,6 @@ export async function apiFetchSubthemesWithQuery({
   sort?: string;
 }): Promise<SubthemeItem[]> {
   try {
-    // Build query string exactly as Postman
     let query = "";
 
     if (filter) {
@@ -337,26 +214,8 @@ export async function apiFetchSubthemesWithQuery({
   }
 }
 
+/* ===== Bookmarks API'S ===== */
 
-/* ========= Events by Monument (Server Filter) ========= */
-/**
- * 🔹 Fetch events filtered by related monument (server-side filter)
- * Example: /v1/events?filter={"relatedmonument":"60a36932c463476d312ba82f"}
- */
-export async function apiFetchEventsByMonument(monumentId: string): Promise<EventItem[]> {
-  try {
-    // Build encoded filter query
-    const filter = encodeURIComponent(JSON.stringify({ relatedmonument: monumentId }));
-    const url = `/v1/events?filter=${filter}`;
-
-    const { data } = await api.get<EventsEnvelope>(url);
-    return extractEvents(data);
-  } catch (err: any) {
-    throw new Error(parseAxiosError(err, "Failed to load events for monument"));
-  }
-}
-
-// Bookmark API
 export interface BookmarkPayload {
   marktype: string;
   user: string;
@@ -371,9 +230,7 @@ export interface BookmarkResponse {
   message?: string;
   data?: { _id: string };
 }
-/* ------------ API Methods ------------ */
 
-/** ✅ Create Bookmark */
 export async function apiCreateBookmark(
   payload: BookmarkPayload
 ): Promise<BookmarkResponse> {
@@ -385,10 +242,8 @@ export async function apiCreateBookmark(
   }
 }
 
-/** ✅ Remove Bookmark (by monument ID, not bookmark ID) */
 export async function apiRemoveBookmark(refId: string): Promise<void> {
   if (!refId) {
-    // extra safety guard in case someone calls it with null/empty
     console.warn("apiRemoveBookmark called with empty refId");
     return;
   }
@@ -400,7 +255,6 @@ export async function apiRemoveBookmark(refId: string): Promise<void> {
   }
 }
 
-/** ✅ Fetch Bookmark by user + marktype + ref ID */
 export async function apiFetchBookmarkByRef(): Promise<{ _id?: string } | null> {
   try {
     const { data } = await api.get(`/v1/bookmarks`);
@@ -411,23 +265,7 @@ export async function apiFetchBookmarkByRef(): Promise<{ _id?: string } | null> 
   }
 }
 
-/* ========= Search Filters Types ========= */
-export interface SearchFilter {
-  _id: string;
-  title: string;
-  icon?: {
-    public_id?: string;
-    secure_url?: string;
-    url?: string;
-  };
-  link?: string;
-  sortby?: string;
-  content?: {
-    brief?: string;
-    extended?: string;
-  };
-  priority?: number;
-}
+/* ===== Search API'S ===== */
 
 export interface SearchFiltersEnvelope {
   searchfilters?: {
@@ -437,7 +275,6 @@ export interface SearchFiltersEnvelope {
   results?: SearchFilter[];
 }
 
-/** Normalize /v1/searchfilters response */
 function extractSearchFilters(data: any): SearchFilter[] {
   if (Array.isArray(data)) return data;
 
@@ -452,11 +289,6 @@ function extractSearchFilters(data: any): SearchFilter[] {
   return [];
 }
 
-/* ========= Search Filters API ========= */
-/**
- * 🔹 Fetch all search filters
- * GET /v1/searchfilters
- */
 export async function apiFetchSearchFilters(): Promise<SearchFilter[]> {
   try {
     const { data } = await api.get<SearchFiltersEnvelope>("/v1/searchfilters");
@@ -466,34 +298,16 @@ export async function apiFetchSearchFilters(): Promise<SearchFilter[]> {
   }
 }
 
-/* ========= Search Suggestions Advanced ========= */
-/**
- * 🔹 Fetch advanced search suggestions by keyword
- * Example:
- *   const suggestions = await apiFetchSearchSuggestionsAdv("temple");
- *
- * Endpoint:
- *   GET /v1/searchsuggestionsadv?keyword=temple
- */
-export interface SearchSuggestion {
-  key: string;
-  count: number;
-  endpoint: string;
-  filters: Record<string, any>;
-}
-
 export interface SearchSuggestionsEnvelope {
   suggestions?: SearchSuggestion[];
 }
 
-/** Normalize /v1/searchsuggestionsadv response */
 function extractSearchSuggestions(data: any): SearchSuggestion[] {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.suggestions)) return data.suggestions;
   return [];
 }
 
-/* ========= API ========= */
 export async function apiFetchSearchSuggestionsAdv(
   keyword: string
 ): Promise<SearchSuggestion[]> {
@@ -509,22 +323,6 @@ export async function apiFetchSearchSuggestionsAdv(
     throw new Error(parseAxiosError(err, "Failed to load search suggestions"));
   }
 }
-
-/* ========= Free Text Search API ========= */
-/**
- * 🔹 Perform free-text search across monuments and regions
- * Example:
- *   const result = await apiFetchFreeTextSearch("バンガロール宮殿");
- *
- * Endpoint:
- *   GET /v1/freetextsearch?keyword=バンガロール宮殿
- *
- * Response:
- *   {
- *     "monuments": [],
- *     "regions": []
- *   }
- */
 
 export interface FreeTextSearchResponse {
   monuments: any[];
@@ -543,7 +341,6 @@ export async function apiFetchFreeTextSearch(
     const { data } = await api.get<FreeTextSearchResponse>(
       `/v1/freetextsearch?keyword=${encodedKeyword}`
     );
-    // Always return normalized structure
     return {
       monuments: Array.isArray(data.monuments) ? data.monuments : [],
       regions: Array.isArray(data.regions) ? data.regions : [],
@@ -552,7 +349,8 @@ export async function apiFetchFreeTextSearch(
     throw new Error(parseAxiosError(err, "Failed to perform free-text search"));
   }
 }
-/* ========= Profile Update (Text Fields) ========= */
+
+/* ===== UserProfile API'S ===== */
 
 export interface UserProfileUpdatePayload {
   name?: string;
@@ -576,7 +374,6 @@ export async function apiUpdateUserProfile(
     throw new Error(parseAxiosError(err, "Failed to update profile"));
   }
 }
-/* ========= Profile Image Upload ========= */
 
 export async function apiUploadProfileImage(userId: string, file: File) {
   const fd = new FormData();

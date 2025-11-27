@@ -14,7 +14,8 @@ import { MapPin, X, ArrowLeft, Info } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { createPortal } from "react-dom";
-import { apiFetchPlaces, PlaceItem } from "@/services/userGlobalservice";
+import { apiFetchPlaces } from "@/services/userGlobalservice";
+import type { PlaceItem } from "@/lib/types/userGlobal.types";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 

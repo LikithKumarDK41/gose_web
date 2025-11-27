@@ -1,62 +1,6 @@
 import api from "@/lib/api";
 
-/* ------------------------------------------------------------
-   📘 Types
------------------------------------------------------------- */
-export interface CloudinaryImage {
-    public_id?: string;
-    version?: number;
-    signature?: string;
-    format?: string;
-    resource_type?: string;
-    url?: string;
-    secure_url?: string;
-    width?: number;
-    height?: number;
-    [key: string]: any;
-}
-
-export interface TourContent {
-    brief?: string;
-    extended?: string;
-}
-
-export interface Tour {
-    _id: string;
-    title: string;
-    duration?: string;
-    traveltime?: string;
-    link?: string;
-    routeJson?: string;
-    routeImage?: CloudinaryImage;
-    content?: TourContent;
-    image?: CloudinaryImage;
-    monuments?: any[];
-    featured?: boolean;
-}
-
-export interface Monument {
-    _id?: string;
-    title?: string;
-    image?: CloudinaryImage;
-    [key: string]: any;
-}
-
-export type MarkType = "monument" | "tour";
-
-export interface Bookmark {
-    _id: string;
-    user?: string;
-    marktype?: MarkType;
-    marktime?: string;
-    status?: string;
-    markid?: string;
-    monument?: Monument;
-    tour?: Tour;
-    createdAt?: string;
-    updatedAt?: string;
-    [key: string]: any;
-}
+import type { Bookmark, MarkType, HistoryType, VisitHistory, MonumentVisitHistory, TourVisitHistory } from "@/lib/types/userMyList.types";
 
 export interface BookmarksData {
     total: number;
@@ -75,11 +19,6 @@ export interface CreateBookmarkPayload {
     status?: string;
 }
 
-/* ------------------------------------------------------------
-   🆕 Visit History Types
------------------------------------------------------------- */
-export type HistoryType = "monument" | "tour";
-
 export interface VisitHistoryPayload {
     user: string;
     historytype: HistoryType;
@@ -91,49 +30,11 @@ export interface VisitHistoryPayload {
     historyid?: string;
 }
 
-export interface VisitHistory {
-    _id: string;
-    user: string;
-    historytype: HistoryType;
-    visitmode: "auto" | "manual";
-    status: string;
-    historytime?: string | null;
-    monument?: Monument;
-    tour?: Tour;
-    historyid?: string;
-    createdAt?: string;
-    updatedAt?: string;
-}
-
 export interface VisitHistoryResponse {
     visithistories: {
         total: number;
         results: VisitHistory[];
     };
-}
-
-export interface MonumentVisitHistory {
-    _id: string;
-    user: string;
-    visitmode: "manual" | "auto";
-    historytime: string;
-    historytype: "monument";
-    status: string;
-    monument: Monument;
-    historytimes?: string[];
-    historytimesObj?: {
-        historytime: string;
-        byTour: boolean;
-    }[];
-}
-
-export interface TourVisitHistory {
-    _id: string;
-    user: string;
-    status: string; // start, end, etc.
-    createdtime: string;
-    updatedtime: string;
-    tour: Tour;
 }
 
 export interface UserVisitHistoryResponse {
@@ -142,18 +43,10 @@ export interface UserVisitHistoryResponse {
 }
 
 
-/* ------------------------------------------------------------
-   ⚙️ Helpers
------------------------------------------------------------- */
 function parseAxiosError(err: any, fallback: string): string {
     return err?.response?.data?.message || err?.message || fallback;
 }
 
-/* ------------------------------------------------------------
-   🌐 API Services - Bookmarks
------------------------------------------------------------- */
-
-/** Fetch all bookmarks of the current user */
 export async function apiGetBookmarks(): Promise<BookmarksResponse> {
     try {
         const { data } = await api.get<BookmarksResponse>("/v1/bookmarks");
@@ -163,7 +56,6 @@ export async function apiGetBookmarks(): Promise<BookmarksResponse> {
     }
 }
 
-/** Fetch single bookmark by ID */
 export async function apiGetBookmarkById(id: string): Promise<Bookmark> {
     try {
         const { data } = await api.get<Bookmark>(`/v1/bookmarks/${id}`);
@@ -173,7 +65,6 @@ export async function apiGetBookmarkById(id: string): Promise<Bookmark> {
     }
 }
 
-/** Create a new bookmark (for either monument or tour) */
 export async function apiCreateBookmark(payload: CreateBookmarkPayload): Promise<Bookmark> {
     try {
         const body: any = {
@@ -197,14 +88,6 @@ export async function apiCreateBookmark(payload: CreateBookmarkPayload): Promise
     }
 }
 
-/* ------------------------------------------------------------
-   🌐 API Services - Visit Histories
------------------------------------------------------------- */
-
-/**
- * 🧭 Get all visit histories
- * GET /v1/visithistories
- */
 export async function apiGetVisitHistories(): Promise<VisitHistoryResponse> {
     try {
         const { data } = await api.get<VisitHistoryResponse>("/v1/visithistories");
@@ -214,10 +97,6 @@ export async function apiGetVisitHistories(): Promise<VisitHistoryResponse> {
     }
 }
 
-/**
- * 🧭 Get single visit history by ID
- * GET /v1/visithistories/:id
- */
 export async function apiGetVisitHistoryById(id: string): Promise<VisitHistory> {
     try {
         const { data } = await api.get<VisitHistory>(`/v1/visithistories/${id}`);
@@ -227,10 +106,6 @@ export async function apiGetVisitHistoryById(id: string): Promise<VisitHistory> 
     }
 }
 
-/**
- * 🧭 Create a new visit history
- * POST /v1/visithistories
- */
 export async function apiCreateVisitHistory(
     payload: VisitHistoryPayload
 ): Promise<VisitHistory> {
@@ -242,10 +117,6 @@ export async function apiCreateVisitHistory(
     }
 }
 
-/**
- * 🧭 Get visit history grouped by monuments and tours for the current user
- * GET /v2/visithistory
- */
 export async function apiGetVisitHistoryByUser(): Promise<UserVisitHistoryResponse> {
     try {
         const { data } = await api.post<UserVisitHistoryResponse>("/v2/visithistory");
@@ -255,11 +126,6 @@ export async function apiGetVisitHistoryByUser(): Promise<UserVisitHistoryRespon
     }
 }
 
-/**
- * 🗑️ Soft-delete a visit history entry (tour or monument)
- * PATCH /v1/visithistories/:id
- * Payload: { status: "remove" }
- */
 export async function apiDeleteVisitHistory(id: string): Promise<VisitHistory> {
     try {
         const { data } = await api.patch<VisitHistory>(
@@ -272,14 +138,6 @@ export async function apiDeleteVisitHistory(id: string): Promise<VisitHistory> {
     }
 }
 
-/* ------------------------------------------------------------
-   🌐 API Services - User Bookmark List (v2)
------------------------------------------------------------- */
-
-/**
- * 🆕 Get monuments + tours bookmarked by the current user
- * POST /v2/userbookmark
- */
 export async function apiGetUserBookmarks(): Promise<{
     monuments: any[];
     tours: any[];
@@ -294,10 +152,6 @@ export async function apiGetUserBookmarks(): Promise<{
     }
 }
 
-/* ------------------------------------------------------------
-   🗑️ Delete (soft-remove) a bookmark
-   PATCH /v1/bookmarks/:id
------------------------------------------------------------- */
 export async function apiDeleteBookmark(id: string): Promise<Bookmark> {
     try {
         const { data } = await api.patch<Bookmark>(

@@ -22,7 +22,8 @@ import {
 import { apiCreateStamp } from "@/services/userNavService";
 
 import type { QueueItem } from "@/lib/store/slices/geofenceSlice";
-import type { VisitHistoryPayload, VisitHistory } from "@/services/myListService";
+import type { VisitHistoryPayload } from "@/services/myListService";
+import type { VisitHistory } from "@/lib/types/userMyList.types";
 
 /* ----------------------------------------------
    🧹 Sanitize HTML
@@ -140,7 +141,7 @@ export default function GlobalCheckinToasts() {
                         if (created?._id) {
                           try {
                             await apiGetVisitHistoryById(created._id);
-                          } catch {}
+                          } catch { }
                         }
 
                         /* ------------------------------------------------

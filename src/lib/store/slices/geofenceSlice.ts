@@ -1,42 +1,18 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "../index";
 
-/* ============================================================
-   TYPES
-============================================================ */
-
-export interface QueueItem {
-  id: string;                    // tourpoint ID
-  name: string;
-
-  lat: number;
-  lng: number;
-  radius: number;
-
-  blurb?: string;
-
-  /* ⭐ NEW — required for Stamp API */
-  monumentId: string | null;
-  tourpointId: string | null;
-  tourId: string | null;
-}
+import type { QueueItem } from "@/lib/types/userTour.types";
 
 export interface LocationState {
   last: { lat: number; lng: number } | null;
   queue: QueueItem[];
 }
 
-/* ============================================================
-   INITIAL STATE
-============================================================ */
 const initialState: LocationState = {
   last: null,
   queue: [],
 };
 
-/* ============================================================
-   HELPERS
-============================================================ */
 function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371e3;
   const φ1 = (a.lat * Math.PI) / 180;
@@ -51,17 +27,10 @@ function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: 
   return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
-/* ============================================================
-   SLICE
-============================================================ */
-
 const geofenceSlice = createSlice({
   name: "geofence",
   initialState,
   reducers: {
-    /* ------------------------------------------------------
-       LOCATION UPDATE (called every GeoWatcher tick)
-    ------------------------------------------------------ */
     locationTick(
       state,
       action: PayloadAction<{
@@ -90,7 +59,6 @@ const geofenceSlice = createSlice({
       for (const p of places) {
         const d = distanceMeters({ lat, lng }, { lat: p.lat, lng: p.lng });
 
-        // Already queued? skip
         const alreadyQueued = state.queue.some((q) => q.id === p.id);
         if (alreadyQueued) continue;
 
@@ -102,8 +70,6 @@ const geofenceSlice = createSlice({
             lng: p.lng,
             radius: p.radius,
             blurb: p.blurb,
-
-            /* ⭐ Stamp required fields */
             monumentId: p.monumentId,
             tourpointId: p.tourpointId ?? p.id,
             tourId: p.tourId,
@@ -112,23 +78,14 @@ const geofenceSlice = createSlice({
       }
     },
 
-    /* ------------------------------------------------------
-       CONFIRM CHECK-IN for a given ID
-    ------------------------------------------------------ */
     confirm(state, action: PayloadAction<string>) {
       state.queue = state.queue.filter((q) => q.id !== action.payload);
     },
 
-    /* ------------------------------------------------------
-       CLEAR all queued triggers
-    ------------------------------------------------------ */
     clearQueue(state) {
       state.queue = [];
     },
 
-    /* ------------------------------------------------------
-       RESET tracking when tour ends
-    ------------------------------------------------------ */
     resetAll(state) {
       state.last = null;
       state.queue = [];
@@ -136,9 +93,6 @@ const geofenceSlice = createSlice({
   },
 });
 
-/* ============================================================
-   EXPORTS
-============================================================ */
 export const { locationTick, confirm, clearQueue, resetAll } =
   geofenceSlice.actions;
 

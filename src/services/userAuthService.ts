@@ -1,21 +1,12 @@
 // src/services/userAuthservice.ts
 import api from "@/lib/api";
 
+import type { AccountType, Country } from "@/lib/types/userAuth.types";
+
 /* ------------------------------------------------------------
    🔐 Constants
 ------------------------------------------------------------ */
 export const AUTH_USER_KEY = "auth_user";
-
-/* ------------------------------------------------------------
-   📘 Types
------------------------------------------------------------- */
-export type AccountType = "Facebook" | "Google" | "OTP" | "Email_OTP";
-
-export interface Country {
-  name: string;
-  dial_code: string;
-  code: string; // e.g., "IN"
-}
 
 export interface CountriesResponse {
   contries?: Country[];   // legacy key from backend

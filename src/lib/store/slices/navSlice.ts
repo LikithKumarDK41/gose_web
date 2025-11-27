@@ -3,25 +3,15 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "../index";
 import {
   apiSyncUserTourStatus,
-  type SyncPayload,
-  type NavStatus,
-  type NavProfile,
+  SyncPayload,
 } from "@/services/userNavService";
 
-/* ============================
-   TYPES
-============================= */
-export interface NavState {
-  activeTourId: string | null;
-  status: NavStatus; // idle | running | paused
-  profile: NavProfile;
-  syncing: boolean;
-  error: string | null;
-}
+import type {
+  NavStatus,
+  NavProfile,
+  NavState,
+} from "@/lib/types/userNav.types";
 
-/* ============================
-   INITIAL STATE
-============================= */
 const initialState: NavState = {
   activeTourId: null,
   status: "idle",
@@ -30,9 +20,6 @@ const initialState: NavState = {
   error: null,
 };
 
-/* ============================
-   SYNC USER TOUR
-============================= */
 export const syncUserTourStatus = createAsyncThunk<
   any,
   SyncPayload,
@@ -46,9 +33,6 @@ export const syncUserTourStatus = createAsyncThunk<
   }
 });
 
-/* ============================
-   SLICE
-============================= */
 const navSlice = createSlice({
   name: "nav",
   initialState,
@@ -60,7 +44,7 @@ const navSlice = createSlice({
       state.profile = action.payload;
     },
     setStatus(state, action: PayloadAction<NavStatus>) {
-      state.status = action.payload; // ⭐ NEW: Set from backend
+      state.status = action.payload;
     },
     startTour(state, action: PayloadAction<string | undefined>) {
       state.status = "running";

@@ -26,7 +26,7 @@ import { getPersistedUser } from "@/services/userAuthService";
 import { toast } from "sonner";
 import { apiCreateVisitHistory } from "@/services/myListService";
 import { apiCreateStamp } from "@/services/userNavService";
-import type { VisitHistoryPayload, VisitHistory } from "@/services/myListService";
+import type { VisitHistoryPayload } from "@/services/myListService";
 
 /* ------------------------------------------------------------------ */
 export default function TimelineRight({
