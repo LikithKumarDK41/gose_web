@@ -1,15 +1,16 @@
-// src/lib/store/slices/navSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "../index";
 import {
   apiSyncUserTourStatus,
   SyncPayload,
+  UserTourSyncResponse,
 } from "@/services/userNavService";
 
 import type {
   NavStatus,
   NavProfile,
   NavState,
+  UserTour,
 } from "@/lib/types/userNav.types";
 
 const initialState: NavState = {
@@ -18,16 +19,18 @@ const initialState: NavState = {
   profile: "walking",
   syncing: false,
   error: null,
+  usertour: null,
 };
 
 export const syncUserTourStatus = createAsyncThunk<
-  any,
+  UserTour | null,
   SyncPayload,
   { rejectValue: string }
 >("nav/syncUserTourStatus", async (payload, { rejectWithValue }) => {
   try {
     const data = await apiSyncUserTourStatus(payload);
-    return data;
+    // Extract the usertour object from the response
+    return (data as any)?.usertour || null;
   } catch (err: any) {
     return rejectWithValue(err.message || "Failed to sync tour status");
   }
@@ -46,25 +49,27 @@ const navSlice = createSlice({
     setStatus(state, action: PayloadAction<NavStatus>) {
       state.status = action.payload;
     },
-    startTour(state, action: PayloadAction<string | undefined>) {
+    navStart(state, action: PayloadAction<string | undefined>) {
       state.status = "running";
       if (action.payload) state.activeTourId = action.payload;
     },
-    pauseTour(state) {
+    navPause(state) {
       state.status = "paused";
     },
-    resumeTour(state) {
+    navResume(state) {
       if (state.activeTourId) state.status = "running";
     },
-    stopTour(state) {
+    navStop(state) {
       state.status = "idle";
       state.activeTourId = null;
+      state.usertour = null;
     },
     resetAll(state) {
       state.activeTourId = null;
       state.status = "idle";
       state.profile = "walking";
       state.error = null;
+      state.usertour = null;
     },
   },
   extraReducers: (builder) => {
@@ -73,8 +78,9 @@ const navSlice = createSlice({
         state.syncing = true;
         state.error = null;
       })
-      .addCase(syncUserTourStatus.fulfilled, (state) => {
+      .addCase(syncUserTourStatus.fulfilled, (state, action) => {
         state.syncing = false;
+        state.usertour = action.payload; // Store the extracted usertour object
       })
       .addCase(syncUserTourStatus.rejected, (state, { payload }) => {
         state.syncing = false;
@@ -87,10 +93,10 @@ export const {
   setActiveTour,
   setProfile,
   setStatus,
-  startTour,
-  pauseTour,
-  resumeTour,
-  stopTour,
+  navStart,
+  navPause,
+  navResume,
+  navStop,
   resetAll,
 } = navSlice.actions;
 

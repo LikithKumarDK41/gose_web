@@ -16,10 +16,10 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
 
 import {
   selectNav,
-  startTour as navStart,
-  pauseTour as navPause,
-  resumeTour as navResume,
-  stopTour as navStop,
+  navStart,
+  navPause,
+  navResume,
+  navStop,
   setProfile,
   setActiveTour,
   setStatus,
@@ -214,7 +214,7 @@ export default function NavigationOverlay({
           console.warn("Auto-refresh tourpoints failed:", err);
         }
       }
-    }, 5000); // Refresh every 5 seconds
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [nav.status, tourId, onRefreshTourPoints]);
@@ -264,17 +264,21 @@ export default function NavigationOverlay({
     toast.success("🎯 Tour started");
 
     if (auth.data?.user?._id) {
-      dispatch(
-        syncUserTourStatus({
-          userId: auth.data.user._id,
-          tourId,
-          status: "start",
-          location: toSyncLoc(gps),
-        })
-      );
+      try {
+        await dispatch(
+          syncUserTourStatus({
+            userId: auth.data.user._id,
+            tourId,
+            status: "start",
+            location: toSyncLoc(gps),
+          })
+        ).unwrap();
+      } catch (err) {
+        console.error("Failed to sync tour status:", err);
+        toast.error("Failed to sync tour status");
+      }
     }
 
-    // Refresh tourpoints immediately after start
     if (onRefreshTourPoints) {
       await onRefreshTourPoints();
     }
@@ -283,7 +287,7 @@ export default function NavigationOverlay({
   /* =========================================================
      ⭐ PAUSE / RESUME
   ========================================================= */
-  const handlePauseResume = () => {
+  const handlePauseResume = async () => {
     if (!tourId) return;
 
     const loc = geofence.last || null;
@@ -292,33 +296,41 @@ export default function NavigationOverlay({
       dispatch(navPause());
       toast.warning("⏸️ Tour paused");
 
-      dispatch(
-        syncUserTourStatus({
-          userId: auth.data?.user?._id,
-          tourId,
-          status: "pause",
-          location: toSyncLoc(loc),
-        })
-      );
+      try {
+        await dispatch(
+          syncUserTourStatus({
+            userId: auth.data?.user?._id || "",
+            tourId,
+            status: "pause",
+            location: toSyncLoc(loc),
+          })
+        ).unwrap();
+      } catch (err) {
+        console.error("Failed to sync pause status:", err);
+      }
     } else if (nav.status === "paused") {
       dispatch(navResume());
       toast.success("▶️ Tour resumed");
 
-      dispatch(
-        syncUserTourStatus({
-          userId: auth.data?.user?._id,
-          tourId,
-          status: "start",
-          location: toSyncLoc(loc),
-        })
-      );
+      try {
+        await dispatch(
+          syncUserTourStatus({
+            userId: auth.data?.user?._id || "",
+            tourId,
+            status: "start",
+            location: toSyncLoc(loc),
+          })
+        ).unwrap();
+      } catch (err) {
+        console.error("Failed to sync resume status:", err);
+      }
     }
   };
 
   /* =========================================================
      ⭐ FINISH (only when all stamps collected)
   ========================================================= */
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (!tourId) return;
 
     dispatch(navStop());
@@ -326,16 +338,19 @@ export default function NavigationOverlay({
     dispatch(setStatus("idle"));
     toast.success("✅ Tour finished!");
 
-    dispatch(
-      syncUserTourStatus({
-        userId: auth.data?.user?._id,
-        tourId,
-        status: "end",
-        location: toSyncLoc(geofence.last || null),
-      })
-    );
+    try {
+      await dispatch(
+        syncUserTourStatus({
+          userId: auth.data?.user?._id || "",
+          tourId,
+          status: "end",
+          location: toSyncLoc(geofence.last || null),
+        })
+      ).unwrap();
+    } catch (err) {
+      console.error("Failed to sync finish status:", err);
+    }
 
-    // Redirect to finish page
     router.replace(`/tours/detail/navigation/finish?tourId=${tourId}`);
   };
 

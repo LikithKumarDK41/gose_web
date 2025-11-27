@@ -12,6 +12,8 @@ import {
   selectTourDetail,
 } from "@/lib/store/slices/touristSlice";
 
+import { selectNav } from "@/lib/store/slices/navSlice";
+
 import type { TourPoint, Tour } from "@/lib/types/userTour.types";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useLocale } from "@/providers/LocaleProvider";
@@ -19,7 +21,6 @@ import { X } from "lucide-react";
 import MapTimelineRight from "@/components/tour/MapTimelineRight";
 
 import {
-  apiGetUserTourStatus,
   apiGetUserTourPoints,
 } from "@/services/userNavService";
 
@@ -36,6 +37,7 @@ export default function NavigationPage() {
   const [tourPoints, setTourPoints] = useState<TourPoint[]>([]);
 
   const tour = useAppSelector(selectTourDetail);
+  const nav = useAppSelector(selectNav);
 
   useEffect(() => {
     if (!id) router.replace("/tours");
@@ -75,22 +77,18 @@ export default function NavigationPage() {
   }, [id, tour, dispatch]);
 
   /* ===================================================
-     REFRESH TOURPOINTS FROM USER NAV SERVICE
+     REFRESH TOURPOINTS FROM REDUX NAV STATE
      (Always check for stamps status)
   =================================================== */
   const refreshUserTourPoints = async () => {
-    if (!id) return;
+    if (!id || !nav.usertour?._id) {
+      console.warn("⚠️ No usertour started yet");
+      setTourPoints([]);
+      return;
+    }
 
     try {
-      const status = await apiGetUserTourStatus(id);
-      const usertourId = status?.usertours?._id ?? null;
-
-      if (!usertourId) {
-        console.warn("⚠️ No usertour started yet");
-        setTourPoints([]);
-        return;
-      }
-
+      const usertourId = nav.usertour._id;
       const res = await apiGetUserTourPoints(id, usertourId);
       setTourPoints(res?.tourpoints || []);
     } catch (err) {
@@ -126,13 +124,14 @@ export default function NavigationPage() {
         onClose={() => setListOpen(false)}
         tour={tour}
         onRefreshTourPoints={refreshUserTourPoints}
+        usertourId={nav.usertour?._id}
       />
     </div>
   );
 }
 
 /* ===============================================================
-   MODAL - Uses *User Navigation Service* TourPoints (dynamic)
+   MODAL - Uses Redux NAV STATE & *User Navigation Service* TourPoints
 ================================================================ */
 
 function TourPointsModal({
@@ -140,11 +139,13 @@ function TourPointsModal({
   onClose,
   tour,
   onRefreshTourPoints,
+  usertourId,
 }: {
   open: boolean;
   onClose: () => void;
   tour: Tour;
   onRefreshTourPoints?: () => Promise<void>;
+  usertourId?: string | null;
 }) {
   const { t } = useLocale();
 
@@ -154,9 +155,6 @@ function TourPointsModal({
   const fetchTourPoints = async () => {
     try {
       setLoading(true);
-
-      const status = await apiGetUserTourStatus(tour._id);
-      const usertourId = status?.usertours?._id ?? null;
 
       if (!usertourId) {
         console.warn("⚠️ No usertour started yet");
@@ -183,7 +181,7 @@ function TourPointsModal({
     if (!open || !tour?._id) return;
 
     fetchTourPoints();
-  }, [open, tour?._id]);
+  }, [open, tour?._id, usertourId]);
 
   if (!open) return null;
 

@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
 import {
   selectNav,
-  pauseTour as navPause,
-  resumeTour as navResume,
+  navPause,
+  navResume,
 } from "@/lib/store/slices/navSlice";
 import { locationTick } from "@/lib/store/slices/geofenceSlice";
 import { selectTourDetail } from "@/lib/store/slices/touristSlice";
@@ -57,7 +57,7 @@ export default function GeoWatcher() {
         return {
           /** REQUIRED BY geofenceSlice */
           id: tp._id,
-          tourpointId: tp._id, // ⭐ FIX HERE
+          tourpointId: tp._id,
           monumentId: tp.monument?._id ?? null,
 
           /** EXTRAS */
