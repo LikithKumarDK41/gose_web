@@ -1,4 +1,3 @@
-// NavigationPage.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -34,6 +33,7 @@ export default function NavigationPage() {
   const { t } = useLocale();
 
   const [listOpen, setListOpen] = useState(false);
+  const [tourPoints, setTourPoints] = useState<TourPoint[]>([]);
 
   const tour = useAppSelector(selectTourDetail);
 
@@ -74,6 +74,31 @@ export default function NavigationPage() {
     }
   }, [id, tour, dispatch]);
 
+  /* ===================================================
+     REFRESH TOURPOINTS FROM USER NAV SERVICE
+     (Always check for stamps status)
+  =================================================== */
+  const refreshUserTourPoints = async () => {
+    if (!id) return;
+
+    try {
+      const status = await apiGetUserTourStatus(id);
+      const usertourId = status?.usertours?._id ?? null;
+
+      if (!usertourId) {
+        console.warn("⚠️ No usertour started yet");
+        setTourPoints([]);
+        return;
+      }
+
+      const res = await apiGetUserTourPoints(id, usertourId);
+      setTourPoints(res?.tourpoints || []);
+    } catch (err) {
+      console.error("Failed to refresh user tourpoints:", err);
+      setTourPoints([]);
+    }
+  };
+
   if (!id || !tour?._id) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -92,12 +117,15 @@ export default function NavigationPage() {
         listOpen={listOpen}
         onOpenList={() => setListOpen(true)}
         onCloseList={() => setListOpen(false)}
+        tourPoints={tourPoints}
+        onRefreshTourPoints={refreshUserTourPoints}
       />
 
       <TourPointsModal
         open={listOpen}
         onClose={() => setListOpen(false)}
         tour={tour}
+        onRefreshTourPoints={refreshUserTourPoints}
       />
     </div>
   );
@@ -111,56 +139,51 @@ function TourPointsModal({
   open,
   onClose,
   tour,
+  onRefreshTourPoints,
 }: {
   open: boolean;
   onClose: () => void;
   tour: Tour;
+  onRefreshTourPoints?: () => Promise<void>;
 }) {
   const { t } = useLocale();
 
   const [points, setPoints] = useState<TourPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ===================================================
-     FETCH USER TOURPOINTS (dynamic)
-  =================================================== */
+  const fetchTourPoints = async () => {
+    try {
+      setLoading(true);
+
+      const status = await apiGetUserTourStatus(tour._id);
+      const usertourId = status?.usertours?._id ?? null;
+
+      if (!usertourId) {
+        console.warn("⚠️ No usertour started yet");
+        setPoints([]);
+        return;
+      }
+
+      const res = await apiGetUserTourPoints(tour._id, usertourId);
+      setPoints(res?.tourpoints || []);
+
+      // Trigger parent refresh
+      if (onRefreshTourPoints) {
+        await onRefreshTourPoints();
+      }
+    } catch (err) {
+      console.error("Failed to load user tourpoints:", err);
+      setPoints([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!open || !tour?._id) return;
 
-    let cancel = false;
-
-    (async () => {
-      try {
-        setLoading(true);
-
-        /* 🔥 1) Fetch usertourId from /v2/usertourstatus */
-        const status = await apiGetUserTourStatus(tour._id);
-        const usertourId = status?.usertours?._id ?? null;
-
-        if (!usertourId) {
-          console.warn("No usertour started yet!");
-        }
-
-        /* 🔥 2) Fetch user tourpoints */
-        const res = await apiGetUserTourPoints(tour._id);
-
-        if (!cancel) {
-          setPoints(res?.tourpoints || []);
-        }
-      } catch (err) {
-        console.error("Failed to load user tourpoints:", err);
-        if (!cancel) setPoints([]);
-      } finally {
-        if (!cancel) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancel = true;
-    };
+    fetchTourPoints();
   }, [open, tour?._id]);
-
-  /* ----------------------- UI ----------------------- */
 
   if (!open) return null;
 
@@ -182,8 +205,8 @@ function TourPointsModal({
 
         <div className="flex-1 overflow-y-auto px-4 py-6">
           {loading ? (
-            <div className="text-sm text-muted-foreground text-center">
-              {t("loading_map")}
+            <div className="flex items-center justify-center h-40">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-t-transparent" />
             </div>
           ) : points.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center">
@@ -193,6 +216,7 @@ function TourPointsModal({
             <MapTimelineRight
               tourpoints={points}
               customStyle="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold shadow-md hover:shadow-xl transition"
+              onRefreshTourpoints={fetchTourPoints}
             />
           )}
         </div>

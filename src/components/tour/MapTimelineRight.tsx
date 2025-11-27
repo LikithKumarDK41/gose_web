@@ -29,12 +29,14 @@ import { apiCreateStamp } from "@/services/userNavService";
 import type { VisitHistoryPayload } from "@/services/myListService";
 
 /* ------------------------------------------------------------------ */
-export default function TimelineRight({
+export default function MapTimelineRight({
   tourpoints,
   customStyle,
+  onRefreshTourpoints,
 }: {
   tourpoints: TourPoint[];
   customStyle?: string;
+  onRefreshTourpoints?: () => Promise<void>;
 }) {
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useLocale();
@@ -49,8 +51,9 @@ export default function TimelineRight({
   const [activeMonument, setActiveMonument] = useState<Monument | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [checkingIn, setCheckingIn] = useState(false);
 
-  const hasStart = tourpoints.some((tp) => tp.waypointtype === "start"); // 👈 check once
+  const hasStart = tourpoints.some((tp) => tp.waypointtype === "start");
 
   const active = useMemo(
     () => tourpoints.find((p) => p._id === openId) ?? null,
@@ -244,14 +247,7 @@ export default function TimelineRight({
                   />
 
                   <article className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl">
-                    {/* ⭐ CHECKED-IN BADGE (only if p.stamp exists) */}
-                    {/* {!p.stamp && Object.keys(p.stamp).length > 0 && (
-                      <div className="absolute top-3 right-3 z-20 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
-                        {t("checked_in") ?? "Checked-in"}
-                      </div>
-                    )} */}
-
-                    {p.stamp && (
+                    {p.stamp && Object.keys(p.stamp).length > 0 && (
                       <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-green-600/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">
                         <svg
                           className="w-4 h-4 text-white"
@@ -330,8 +326,11 @@ export default function TimelineRight({
                           size="sm"
                           variant="outline"
                           className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+                          disabled={checkingIn}
                           onClick={async () => {
                             try {
+                              setCheckingIn(true);
+
                               /* ------------------------------------------------
                                  1️⃣ Validate User Logged In
                               ------------------------------------------------ */
@@ -390,16 +389,25 @@ export default function TimelineRight({
                                 duration: 5000,
                               });
 
+                              /* ------------------------------------------------
+                                 6️⃣ REFRESH PARENT TOURPOINTS
+                              ------------------------------------------------ */
+                              if (onRefreshTourpoints) {
+                                await onRefreshTourpoints();
+                              }
+
                             } catch (err: any) {
                               console.error("❌ Check-in failed:", err);
                               toast.error("Check-in failed", {
                                 description: err?.message || "Please try again.",
                               });
+                            } finally {
+                              setCheckingIn(false);
                             }
                           }}
                         >
                           <MapPin className="h-5 w-5" />
-                          {t("tourDetails.checkIn")}
+                          {checkingIn ? t("checking_in") : t("tourDetails.checkIn")}
                         </Button>
 
                       </div>

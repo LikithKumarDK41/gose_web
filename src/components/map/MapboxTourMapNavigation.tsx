@@ -290,10 +290,23 @@ export default function MapboxTourMapNavigation({
               maxWidth: "320px",
             }).setHTML(popupHtml);
 
-            const marker = new mapboxgl.Marker({ element: pin })
-              .setLngLat(pos)
-              .setPopup(popup)
-              .addTo(map);
+            // Decide whether to show popup or not
+            const isStart = wtype === "start";
+            const isEnd = wtype === "end";
+            const isStation = String((tp as any)?.pointtype || "").toLowerCase() === "station";
+
+            let marker: mapboxgl.Marker;
+
+            if (isStart || isEnd || isStation) {
+              // ❌ NO POPUP for start/end/station
+              marker = new mapboxgl.Marker({ element: pin }).setLngLat(pos).addTo(map);
+            } else {
+              // ✅ Normal popup for all other waypoint types
+              marker = new mapboxgl.Marker({ element: pin })
+                .setLngLat(pos)
+                .setPopup(popup)
+                .addTo(map);
+            }
 
             markersRef.current.push(marker);
             positions.push(pos);

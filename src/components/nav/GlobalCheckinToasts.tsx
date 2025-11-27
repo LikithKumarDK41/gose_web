@@ -21,9 +21,8 @@ import {
 
 import { apiCreateStamp } from "@/services/userNavService";
 
-import type { QueueItem } from "@/lib/store/slices/geofenceSlice";
+import type { QueueItem } from "@/lib/types/userTour.types";
 import type { VisitHistoryPayload } from "@/services/myListService";
-import type { VisitHistory } from "@/lib/types/userMyList.types";
 
 /* ----------------------------------------------
    🧹 Sanitize HTML
@@ -136,13 +135,7 @@ export default function GlobalCheckinToasts() {
                         /* ------------------------------------------------
                            3️⃣ Create Visit History
                         ------------------------------------------------ */
-                        const created = await apiCreateVisitHistory(visitPayload);
-
-                        if (created?._id) {
-                          try {
-                            await apiGetVisitHistoryById(created._id);
-                          } catch { }
-                        }
+                        await apiCreateVisitHistory(visitPayload);
 
                         /* ------------------------------------------------
                            4️⃣ Create STAMP (NEW)

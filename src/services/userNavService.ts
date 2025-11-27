@@ -135,12 +135,12 @@ export interface UserTourPointResponse {
 
 export async function apiGetUserTourPoints(
     tourId: string,
-    // usertourId: string
+    usertourId: string
 ): Promise<UserTourPointResponse> {
     try {
         const body = {
             tour: tourId,
-            // usertour: usertourId,
+            usertour: usertourId,
         };
 
         const { data } = await api.post<UserTourPointResponse>(
