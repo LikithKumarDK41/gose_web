@@ -18,14 +18,28 @@ import authReducer from "./slices/authSlice";
 import touristReducer from "./slices/touristSlice";
 import globalReducer from "./slices/globalSlice";
 
-// ✅ combine all reducers
-const rootReducer = combineReducers({
+const appReducer = combineReducers({
   nav: navReducer,
   geofence: geofenceReducer,
   auth: authReducer,
   tourist: touristReducer,
   global: globalReducer,
 });
+
+const rootReducer = (state: any, action: any) => {
+  if (action.type === "auth/logout/fulfilled") {
+    // ⭐ RESET EVERYTHING – MAKE REDUX FRESH
+    state = undefined;
+
+    // ⭐ ALSO CLEAR REDUX-PERSIST (localStorage)
+    try {
+      localStorage.removeItem("persist:root");
+    } catch {}
+  }
+
+  return appReducer(state, action);
+};
+
 
 // ✅ configure persistence
 const persistConfig = {
