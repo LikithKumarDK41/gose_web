@@ -219,25 +219,92 @@ export default function NavigationOverlay({
   /* =========================================================
      ⭐ Load tour status on mount
   ========================================================= */
-  useEffect(() => {
-    (async () => {
-      if (!tourId || !auth.data?.user?._id) return;
+  // useEffect(() => {
+  //   (async () => {
+  //     if (!tourId || !auth.data?.user?._id) return;
 
-      try {
-        const res = await apiGetUserTourStatus(tourId);
-        const serverStatus = res?.usertours?.status;
+  //     try {
+  //       const res = await apiGetUserTourStatus(tourId);
+  //       const usertour = res?.usertours ?? null;
+  //       const serverStatus = usertour?.status;
 
-        dispatch(setActiveTour(tourId));
+  //       // Always set active tour
+  //       dispatch(setActiveTour(tourId));
 
-        if (serverStatus === "start") dispatch(setStatus("running"));
-        else if (serverStatus === "pause") dispatch(setStatus("paused"));
-        else dispatch(setStatus("idle"));
-      } catch (err) {
-        console.error("Failed to load navigation data", err);
-        dispatch(setStatus("idle"));
-      }
-    })();
-  }, [tourId, auth.data, dispatch]);
+  //       // ⭐ CASE 1 — Tour is already running
+  //       if (serverStatus === "start") {
+
+  //         // 1. Get fast GPS
+  //         const gps = await getFastLocation(geofence.last);
+
+  //         // 2. Update Redux same as handleStart()
+  //         dispatch(setStatus("running"));
+  //         dispatch(setProfile(defaultProfile));
+  //         dispatch(navStart(tourId));
+
+  //         // 3. Sync status to backend (same as handleStart)
+  //         if (auth.data?.user?._id) {
+  //           try {
+  //             await dispatch(
+  //               syncUserTourStatus({
+  //                 userId: auth.data.user._id,
+  //                 tourId,
+  //                 status: "start",
+  //                 location: toSyncLoc(gps),
+  //               })
+  //             ).unwrap();
+  //           } catch (err) {
+  //             console.warn("SyncUserTourStatus failed on mount:", err);
+  //           }
+  //         }
+
+  //         // 5. Refresh points once
+  //         if (onRefreshTourPoints) {
+  //           try {
+  //             await onRefreshTourPoints();
+  //           } catch (err) {
+  //             console.warn("Refresh on mount failed:", err);
+  //           }
+  //         }
+
+  //         return;
+  //       }
+
+  //       // ⭐ CASE 2 — Tour is paused
+  //       if (serverStatus === "pause") {
+  //         dispatch(setStatus("paused"));
+  //         return;
+  //       }
+
+  //       // ⭐ CASE 3 — Tour never started
+  //       dispatch(setStatus("idle"));
+
+  //     } catch (err) {
+  //       console.error("Failed to load navigation data", err);
+  //       dispatch(setStatus("idle"));
+  //     }
+  //   })();
+  // }, [tourId, auth.data, dispatch]);
+
+  //  useEffect(() => {
+  //   (async () => {
+  //     if (!tourId || !auth.data?.user?._id) return;
+
+  //     try {
+  //       const res = await apiGetUserTourStatus(tourId);
+  //       const serverStatus = res?.usertours?.status;
+
+  //       dispatch(setActiveTour(tourId));
+
+  //       if (serverStatus === "start") dispatch(setStatus("running"));
+  //       else if (serverStatus === "pause") dispatch(setStatus("paused"));
+  //       else dispatch(setStatus("idle"));
+  //     } catch (err) {
+  //       console.error("Failed to load navigation data", err);
+  //       dispatch(setStatus("idle"));
+  //     }
+  //   })();
+  // }, [tourId, auth.data, dispatch]);
 
   /* =========================================================
      ⭐ Auto-refresh tourpoints every 5 seconds when running

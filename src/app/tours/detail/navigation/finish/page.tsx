@@ -44,8 +44,8 @@ export default function FinishPage() {
   // Handle tour being either object or string ID
   const tour: Tour | null =
     usertour &&
-    typeof usertour.tour === "object" &&
-    usertour.tour !== null
+      typeof usertour.tour === "object" &&
+      usertour.tour !== null
       ? (usertour.tour as Tour)
       : null;
 
@@ -122,9 +122,9 @@ export default function FinishPage() {
 
   const handleBackToTours = async () => {
     try {
+      router.replace("/tours");
       setIsResetting(true);
       resetAllData();
-      router.replace("/tours");
     } catch (err) {
       console.error("Error resetting Redux slices:", err);
       router.replace("/tours");

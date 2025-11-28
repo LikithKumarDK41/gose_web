@@ -15,7 +15,7 @@ import { toast } from "sonner";
 const DEFAULT_RADIUS = 5000;
 const UPDATE_INTERVAL = 1500;
 const GEO_TIMEOUT = 30000;
-const RETRY_DELAY = 5000;
+const RETRY_DELAY = 60000;
 
 export default function GeoWatcher() {
   const dispatch = useAppDispatch();
