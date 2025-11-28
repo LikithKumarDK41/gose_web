@@ -347,11 +347,6 @@ export default function NavigationOverlay({
   const handleFinish = async () => {
     if (!tourId) return;
 
-    // dispatch(navStop());
-    // dispatch(resetGeofence());
-    dispatch(setStatus("idle"));
-    toast.success("✅ Tour finished!");
-
     try {
       await dispatch(
         syncUserTourStatus({
@@ -366,6 +361,9 @@ export default function NavigationOverlay({
     }
 
     router.replace(`/tours/detail/navigation/finish?tourId=${tourId}`);
+
+    dispatch(setStatus("idle"));
+    toast.success("✅ Tour finished!");
   };
 
   const handleBack = () => {

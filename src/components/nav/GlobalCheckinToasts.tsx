@@ -8,7 +8,10 @@ import {
   confirm,
   clearQueue,
 } from "@/lib/store/slices/geofenceSlice";
-import { selectNav } from "@/lib/store/slices/navSlice";
+import {
+  selectNav,
+  fetchUserTourPoints, // ✅ NEW: import thunk
+} from "@/lib/store/slices/navSlice";
 import { selectTourDetail } from "@/lib/store/slices/touristSlice";
 
 import { toast } from "sonner";
@@ -85,9 +88,17 @@ export default function GlobalCheckinToasts() {
 
                 {/* Coordinates */}
                 <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 space-y-1 text-left">
-                  <p><strong>Latitude:</strong> {item.lat?.toFixed(6) ?? "—"}</p>
-                  <p><strong>Longitude:</strong> {item.lng?.toFixed(6) ?? "—"}</p>
-                  <p><strong>Radius:</strong> {item.radius ?? "—"} m</p>
+                  <p>
+                    <strong>Latitude:</strong>{" "}
+                    {item.lat?.toFixed(6) ?? "—"}
+                  </p>
+                  <p>
+                    <strong>Longitude:</strong>{" "}
+                    {item.lng?.toFixed(6) ?? "—"}
+                  </p>
+                  <p>
+                    <strong>Radius:</strong> {item.radius ?? "—"} m
+                  </p>
                 </div>
 
                 {/* Buttons */}
@@ -138,7 +149,7 @@ export default function GlobalCheckinToasts() {
                         await apiCreateVisitHistory(visitPayload);
 
                         /* ------------------------------------------------
-                           4️⃣ Create STAMP (NEW)
+                           4️⃣ Create STAMP
                                Uses monumentId + tourpointId
                         ------------------------------------------------ */
                         if (item.monumentId && item.tourpointId) {
@@ -152,7 +163,36 @@ export default function GlobalCheckinToasts() {
                         }
 
                         /* ------------------------------------------------
-                           5️⃣ Remove queue item + Toast Success
+                           5️⃣ 🔄 Refresh user tourpoints
+                               (so stamp status updates in Redux)
+                        ------------------------------------------------ */
+                        try {
+                          const usertourId = nav.usertour?._id;
+                          const tourId = tourDetail?._id;
+
+                          if (usertourId && tourId) {
+                            await dispatch(
+                              fetchUserTourPoints({ tourId, usertourId })
+                            ).unwrap();
+                            console.log(
+                              "✅ usertourPoints refreshed after stamp"
+                            );
+                          } else {
+                            console.warn(
+                              "⚠️ Cannot refresh usertourPoints: missing usertourId or tourId",
+                              { usertourId, tourId }
+                            );
+                          }
+                        } catch (refreshErr) {
+                          console.error(
+                            "❌ Failed to refresh user tourpoints after stamp:",
+                            refreshErr
+                          );
+                          // don't block success toast if refresh fails
+                        }
+
+                        /* ------------------------------------------------
+                           6️⃣ Remove queue item + Toast Success
                         ------------------------------------------------ */
                         dispatch(confirm(String(item.id)));
                         toast.dismiss(t);
@@ -163,11 +203,11 @@ export default function GlobalCheckinToasts() {
                             : "Visit + Stamp recorded successfully.",
                           duration: 5000,
                         });
-
                       } catch (err: any) {
                         console.error("❌ Check-in error:", err);
                         toast.error("Failed to complete check-in", {
-                          description: err?.message || "Please try again."
+                          description:
+                            err?.message || "Please try again.",
                         });
                       }
                     }}
@@ -183,7 +223,7 @@ export default function GlobalCheckinToasts() {
       );
     }
 
-    // Clear queue
+    // Clear queue after creating toasts
     dispatch(clearQueue());
   }, [queue, dispatch, auth, nav, tourDetail]);
 

@@ -52,6 +52,9 @@ export default function MapTimelineRight({
   const [modalLoading, setModalLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [distancePopup, setDistancePopup] = useState<{ show: boolean; distance?: number; required?: number }>({
+    show: false,
+  });
 
   const hasStart = tourpoints.some((tp) => tp.waypointtype === "start");
 
@@ -356,8 +359,85 @@ export default function MapTimelineRight({
                                 return;
                               }
 
+                              const m = p.monument;
+                              const radius = m?.georadius ?? 0;
+
+                              if (!m?.location) {
+                                toast.error("Monument location missing");
+                                return;
+                              }
+
                               /* ------------------------------------------------
-                                 3️⃣ Create Visit History
+                                 3️⃣ Parse Monument Coordinates (array OR object)
+                              ------------------------------------------------ */
+                              let monumentLat = 0;
+                              let monumentLng = 0;
+
+                              if (Array.isArray(m.location)) {
+                                monumentLat = m.location[0];
+                                monumentLng = m.location[1];
+                              } else {
+                                monumentLat = m.location?.lat ?? 0;
+                                monumentLng = m.location?.lng ?? 0;
+                              }
+
+                              if (!monumentLat || !monumentLng) {
+                                toast.error("Invalid monument coordinates");
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 4️⃣ Get User Live Location
+                              ------------------------------------------------ */
+                              const userLocation = await new Promise<{ lat: number; lng: number }>(
+                                (resolve, reject) => {
+                                  navigator.geolocation.getCurrentPosition(
+                                    (pos) =>
+                                      resolve({
+                                        lat: pos.coords.latitude,
+                                        lng: pos.coords.longitude,
+                                      }),
+                                    (err) => reject(err)
+                                  );
+                                }
+                              ).catch(() => null);
+
+                              if (!userLocation) {
+                                toast.error("Location permission denied");
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 5️⃣ Calculate Distance (meters)
+                              ------------------------------------------------ */
+                              const R = 6371e3;
+                              const dLat = ((userLocation.lat - monumentLat) * Math.PI) / 180;
+                              const dLng = ((userLocation.lng - monumentLng) * Math.PI) / 180;
+
+                              const a =
+                                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                Math.cos((monumentLat * Math.PI) / 180) *
+                                Math.cos((userLocation.lat * Math.PI) / 180) *
+                                Math.sin(dLng / 2) *
+                                Math.sin(dLng / 2);
+
+                              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                              const distance = R * c;
+
+                              /* ------------------------------------------------
+                                 6️⃣ If user is far → popup (NO toast)
+                              ------------------------------------------------ */
+                              if (distance > radius) {
+                                setDistancePopup({
+                                  show: true,
+                                  distance: Math.round(distance),
+                                  required: radius,
+                                });
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 8️⃣ Create Visit History
                               ------------------------------------------------ */
                               const visitPayload: VisitHistoryPayload = {
                                 user: String(user),
@@ -371,7 +451,7 @@ export default function MapTimelineRight({
                               await apiCreateVisitHistory(visitPayload);
 
                               /* ------------------------------------------------
-                                 4️⃣ Create Stamp
+                                 9️⃣ Create Stamp
                               ------------------------------------------------ */
                               await apiCreateStamp({
                                 monument: String(monumentId),
@@ -382,7 +462,7 @@ export default function MapTimelineRight({
                               });
 
                               /* ------------------------------------------------
-                                 5️⃣ SUCCESS Toast
+                                 🔟 Success Notification
                               ------------------------------------------------ */
                               toast.success(`🏅 Checked-in at ${m?.name ?? "location"}`, {
                                 description: "Visit + Stamp recorded successfully",
@@ -390,17 +470,15 @@ export default function MapTimelineRight({
                               });
 
                               /* ------------------------------------------------
-                                 6️⃣ REFRESH PARENT TOURPOINTS
+                                 1️⃣1️⃣ Refresh TourPoints ONLY After Stamp Success
                               ------------------------------------------------ */
                               if (onRefreshTourpoints) {
                                 await onRefreshTourpoints();
                               }
 
-                            } catch (err: any) {
+                            } catch (err) {
                               console.error("❌ Check-in failed:", err);
-                              toast.error("Check-in failed", {
-                                description: err?.message || "Please try again.",
-                              });
+                              toast.error("Check-in failed");
                             } finally {
                               setCheckingIn(false);
                             }
@@ -409,6 +487,7 @@ export default function MapTimelineRight({
                           <MapPin className="h-5 w-5" />
                           {checkingIn ? t("checking_in") : t("tourDetails.checkIn")}
                         </Button>
+
 
                       </div>
                     </div>
@@ -439,6 +518,48 @@ export default function MapTimelineRight({
         onOpenAnother={handleOpen}
         customStyle={customStyle}
       />
+
+      {distancePopup.show && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-[90%] max-w-sm rounded-2xl bg-white/90 dark:bg-zinc-900/80 border border-gray-200 dark:border-gray-700 shadow-2xl p-7 animate-scaleIn">
+
+            {/* Warning Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="h-14 w-14 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center shadow">
+                <svg
+                  className="w-8 h-8 text-red-600 dark:text-red-400"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 4h.01M12 3a9 9 0 11-9 9 9 9 0 019-9z" />
+                </svg>
+              </div>
+            </div>
+
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              You’re Too Far Away
+            </h3>
+
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              You are currently <strong className="text-gray-900 dark:text-gray-100">{distancePopup.distance}m</strong> away.
+              <br />
+              You must be within{" "}
+              <strong className="text-gray-900 dark:text-gray-100">{distancePopup.required}m</strong>{" "}
+              of this monument to check-in.
+            </p>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setDistancePopup({ show: false })}
+              className="mt-6 w-full py-2.5 rounded-xl bg-gray-900 text-white dark:bg-gray-700 dark:text-white font-semibold hover:bg-gray-800 dark:hover:bg-gray-600 transition shadow"
+            >
+              Okay, Close
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MapboxTourMapNavigation from "@/components/map/MapboxTourMapNavigation";
 import NavigationOverlay from "@/components/map/NavigationOverlay";
@@ -16,10 +16,9 @@ import {
   selectNav,
   fetchUserTourPoints,
   selectUserTourPoints,
-  selectUserTourPointsFor,
 } from "@/lib/store/slices/navSlice";
 
-import type { TourPoint, Tour } from "@/lib/types/userTour.types";
+import type { Tour } from "@/lib/types/userTour.types";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useLocale } from "@/providers/LocaleProvider";
 import { X } from "lucide-react";
@@ -29,17 +28,15 @@ export default function NavigationPage() {
   const router = useRouter();
   const sp = useSearchParams();
   const id = sp.get("id") ?? "";
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const dispatch = useAppDispatch();
   const { show, hide } = useGlobalLoader();
-  const { t } = useLocale();
 
   const [listOpen, setListOpen] = useState(false);
 
   const tour = useAppSelector(selectTourDetail);
   const nav = useAppSelector(selectNav);
   const cachedTourPoints = useAppSelector(selectUserTourPoints);
-  const cachedFor = useAppSelector(selectUserTourPointsFor);
 
   useEffect(() => {
     if (!id) router.replace("/tours");
@@ -79,12 +76,9 @@ export default function NavigationPage() {
   }, [id, tour, dispatch]);
 
   /* ===================================================
-     REFRESH TOURPOINTS (parent) — uses Redux thunk
-     Components read from Redux selectors so they update automatically
+     REFRESH TOURPOINTS (parent) — only place we call API
   =================================================== */
   const refreshUserTourPoints = useCallback(async () => {
-    console.log("hi");
-    
     if (!id || !nav.usertour?._id) {
       console.warn("⚠️ No usertour started yet");
       return;
@@ -137,8 +131,8 @@ export default function NavigationPage() {
 }
 
 /* ===============================================================
-   MODAL - Uses Redux fetchUserTourPoints thunk and selectors
-   Initial load runs once on open; child-triggered refresh calls thunk.
+   MODAL - Calls ONLY parent onRefreshTourPoints
+   Whenever modal is open, parent refresh is invoked.
 ================================================================ */
 
 function TourPointsModal({
@@ -157,48 +151,55 @@ function TourPointsModal({
   tourId?: string;
 }) {
   const { t } = useLocale();
-  const dispatch = useAppDispatch();
-
   const cachedTourPoints = useAppSelector(selectUserTourPoints);
-  const cachedFor = useAppSelector(selectUserTourPointsFor);
 
   const [loading, setLoading] = useState(true);
-  const initialized = useRef(false);
 
-  // initial load when modal opens (only once per open)
+  // 🔁 Whenever the modal is OPEN, use ONLY parent refresh function
   useEffect(() => {
-    if (!open || !tour?._id || initialized.current) return;
-    initialized.current = true;
+    if (!open) return;
+
+    // if critical IDs are missing, just stop loading to avoid spinner forever
+    if (!tour?._id || !usertourId || !tourId) {
+      setLoading(false);
+      return;
+    }
+
+    if (!onRefreshTourPoints) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
 
     (async () => {
       try {
         setLoading(true);
-        if (!usertourId || !tourId) return;
-
-        if (cachedFor !== usertourId) {
-          await dispatch(fetchUserTourPoints({ tourId, usertourId })).unwrap();
-        }
+        await onRefreshTourPoints();
       } catch (err) {
-        console.error("Failed to load user tourpoints (modal):", err);
+        console.error("Failed to load user tourpoints (modal via parent):", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, [open, tour?._id, usertourId, tourId, cachedFor, dispatch]);
 
-  // child-initiated refresh (passed to MapTimelineRight)
+    return () => {
+      cancelled = true;
+    };
+  }, [open, tour?._id, usertourId, tourId, onRefreshTourPoints]);
+
+  // child-initiated refresh (from MapTimelineRight) → still just calls parent
   const handleChildRefresh = useCallback(async () => {
-    if (!usertourId || !tourId) return;
+    if (!onRefreshTourPoints) return;
     try {
       setLoading(true);
-      await dispatch(fetchUserTourPoints({ tourId, usertourId })).unwrap();
-      if (onRefreshTourPoints) await onRefreshTourPoints();
+      await onRefreshTourPoints();
     } catch (err) {
-      console.error("Child triggered refresh failed:", err);
+      console.error("Child triggered refresh failed (via parent):", err);
     } finally {
       setLoading(false);
     }
-  }, [usertourId, tourId, dispatch, onRefreshTourPoints]);
+  }, [onRefreshTourPoints]);
 
   if (!open) return null;
 
