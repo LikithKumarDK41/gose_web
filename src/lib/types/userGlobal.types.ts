@@ -1,60 +1,60 @@
 export interface Shortcut {
-    _id: string;
-    title: string;
-    icon?: {
-        secure_url?: string;
-        url?: string;
-    };
-    link?: string;
-    pdffile?: {
-        url?: string;
-        mimetype?: string;
-        filename?: string;
-        size?: number;
-    };
-    screentype?: string;
-    content?: {
-        brief?: string;
-        extended?: string;
-    };
-    priority?: number;
-    primarymenu?: boolean;
-    authrequired?: boolean;
+  _id: string;
+  title: string;
+  icon?: {
+    secure_url?: string;
+    url?: string;
+  };
+  link?: string;
+  pdffile?: {
+    url?: string;
+    mimetype?: string;
+    filename?: string;
+    size?: number;
+  };
+  screentype?: string;
+  content?: {
+    brief?: string;
+    extended?: string;
+  };
+  priority?: number;
+  primarymenu?: boolean;
+  authrequired?: boolean;
 }
 
 export interface About {
-    _id: string;
-    name: string;
-    state?: string;
-    title?: string;
-    image?: {
-        secure_url?: string;
-        url?: string;
-    } | null;
-    link?: string;
-    content?: {
-        brief?: string;
-        extended?: string;
-    };
-    relatedtours?: any[];
+  _id: string;
+  name: string;
+  state?: string;
+  title?: string;
+  image?: {
+    secure_url?: string;
+    url?: string;
+  } | null;
+  link?: string;
+  content?: {
+    brief?: string;
+    extended?: string;
+  };
+  relatedtours?: any[];
 }
 
 export interface EventItem {
+  _id: string;
+  title: string;
+  description?: string;
+  image?: {
+    secure_url?: string;
+    url?: string;
+  } | null;
+  displaydate?: string;
+  eventmonth?: string;
+  state?: string;
+  priority?: number;
+  monument?: {
     _id: string;
     title: string;
-    description?: string;
-    image?: {
-        secure_url?: string;
-        url?: string;
-    } | null;
-    displaydate?: string;
-    eventmonth?: string;
-    state?: string;
-    priority?: number;
-    monument?: {
-        _id: string;
-        title: string;
-    } | null;
+  } | null;
 }
 
 export interface PlaceImage {
@@ -138,9 +138,23 @@ export interface SearchSuggestion {
   filters: Record<string, any>;
 }
 
+// src/lib/types/userGlobal.types.ts
+
 export interface GlobalState {
-  shortcuts: Shortcut[];
+  shortcuts: any[];
   loading: boolean;
   error: string | null;
-  activeThemeId: string | null; // ✅ added field
+  activeThemeId: string | null;
+
+  // ⭐ Save first-time location
+  userLocation: {
+    lat: number;
+    lng: number;
+  } | null;
+
+  // ⭐ Whether location has been fetched (success OR failed)
+  locationFetched: boolean;
+
+  // ⭐ Whether the user denied location permission
+  locationDenied: boolean;
 }

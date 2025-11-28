@@ -479,5 +479,7 @@
   "completed_by": "Completed by",
   "share_achievement": "Share Achievement",
   "tour_not_started": "Tour not started",
-  "unknown_point": "Unknown Point"
+  "unknown_point": "Unknown Point",
+  "checking_in": "Checking in...",
+  "no_tour_points_available": "No tour points available"
 }

@@ -1,17 +1,19 @@
 // src/app/layout.tsx
-import '@/app/globals.css';
-import type { Metadata, Viewport } from 'next';
-import StoreProvider from '@/providers/StoreProvider';
-import AppShell from '@/components/layout/AppShell';
-import LoaderProvider from '@/providers/LoaderProvider';
-import GeoWatcher from '@/components/geo/GeoWatcher';
-import GlobalCheckinToasts from '@/components/nav/GlobalCheckinToasts';
-import { LocaleProvider } from '@/providers/LocaleProvider';
-import AuthGuard from '@/components/system/AuthGuard';
-import AppToaster from '@/components/system/AppToaster'; 
+import "@/app/globals.css";
+import type { Metadata, Viewport } from "next";
+import StoreProvider from "@/providers/StoreProvider";
+import AppShell from "@/components/layout/AppShell";
+import LoaderProvider from "@/providers/LoaderProvider";
+import GeoWatcher from "@/components/geo/GeoWatcher";
+import GlobalCheckinToasts from "@/components/nav/GlobalCheckinToasts";
+import { LocaleProvider } from "@/providers/LocaleProvider";
+import AuthGuard from "@/components/system/AuthGuard";
+import AppToaster from "@/components/system/AppToaster";
 
-export const metadata: Metadata = { title: 'Tourist' };
-export const viewport: Viewport = { themeColor: '#0b0f14' };
+import AppInitProvider from "@/providers/AppInitProvider";
+
+export const metadata: Metadata = { title: "Tourist" };
+export const viewport: Viewport = { themeColor: "#0b0f14" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -43,19 +45,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
+
         <StoreProvider>
           <LoaderProvider>
             <LocaleProvider>
+              {/* <AppInitProvider /> */}
+
               <AppShell>
                 <AuthGuard>{children}</AuthGuard>
               </AppShell>
+
               <GeoWatcher />
               <GlobalCheckinToasts />
             </LocaleProvider>
           </LoaderProvider>
         </StoreProvider>
 
-        {/* 👇 Sonner mounted globally */}
+        {/* Toaster */}
         <AppToaster />
       </body>
     </html>

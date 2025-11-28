@@ -106,7 +106,6 @@ export default function NavigationPage() {
         tour={tour}
         profile="walking"
         height="100vh"
-        usertourId={nav.usertour?._id}
       />
 
       <NavigationOverlay
@@ -221,19 +220,20 @@ function TourPointsModal({
 
         <div className="flex-1 overflow-y-auto px-4 py-6">
           {loading ? (
-            <div className="flex items-center justify-center h-40">
+            <div className="flex items-center justify-center h-full">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-t-transparent" />
             </div>
           ) : cachedTourPoints.length === 0 ? (
-            <div className="text-sm text-muted-foreground text-center">
-              {t("no_tour_points_available")}
+            <div className="flex items-center justify-center h-full">
+              <p className="text-sm text-muted-foreground text-center">
+                {t("no_tour_points_available")}
+              </p>
             </div>
           ) : (
             <MapTimelineRight
               tourpoints={cachedTourPoints}
               customStyle="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold shadow-md hover:shadow-xl transition"
               onRefreshTourpoints={handleChildRefresh}
-              tourId={tourId}
             />
           )}
         </div>

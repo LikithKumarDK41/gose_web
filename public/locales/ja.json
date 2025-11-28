@@ -478,5 +478,7 @@
   "completed_by": "達成者",
   "share_achievement": "成果を共有する",
   "tour_not_started": "ツアーが開始されていません",
-  "unknown_point": "不明なスポット"
+  "unknown_point": "不明なスポット",
+  "checking_in": "チェックイン中…",
+  "no_tour_points_available": "利用可能なツアースポットがありません"
 }

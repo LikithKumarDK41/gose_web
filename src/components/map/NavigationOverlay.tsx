@@ -79,17 +79,46 @@ function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng:
   return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
-async function getOneShotLocation() {
-  if (!("geolocation" in navigator)) return null;
-
+async function getFastLocation(geofenceLast: any) {
   return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 10000 }
+    let resolved = false;
+
+    // 1️⃣ Try super-fast cached GPS via watchPosition
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (!resolved) {
+          resolved = true;
+          navigator.geolocation.clearWatch(watchId);
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        }
+      },
+      () => { },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 2000 }
     );
+
+    // 2️⃣ Fallback — normal getCurrentPosition
+    setTimeout(() => {
+      if (resolved) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (!resolved) {
+            resolved = true;
+            resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          }
+        },
+        () => {
+          // 3️⃣ Last fallback — use geofence.last
+          if (!resolved) {
+            resolved = true;
+            resolve(geofenceLast || null);
+          }
+        },
+        { enableHighAccuracy: true, timeout: 4000 }
+      );
+    }, 100);
   });
 }
+
 
 /* =========================================================
    ⭐ Stamp Logic (Ignore station + lunch)
@@ -259,7 +288,7 @@ export default function NavigationOverlay({
       }
     } catch { }
 
-    const gps = geofence.last || (await getOneShotLocation());
+    const gps = await getFastLocation(geofence.last);
     if (!gps) {
       toast.error("⚠ Unable to get location. Enable GPS.");
       return;
