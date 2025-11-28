@@ -502,10 +502,10 @@ export default function NavigationOverlay({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />
-              You're not in the region
+              Youre not in the region
             </DialogTitle>
             <DialogDescription className="text-gray-600 mt-2">
-              Move closer to one of the tour's points to begin your trip.
+              Move closer to one of the tours points to begin your trip.
             </DialogDescription>
           </DialogHeader>
 
