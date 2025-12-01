@@ -51,7 +51,8 @@
     "navigate": "Navigate",
     "show_more": "Show More",
     "explore_now": "Explore Now",
-    "featured": "Featured"
+    "featured": "Featured",
+    "cancel": "Cancel"
   },
   "overview": {
     "title": "Activity Overview",
@@ -153,7 +154,10 @@
     "route": "Route",
     "loadingMap": "Loading map…",
     "durationFormat": "{km} km • {hh}h {mm}m",
-    "checkIn": "Check-In"
+    "checkIn": "Check-In",
+    "differentTourTitle": "Start a different tour?",
+    "differentTourMessage": "You already have another tour in progress. Do you want to stop it and start this tour instead?",
+    "startNewTour": "Start new tour"
   },
   "Back": "Back",
   "Start": "Start",

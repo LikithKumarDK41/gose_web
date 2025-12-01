@@ -4,15 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
 import {
   fetchShortcuts,
@@ -20,12 +11,6 @@ import {
   selectGlobalLoading,
   setActiveTheme,
 } from "@/lib/store/slices/globalSlice";
-import {
-  selectNav,
-  setActiveTour,
-  stopTour,
-} from "@/lib/store/slices/navSlice";
-import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useRouter } from "next/navigation";
@@ -233,105 +218,6 @@ export default function ToursDashboardPage() {
   );
 }
 
-/* =========================================================
-   🔘 Confirmation Popup Wrapper
-========================================================= */
-function ConfirmPopupButton({
-  label,
-  href,
-  variant,
-  icon,
-  gradient,
-  tourId,
-}: {
-  label: string;
-  href: string;
-  variant?: "secondary" | "outline" | "default";
-  icon?: React.ReactNode;
-  gradient?: string;
-  tourId: string;
-}) {
-  const nav = useAppSelector(selectNav);
-  const tourist = useAppSelector((state) => state.tourist);
-  const dispatch = useAppDispatch();
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const { t } = useLocale();
-
-  const handleClick = (e: React.MouseEvent) => {
-    const currentDetailId = tourist?.detail?._id;
-
-    if (nav.status === "idle" || !nav.activeTourId) {
-      e.preventDefault();
-      router.push(href);
-      return;
-    }
-
-    if (nav.activeTourId === tourId || currentDetailId === tourId) {
-      e.preventDefault();
-      router.push(href);
-      return;
-    }
-
-    e.preventDefault();
-    setOpen(true);
-  };
-
-  const handleConfirm = async () => {
-    try {
-      console.log("🔄 Resetting nav state for new tour...");
-      
-      // Reset all related slices
-      dispatch(resetGeofence());
-      dispatch(stopTour());
-      dispatch(setActiveTour(null));
-      
-      // Clear localStorage
-      localStorage.removeItem("navState");
-      
-      console.log("✅ Nav state reset successfully");
-
-      setOpen(false);
-      router.push(href);
-    } catch (err) {
-      console.error("Error during tour switch:", err);
-      router.push(href);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant={variant}
-          className={
-            gradient ||
-            "bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90"
-          }
-          onClick={handleClick}
-        >
-          {icon}
-          {label}
-        </Button>
-      </DialogTrigger>
-
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("confirm_action")}</DialogTitle>
-          <DialogDescription>
-            {t("confirm_action_description")}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="sm:justify-end mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            {t("cancel")}
-          </Button>
-          <Button onClick={handleConfirm}>{t("yes_continue")}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 /* =========================================================
    🌈 Reusable Shortcuts Grid
 ========================================================= */
