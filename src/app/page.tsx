@@ -290,7 +290,7 @@ function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
         return (
           <div
             key={item._id}
-            className="flex flex-col items-center text-center cursor-pointer"
+            className="flex flex-col items-center text-center cursor-pointer w-32"
             onClick={() => handleShortcutClick(item)}
           >
             <div
