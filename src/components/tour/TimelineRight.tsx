@@ -18,27 +18,25 @@ import {
   Train,
   Car,
   UtensilsCrossed,
-  Bookmark,
-  BookmarkCheck,
 } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
-import {
-  apiFetchBookmarkByRef,
-  apiRemoveBookmark,
-  apiCreateBookmark,
-} from "@/services/userGlobalservice";
 import { getPersistedUser } from "@/services/userAuthService";
 import { toast } from "sonner";
+import { apiCreateVisitHistory } from "@/services/myListService";
+import { apiCreateStamp } from "@/services/userNavService";
+import type { VisitHistoryPayload } from "@/services/myListService";
 
 /* ------------------------------------------------------------------ */
-export default function TimelineRight({
+export default function MapTimelineRight({
   tourpoints,
   customStyle,
+  onRefreshTourpoints,
 }: {
   tourpoints: TourPoint[];
   customStyle?: string;
+  onRefreshTourpoints?: () => Promise<void>;
 }) {
   const dispatch = useDispatch<AppDispatch>();
   const { t } = useLocale();
@@ -46,7 +44,6 @@ export default function TimelineRight({
   const persisted = getPersistedUser();
   const userId = persisted?.user?._id ?? null;
 
-  const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, string | null>>({});
   const loading = useSelector((s: any) => s.tourist.loading);
   const monumentDetail = useSelector((s: any) => s.tourist.monumentDetail);
 
@@ -54,8 +51,12 @@ export default function TimelineRight({
   const [activeMonument, setActiveMonument] = useState<Monument | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [distancePopup, setDistancePopup] = useState<{ show: boolean; distance?: number; required?: number }>({
+    show: false,
+  });
 
-  const hasStart = tourpoints.some((tp) => tp.waypointtype === "start"); // 👈 check once
+  const hasStart = tourpoints.some((tp) => tp.waypointtype === "start");
 
   const active = useMemo(
     () => tourpoints.find((p) => p._id === openId) ?? null,
@@ -63,86 +64,6 @@ export default function TimelineRight({
   );
 
   /* -------------------- Load bookmarks -------------------- */
-  useEffect(() => {
-    if (!userId || !tourpoints?.length) return;
-    let cancelled = false;
-
-    (async () => {
-      const results: Record<string, string | null> = {};
-      try {
-        for (const p of tourpoints) {
-          const m = p.monument;
-          if (!m?._id) continue;
-          const existing = await apiFetchBookmarkByRef();
-          if (cancelled) return;
-
-          let found: any = null;
-          if (Array.isArray((existing as any)?.bookmarks?.results)) {
-            found = (existing as any).bookmarks.results.find(
-              (b: any) =>
-                b?.marktype === "monument" &&
-                b?.monument?._id === m._id &&
-                b?.status === "active"
-            );
-          } else if ((existing as any)?.monument?._id === m._id) {
-            found = existing;
-          }
-
-          results[m._id] = found?._id || null;
-        }
-        if (!cancelled) setBookmarkedIds(results);
-      } catch (err) {
-        console.error("Bookmark fetch failed:", err);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [tourpoints, userId]);
-
-  /* -------------------- Handle Bookmark Toggle -------------------- */
-  const handleBookmarkToggle = async (monumentId: string) => {
-    if (!userId) {
-      toast.error("Please log in to bookmark.");
-      return;
-    }
-
-    const existingId = bookmarkedIds[monumentId];
-
-    try {
-      if (existingId) {
-        await apiRemoveBookmark(existingId);
-        setBookmarkedIds((prev) => ({ ...prev, [monumentId]: null }));
-        toast.info(t("bookmark_removed"));
-      } else {
-        const payload = {
-          user: userId,
-          marktype: "monument",
-          monument: monumentId,
-          status: "active",
-        };
-        const created: any = await apiCreateBookmark(payload);
-        const newId =
-          created?.data?._id ??
-          created?.data?.data?._id ??
-          created?._id ??
-          created?.bookmark?._id ??
-          null;
-
-        if (newId) {
-          setBookmarkedIds((prev) => ({ ...prev, [monumentId]: newId }));
-          toast.success(t("bookmark_added"));
-        } else {
-          toast.warning("Bookmark created, but response was unexpected");
-        }
-      }
-    } catch (err) {
-      console.error("Bookmark toggle failed:", err);
-      toast.error("Failed to update bookmark");
-    }
-  };
-
   useEffect(() => {
     if (loading) show();
     else hide();
@@ -225,15 +146,13 @@ export default function TimelineRight({
               return (
                 <Fragment key={p._id}>
                   <li
-                    className={`grid grid-cols-[90px_1fr] gap-6 ${
-                      hideBottom ? "pb-8" : "pb-10"
-                    }`}
+                    className={`grid grid-cols-[90px_1fr] gap-6 ${hideBottom ? "pb-8" : "pb-10"
+                      }`}
                   >
                     <div className="relative h-full w-[90px]">
                       <div
-                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${
-                          hideTop ? "top-[50%]" : "top-0"
-                        } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
+                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${hideTop ? "top-[50%]" : "top-0"
+                          } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
                       />
                       <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
                         <div
@@ -331,6 +250,21 @@ export default function TimelineRight({
                   />
 
                   <article className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl">
+                    {p.stamp && Object.keys(p.stamp).length > 0 && (
+                      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-green-600/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {t("checked_in")}
+                      </div>
+                    )}
+
                     <div
                       className="relative w-full h-64 cursor-pointer"
                       onClick={() => handleOpen(p._id)}
@@ -394,11 +328,167 @@ export default function TimelineRight({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+                          disabled={checkingIn}
+                          onClick={async () => {
+                            try {
+                              setCheckingIn(true);
+
+                              /* ------------------------------------------------
+                                 1️⃣ Validate User Logged In
+                              ------------------------------------------------ */
+                              const user =
+                                persisted?.user?._id ||
+                                persisted?.user?.id ||
+                                persisted?.user?.uuid ||
+                                null;
+
+                              if (!user) {
+                                toast.error("Please sign in to check-in");
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 2️⃣ Monument & TourPoint Validation
+                              ------------------------------------------------ */
+                              const monumentId = p?.monument?._id;
+                              const tourpointId = p?._id;
+
+                              if (!monumentId || !tourpointId) {
+                                toast.error("Invalid point for check-in");
+                                return;
+                              }
+
+                              const m = p.monument;
+                              const radius = m?.georadius ?? 0;
+
+                              if (!m?.location) {
+                                toast.error("Monument location missing");
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 3️⃣ Parse Monument Coordinates (array OR object)
+                              ------------------------------------------------ */
+                              let monumentLat = 0;
+                              let monumentLng = 0;
+
+                              if (Array.isArray(m.location)) {
+                                monumentLat = m.location[0];
+                                monumentLng = m.location[1];
+                              } else {
+                                monumentLat = m.location?.lat ?? 0;
+                                monumentLng = m.location?.lng ?? 0;
+                              }
+
+                              if (!monumentLat || !monumentLng) {
+                                toast.error("Invalid monument coordinates");
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 4️⃣ Get User Live Location
+                              ------------------------------------------------ */
+                              const userLocation = await new Promise<{ lat: number; lng: number }>(
+                                (resolve, reject) => {
+                                  navigator.geolocation.getCurrentPosition(
+                                    (pos) =>
+                                      resolve({
+                                        lat: pos.coords.latitude,
+                                        lng: pos.coords.longitude,
+                                      }),
+                                    (err) => reject(err)
+                                  );
+                                }
+                              ).catch(() => null);
+
+                              if (!userLocation) {
+                                toast.error("Location permission denied");
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 5️⃣ Calculate Distance (meters)
+                              ------------------------------------------------ */
+                              const R = 6371e3;
+                              const dLat = ((userLocation.lat - monumentLat) * Math.PI) / 180;
+                              const dLng = ((userLocation.lng - monumentLng) * Math.PI) / 180;
+
+                              const a =
+                                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                Math.cos((monumentLat * Math.PI) / 180) *
+                                Math.cos((userLocation.lat * Math.PI) / 180) *
+                                Math.sin(dLng / 2) *
+                                Math.sin(dLng / 2);
+
+                              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                              const distance = R * c;
+
+                              /* ------------------------------------------------
+                                 6️⃣ If user is far → popup (NO toast)
+                              ------------------------------------------------ */
+                              if (distance > radius) {
+                                setDistancePopup({
+                                  show: true,
+                                  distance: Math.round(distance),
+                                  required: radius,
+                                });
+                                return;
+                              }
+
+                              /* ------------------------------------------------
+                                 8️⃣ Create Visit History
+                              ------------------------------------------------ */
+                              const visitPayload: VisitHistoryPayload = {
+                                user: String(user),
+                                historytype: "monument",
+                                monument: String(monumentId),
+                                status: "active",
+                                visitmode: "manual",
+                                historytime: Date.now().toString(),
+                              };
+
+                              await apiCreateVisitHistory(visitPayload);
+
+                              /* ------------------------------------------------
+                                 9️⃣ Create Stamp
+                              ------------------------------------------------ */
+                              await apiCreateStamp({
+                                monument: String(monumentId),
+                                tourpoint: String(tourpointId),
+                                user: String(user),
+                                status: "active",
+                                stamptime: Date.now(),
+                              });
+
+                              /* ------------------------------------------------
+                                 🔟 Success Notification
+                              ------------------------------------------------ */
+                              toast.success(`🏅 Checked-in at ${m?.name ?? "location"}`, {
+                                description: "Visit + Stamp recorded successfully",
+                                duration: 5000,
+                              });
+
+                              /* ------------------------------------------------
+                                 1️⃣1️⃣ Refresh TourPoints ONLY After Stamp Success
+                              ------------------------------------------------ */
+                              if (onRefreshTourpoints) {
+                                await onRefreshTourpoints();
+                              }
+
+                            } catch (err) {
+                              console.error("❌ Check-in failed:", err);
+                              toast.error("Check-in failed");
+                            } finally {
+                              setCheckingIn(false);
+                            }
+                          }}
                         >
                           <MapPin className="h-5 w-5" />
-                          {t("tourDetails.checkIn")}
+                          {checkingIn ? t("checking_in") : t("tourDetails.checkIn")}
                         </Button>
+
+
                       </div>
                     </div>
                   </article>
@@ -428,6 +518,48 @@ export default function TimelineRight({
         onOpenAnother={handleOpen}
         customStyle={customStyle}
       />
+
+      {distancePopup.show && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-[90%] max-w-sm rounded-2xl bg-white/90 dark:bg-zinc-900/80 border border-gray-200 dark:border-gray-700 shadow-2xl p-7 animate-scaleIn">
+
+            {/* Warning Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="h-14 w-14 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center shadow">
+                <svg
+                  className="w-8 h-8 text-red-600 dark:text-red-400"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 4h.01M12 3a9 9 0 11-9 9 9 9 0 019-9z" />
+                </svg>
+              </div>
+            </div>
+
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              You’re Too Far Away
+            </h3>
+
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              You are currently <strong className="text-gray-900 dark:text-gray-100">{distancePopup.distance}m</strong> away.
+              <br />
+              You must be within{" "}
+              <strong className="text-gray-900 dark:text-gray-100">{distancePopup.required}m</strong>{" "}
+              of this monument to check-in.
+            </p>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setDistancePopup({ show: false })}
+              className="mt-6 w-full py-2.5 rounded-xl bg-gray-900 text-white dark:bg-gray-700 dark:text-white font-semibold hover:bg-gray-800 dark:hover:bg-gray-600 transition shadow"
+            >
+              Okay, Close
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -460,7 +592,7 @@ function TimelineDot({
           <span className="text-[13px] font-semibold">{label}</span>
         </div>
       </div>
-    </div>        
+    </div>
   );
 }
 

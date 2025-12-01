@@ -28,9 +28,9 @@ import {
 } from "@/lib/store/slices/navSlice";
 import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
 
-import {
-  apiGetUserTourStatus,
-} from "@/services/userNavService";
+// import {
+//   apiGetUserTourStatus,
+// } from "@/services/userNavService";
 
 import { useLocale } from "@/providers/LocaleProvider";
 import { toast } from "sonner";
@@ -83,7 +83,7 @@ async function getFastLocation(geofenceLast: any) {
   return new Promise((resolve) => {
     let resolved = false;
 
-    // 1️⃣ Try super-fast cached GPS via watchPosition
+    // 1️⃣ Try very-fast GPS (watchPosition)
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         if (!resolved) {
@@ -92,13 +92,16 @@ async function getFastLocation(geofenceLast: any) {
           resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         }
       },
-      () => { },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 2000 }
+      (err) => {
+        console.warn("watchPosition error:", err);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 8000 }
     );
 
-    // 2️⃣ Fallback — normal getCurrentPosition
+    // 2️⃣ After 200ms → try fallback getCurrentPosition
     setTimeout(() => {
       if (resolved) return;
+
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           if (!resolved) {
@@ -106,19 +109,37 @@ async function getFastLocation(geofenceLast: any) {
             resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           }
         },
-        () => {
-          // 3️⃣ Last fallback — use geofence.last
+        (err) => {
+          console.warn("getCurrentPosition error:", err);
+
+          // 3️⃣ FINAL FALLBACK — use last geofence OR last known browser location
           if (!resolved) {
             resolved = true;
-            resolve(geofenceLast || null);
+
+            // last known geofence
+            if (geofenceLast) {
+              resolve(geofenceLast);
+              return;
+            }
+
+            // last known browser location
+            if (navigator.geolocation) {
+              resolve({
+                lat: 0,
+                lng: 0,
+                error: "no-gps-fallback"
+              });
+              return;
+            }
+
+            resolve(null);
           }
         },
-        { enableHighAccuracy: true, timeout: 4000 }
+        { enableHighAccuracy: true, timeout: 10000 }
       );
-    }, 100);
+    }, 200);
   });
 }
-
 
 /* =========================================================
    ⭐ Stamp Logic (Ignore station + lunch)
@@ -341,19 +362,19 @@ export default function NavigationOverlay({
 
     let usertour = null;
 
-    try {
-      const res = await apiGetUserTourStatus(tourId);
-      usertour = res?.usertours ?? null;
+    // try {
+    //   const res = await apiGetUserTourStatus(tourId);
+    //   usertour = res?.usertours ?? null;
 
-      if (
-        usertour &&
-        usertour.status === "start" &&
-        usertour?.tour?._id === tourId
-      ) {
-        toast.info("✔ This tour is already running.");
-        return;
-      }
-    } catch { }
+    //   if (
+    //     usertour &&
+    //     usertour.status === "start" &&
+    //     usertour?.tour?._id === tourId
+    //   ) {
+    //     toast.info("✔ This tour is already running.");
+    //     return;
+    //   }
+    // } catch { }
 
     const gps = await getFastLocation(geofence.last);
     if (!gps) {

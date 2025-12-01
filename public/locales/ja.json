@@ -51,7 +51,8 @@
     "navigate": "ナビゲート",
     "show_more": "もっと見る",
     "explore_now": "今すぐ探索",
-    "featured": "注目"
+    "featured": "注目",
+    "cancel": "キャンセル"
   },
   "overview": {
     "title": "アクティビティ概要",
@@ -153,7 +154,10 @@
     "route": "ルート",
     "loadingMap": "地図を読み込み中…",
     "durationFormat": "{km} km • {hh}時間 {mm}分",
-    "checkIn": "チェックイン"
+    "checkIn": "チェックイン",
+    "differentTourTitle": "別のツアーを開始しますか？",
+    "differentTourMessage": "現在、別のツアーを進行中です。このツアーに切り替えて開始しますか？",
+    "startNewTour": "新しいツアーを開始する"
   },
   "Back": "戻る",
   "Start": "開始",
