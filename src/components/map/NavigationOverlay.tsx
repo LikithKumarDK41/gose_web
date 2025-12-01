@@ -26,11 +26,6 @@ import {
   syncUserTourStatus,
   selectUserTourPoints,
 } from "@/lib/store/slices/navSlice";
-import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
-
-// import {
-//   apiGetUserTourStatus,
-// } from "@/services/userNavService";
 
 import { useLocale } from "@/providers/LocaleProvider";
 import { toast } from "sonner";
@@ -238,114 +233,24 @@ export default function NavigationOverlay({
   }, [reduxTourPoints, tourPoints]);
 
   /* =========================================================
-     ⭐ Load tour status on mount
-  ========================================================= */
-  // useEffect(() => {
-  //   (async () => {
-  //     if (!tourId || !auth.data?.user?._id) return;
-
-  //     try {
-  //       const res = await apiGetUserTourStatus(tourId);
-  //       const usertour = res?.usertours ?? null;
-  //       const serverStatus = usertour?.status;
-
-  //       // Always set active tour
-  //       dispatch(setActiveTour(tourId));
-
-  //       // ⭐ CASE 1 — Tour is already running
-  //       if (serverStatus === "start") {
-
-  //         // 1. Get fast GPS
-  //         const gps = await getFastLocation(geofence.last);
-
-  //         // 2. Update Redux same as handleStart()
-  //         dispatch(setStatus("running"));
-  //         dispatch(setProfile(defaultProfile));
-  //         dispatch(navStart(tourId));
-
-  //         // 3. Sync status to backend (same as handleStart)
-  //         if (auth.data?.user?._id) {
-  //           try {
-  //             await dispatch(
-  //               syncUserTourStatus({
-  //                 userId: auth.data.user._id,
-  //                 tourId,
-  //                 status: "start",
-  //                 location: toSyncLoc(gps),
-  //               })
-  //             ).unwrap();
-  //           } catch (err) {
-  //             console.warn("SyncUserTourStatus failed on mount:", err);
-  //           }
-  //         }
-
-  //         // 5. Refresh points once
-  //         if (onRefreshTourPoints) {
-  //           try {
-  //             await onRefreshTourPoints();
-  //           } catch (err) {
-  //             console.warn("Refresh on mount failed:", err);
-  //           }
-  //         }
-
-  //         return;
-  //       }
-
-  //       // ⭐ CASE 2 — Tour is paused
-  //       if (serverStatus === "pause") {
-  //         dispatch(setStatus("paused"));
-  //         return;
-  //       }
-
-  //       // ⭐ CASE 3 — Tour never started
-  //       dispatch(setStatus("idle"));
-
-  //     } catch (err) {
-  //       console.error("Failed to load navigation data", err);
-  //       dispatch(setStatus("idle"));
-  //     }
-  //   })();
-  // }, [tourId, auth.data, dispatch]);
-
-  //  useEffect(() => {
-  //   (async () => {
-  //     if (!tourId || !auth.data?.user?._id) return;
-
-  //     try {
-  //       const res = await apiGetUserTourStatus(tourId);
-  //       const serverStatus = res?.usertours?.status;
-
-  //       dispatch(setActiveTour(tourId));
-
-  //       if (serverStatus === "start") dispatch(setStatus("running"));
-  //       else if (serverStatus === "pause") dispatch(setStatus("paused"));
-  //       else dispatch(setStatus("idle"));
-  //     } catch (err) {
-  //       console.error("Failed to load navigation data", err);
-  //       dispatch(setStatus("idle"));
-  //     }
-  //   })();
-  // }, [tourId, auth.data, dispatch]);
-
-  /* =========================================================
      ⭐ Auto-refresh tourpoints every 5 seconds when running
      (still triggers onRefreshTourPoints if provided)
   ========================================================= */
-  useEffect(() => {
-    if (nav.status !== "running" || !tourId) return;
+  // useEffect(() => {
+  //   if (nav.status !== "running" || !tourId) return;
 
-    const interval = setInterval(async () => {
-      if (onRefreshTourPoints) {
-        try {
-          await onRefreshTourPoints();
-        } catch (err) {
-          console.warn("Auto-refresh tourpoints failed:", err);
-        }
-      }
-    }, 5000);
+  //   const interval = setInterval(async () => {
+  //     if (onRefreshTourPoints) {
+  //       try {
+  //         await onRefreshTourPoints();
+  //       } catch (err) {
+  //         console.warn("Auto-refresh tourpoints failed:", err);
+  //       }
+  //     }
+  //   }, 5000);
 
-    return () => clearInterval(interval);
-  }, [nav.status, tourId, onRefreshTourPoints]);
+  //   return () => clearInterval(interval);
+  // }, [nav.status, tourId, onRefreshTourPoints]);
 
   // ...existing code (handleStart, handlePauseResume, handleFinish, UI) ...
 
@@ -359,22 +264,6 @@ export default function NavigationOverlay({
       toast.error("⚠️ Tourpoints not available");
       return;
     }
-
-    let usertour = null;
-
-    // try {
-    //   const res = await apiGetUserTourStatus(tourId);
-    //   usertour = res?.usertours ?? null;
-
-    //   if (
-    //     usertour &&
-    //     usertour.status === "start" &&
-    //     usertour?.tour?._id === tourId
-    //   ) {
-    //     toast.info("✔ This tour is already running.");
-    //     return;
-    //   }
-    // } catch { }
 
     const gps = await getFastLocation(geofence.last);
     if (!gps) {
@@ -464,24 +353,37 @@ export default function NavigationOverlay({
   const handleFinish = async () => {
     if (!tourId) return;
 
+    const lastLoc = geofence.last || null;
+
     try {
+      // 1️⃣ Sync backend finish status
       await dispatch(
         syncUserTourStatus({
           userId: auth.data?.user?._id || "",
           tourId,
           status: "end",
-          location: toSyncLoc(geofence.last || null),
+          location: toSyncLoc(lastLoc),
         })
       ).unwrap();
     } catch (err) {
       console.error("Failed to sync finish status:", err);
+      toast.error("Failed to sync finish status");
     }
 
+    // 2️⃣ Always refresh tourPoints BEFORE navigating
+    if (onRefreshTourPoints) {
+      try {
+        await onRefreshTourPoints();
+        console.log("🔄 Tourpoints refreshed before finish screen");
+      } catch (err) {
+        console.warn("Refresh tourpoints failed:", err);
+        toast.success("✅ Tour finished!");
+      }
+    }
     router.replace(`/tours/detail/navigation/finish?tourId=${tourId}`);
-
     dispatch(setStatus("idle"));
-    toast.success("✅ Tour finished!");
   };
+
 
   const handleBack = () => {
     loader.show();

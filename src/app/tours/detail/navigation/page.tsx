@@ -115,6 +115,7 @@ export default function NavigationPage() {
         onOpenList={() => setListOpen(true)}
         onCloseList={() => setListOpen(false)}
         tourPoints={cachedTourPoints}
+        onRefreshTourPoints={refreshUserTourPoints}
       />
 
       <TourPointsModal
