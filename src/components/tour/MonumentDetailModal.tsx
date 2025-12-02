@@ -33,9 +33,7 @@ import {
   apiRemoveBookmark,
   apiCreateBookmark,
 } from "@/services/userGlobalservice";
-import type {
-  EventItem,
-} from "@/lib/types/userGlobal.types";
+import type { EventItem } from "@/lib/types/userGlobal.types";
 import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */
@@ -130,12 +128,13 @@ export default function MonumentDetailModal({
         let bookmark: BookmarkItem | null = null;
 
         if (Array.isArray(res?.bookmarks?.results)) {
-          bookmark = res.bookmarks.results.find(
-            (b: BookmarkItem) =>
-              b.marktype === "monument" &&
-              b.monument?._id === details._id &&
-              b.status === "active"
-          ) || null;
+          bookmark =
+            res.bookmarks.results.find(
+              (b: BookmarkItem) =>
+                b.marktype === "monument" &&
+                b.monument?._id === details._id &&
+                b.status === "active"
+            ) || null;
         } else if (res?.monument?._id === details._id) {
           bookmark = res as BookmarkItem;
         }
@@ -209,6 +208,25 @@ export default function MonumentDetailModal({
       toast.error("Failed to update bookmark");
     }
   };
+
+  // Fix for mobile Chrome resume issue (header half-hidden)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        // Reset scroll
+        contentRef.current?.scrollTo({ top: 0, behavior: "instant" });
+
+        // Force height recalculation
+        setTimeout(() => {
+          window.dispatchEvent(new Event("resize"));
+        }, 50);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -323,9 +341,10 @@ export default function MonumentDetailModal({
                 <section className="flex flex-wrap gap-2">
                   {safeText(details.era) && (
                     <Badge
-                      className={`${customStyle ||
+                      className={`${
+                        customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                        }`}
+                      }`}
                     >
                       {t("shortcut.tourist_attraction_details.era")}:{" "}
                       {details.era}
@@ -333,9 +352,10 @@ export default function MonumentDetailModal({
                   )}
                   {safeText(details.year) && (
                     <Badge
-                      className={`${customStyle ||
+                      className={`${
+                        customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                        }`}
+                      }`}
                     >
                       {t("shortcut.tourist_attraction_details.year")}:{" "}
                       {details.year}
@@ -343,9 +363,10 @@ export default function MonumentDetailModal({
                   )}
                   {safeText(details.size) && (
                     <Badge
-                      className={`${customStyle ||
+                      className={`${
+                        customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                        }`}
+                      }`}
                     >
                       {t("shortcut.tourist_attraction_details.size")}:{" "}
                       {details.size}
@@ -353,9 +374,10 @@ export default function MonumentDetailModal({
                   )}
                   {safeText(details.mtype) && (
                     <Badge
-                      className={`${customStyle ||
+                      className={`${
+                        customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                        }`}
+                      }`}
                     >
                       {t("shortcut.tourist_attraction_details.type")}:{" "}
                       {details.mtype}
@@ -363,27 +385,30 @@ export default function MonumentDetailModal({
                   )}
                   {details.featured && (
                     <Badge
-                      className={`${customStyle ||
+                      className={`${
+                        customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                        }`}
+                      }`}
                     >
                       {t("shortcut.tourist_attraction_details.featured")}
                     </Badge>
                   )}
                   {details.rare && (
                     <Badge
-                      className={`${customStyle ||
+                      className={`${
+                        customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                        }`}
+                      }`}
                     >
                       {t("shortcut.tourist_attraction_details.rare")}
                     </Badge>
                   )}
                   {details.popularity && (
                     <Badge
-                      className={`${customStyle ||
+                      className={`${
+                        customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                        }`}
+                      }`}
                     >
                       {t("shortcut.tourist_attraction_details.popularity")}:{" "}
                       {details.popularity}
@@ -391,9 +416,10 @@ export default function MonumentDetailModal({
                   )}
                   {details.priority && (
                     <Badge
-                      className={`${customStyle ||
+                      className={`${
+                        customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                        }`}
+                      }`}
                     >
                       {t("shortcut.tourist_attraction_details.priority")}:{" "}
                       {details.priority}
@@ -401,9 +427,10 @@ export default function MonumentDetailModal({
                   )}
                   {details.georadius && (
                     <Badge
-                      className={`${customStyle ||
+                      className={`${
+                        customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                        }`}
+                      }`}
                     >
                       {t("shortcut.tourist_attraction_details.radius")}:{" "}
                       {details.georadius}m
@@ -462,9 +489,10 @@ export default function MonumentDetailModal({
                       {details.theme?.map((th: any, i: number) => (
                         <Badge
                           key={th._id || `theme-${i}`}
-                          className={`${customStyle ||
+                          className={`${
+                            customStyle ||
                             "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                            }`}
+                          }`}
                         >
                           {safeText(th.title || th.name)}
                         </Badge>
@@ -472,9 +500,10 @@ export default function MonumentDetailModal({
                       {details.subtheme?.map((sth: any, i: number) => (
                         <Badge
                           key={sth._id || `subtheme-${i}`}
-                          className={`${customStyle ||
+                          className={`${
+                            customStyle ||
                             "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
-                            }`}
+                          }`}
                         >
                           {safeText(sth.title || sth.name)}
                         </Badge>
@@ -554,9 +583,10 @@ export default function MonumentDetailModal({
 
                             <Button
                               size="sm"
-                              className={`cursor-pointer w-full rounded-full ${customStyle ||
+                              className={`cursor-pointer w-full rounded-full ${
+                                customStyle ||
                                 "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
-                                }`}
+                              }`}
                               onClick={() => onOpenAnother(m._id)}
                             >
                               {t("tourDetails.viewDetails")}
@@ -609,9 +639,10 @@ export default function MonumentDetailModal({
 
                             <Button
                               size="sm"
-                              className={`cursor-pointer w-full rounded-full ${customStyle ||
+                              className={`cursor-pointer w-full rounded-full ${
+                                customStyle ||
                                 "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 "
-                                }`}
+                              }`}
                               onClick={() =>
                                 router.push(`/tours/detail/?id=${tour._id}`)
                               }
@@ -715,9 +746,10 @@ export default function MonumentDetailModal({
 
                             <Button
                               size="sm"
-                              className={`cursor-pointer w-full rounded-full mt-2 ${customStyle ||
+                              className={`cursor-pointer w-full rounded-full mt-2 ${
+                                customStyle ||
                                 " bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 "
-                                }`}
+                              }`}
                               onClick={() => {
                                 router.push(`/shortcuts/events/?id=${ev._id}`);
                               }}
@@ -739,9 +771,10 @@ export default function MonumentDetailModal({
         <div className="border-t bg-background p-6">
           <Button
             size="lg"
-            className={`cursor-pointer w-full rounded-full flex items-center justify-center gap-2 ${customStyle ||
+            className={`cursor-pointer w-full rounded-full flex items-center justify-center gap-2 ${
+              customStyle ||
               "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
-              }`}
+            }`}
           >
             <MapPin className="h-5 w-5" />
             {t("tourDetails.checkIn")}
