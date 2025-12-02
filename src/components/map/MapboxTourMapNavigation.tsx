@@ -84,22 +84,6 @@ function tidyParagraphs(html: string) {
   return html.replace(/<p>\s*<\/p>/g, "").replace(/(\s*<br>\s*){3,}/g, "<br><br>");
 }
 
-function applyLabelLanguage(map: mapboxgl.Map, locale: "ja" | "en") {
-  const style = map.getStyle();
-  const layers = style?.layers || [];
-  const prop = ["get", locale === "ja" ? "name_ja" : "name_en"] as any;
-
-  for (const layer of layers) {
-    if (layer.type === "symbol" && (layer.layout as any)?.["text-field"] !== undefined) {
-      try {
-        map.setLayoutProperty(layer.id, "text-field", prop);
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-}
-
 function createCircle(center: [number, number], radius: number, points = 64): Feature<Polygon> {
   const coords: [number, number][] = [];
   const [lng, lat] = center;
@@ -224,7 +208,6 @@ export default function MapboxTourMapNavigation({
         if (disposed) return;
 
         await waitForStyle(map);
-        applyLabelLanguage(map, mapLocale);
 
         try {
           setLoading(false);
@@ -494,7 +477,6 @@ export default function MapboxTourMapNavigation({
         }
       });
 
-      map.on("style.load", () => applyLabelLanguage(map, mapLocale));
     })().catch((e) => setError(String(e)));
 
     return () => {
@@ -519,10 +501,6 @@ export default function MapboxTourMapNavigation({
     };
   }, [tour, profile, mapLocale, reduxTourPoints]);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (map) applyLabelLanguage(map, mapLocale);
-  }, [mapLocale]);
 
   return (
     <div
