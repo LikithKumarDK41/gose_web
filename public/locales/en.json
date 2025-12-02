@@ -157,7 +157,9 @@
     "checkIn": "Check-In",
     "differentTourTitle": "Start a different tour?",
     "differentTourMessage": "You already have another tour in progress. Do you want to stop it and start this tour instead?",
-    "startNewTour": "Start new tour"
+    "startNewTour": "Start new tour",
+    "duration": "Duration",
+    "travelTime": "Travel Time"
   },
   "Back": "Back",
   "Start": "Start",

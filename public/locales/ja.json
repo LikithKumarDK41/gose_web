@@ -157,7 +157,9 @@
     "checkIn": "チェックイン",
     "differentTourTitle": "別のツアーを開始しますか？",
     "differentTourMessage": "現在、別のツアーを進行中です。このツアーに切り替えて開始しますか？",
-    "startNewTour": "新しいツアーを開始する"
+    "startNewTour": "新しいツアーを開始する",
+    "duration": "所要時間",
+    "travelTime": "移動時間"
   },
   "Back": "戻る",
   "Start": "開始",

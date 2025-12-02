@@ -459,13 +459,12 @@ export default function TourDetailsClientPage() {
                     bg-gradient-to-tr from-indigo-500/20 to-indigo-700/20 
                     border border-indigo-500/30 shadow-inner"
                   >
-                    <Compass className="h-6 w-6 text-indigo-500 dark:text-indigo-300" />
+                      <span className="text-base font-semibold text-indigo-500 dark:text-indigo-300">
+                        {tour.tourpoints?.length ?? 0}
+                      </span>
                   </div>
                   <span className="mt-2 text-xs text-gray-600 dark:text-gray-400">
                     {t("tourDetails.stops")}
-                  </span>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {tour.tourpoints?.length ?? 0}
                   </span>
                 </div>
 

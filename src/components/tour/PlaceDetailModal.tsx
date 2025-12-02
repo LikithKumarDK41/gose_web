@@ -77,7 +77,7 @@ export default function PlaceDetailModal({
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent
           showCloseButton={false}
-          className="z-[20000] w-screen h-screen bg-background p-0 !max-w-full overflow-hidden"
+          className="z-[20000] w-screen h-[90vh] md:h-[100vh] bg-background p-0 !max-w-full overflow-hidden"
         >
           {/* === Header === */}
           <DialogHeader className="flex items-center justify-center border-b bg-background py-4 px-8 relative">
