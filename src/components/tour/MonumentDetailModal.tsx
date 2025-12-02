@@ -63,13 +63,12 @@ export default function MonumentDetailModal({
   const [events, setEvents] = useState<EventItem[]>([]);
   const nav = useAppSelector(selectNav);
 
-
-   const localUsertour = nav.usertour;
-    const localUsertourId = localUsertour?._id ?? null;
-    const localTourId =
-      typeof localUsertour?.tour === "string"
-        ? localUsertour.tour
-        : localUsertour?.tour?._id ?? null;
+  const localUsertour = nav.usertour;
+  const localUsertourId = localUsertour?._id ?? null;
+  const localTourId =
+    typeof localUsertour?.tour === "string"
+      ? localUsertour.tour
+      : localUsertour?.tour?._id ?? null;
 
   const userData =
     typeof window !== "undefined"
@@ -79,6 +78,14 @@ export default function MonumentDetailModal({
   const userId = userData?.user?._id || null;
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkId, setBookmarkId] = useState<string | null>(null);
+
+  function sanitizeHTML(input: string): string {
+    if (!input) return "";
+    return input
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+      .replace(/<!--[\s\S]*?-->/g, "");
+  }
 
   useEffect(() => {
     if (details?._id) {
@@ -220,7 +227,6 @@ export default function MonumentDetailModal({
     }
   };
 
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
@@ -334,7 +340,7 @@ export default function MonumentDetailModal({
                 <section className="flex flex-wrap gap-2">
                   {safeText(details.era) && (
                     <Badge
-                      className={`${
+                      className={`whitespace-normal break-words ${
                         customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                       }`}
@@ -345,7 +351,7 @@ export default function MonumentDetailModal({
                   )}
                   {safeText(details.year) && (
                     <Badge
-                      className={`${
+                      className={`whitespace-normal break-words ${
                         customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                       }`}
@@ -356,7 +362,7 @@ export default function MonumentDetailModal({
                   )}
                   {safeText(details.size) && (
                     <Badge
-                      className={`${
+                      className={`whitespace-normal break-words ${
                         customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                       }`}
@@ -367,7 +373,7 @@ export default function MonumentDetailModal({
                   )}
                   {safeText(details.mtype) && (
                     <Badge
-                      className={`${
+                      className={`whitespace-normal break-words ${
                         customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                       }`}
@@ -378,7 +384,7 @@ export default function MonumentDetailModal({
                   )}
                   {details.featured && (
                     <Badge
-                      className={`${
+                      className={`whitespace-normal break-words ${
                         customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                       }`}
@@ -388,7 +394,7 @@ export default function MonumentDetailModal({
                   )}
                   {details.rare && (
                     <Badge
-                      className={`${
+                      className={`whitespace-normal break-words${
                         customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                       }`}
@@ -398,7 +404,7 @@ export default function MonumentDetailModal({
                   )}
                   {details.popularity && (
                     <Badge
-                      className={`${
+                      className={`whitespace-normal break-words ${
                         customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                       }`}
@@ -409,7 +415,7 @@ export default function MonumentDetailModal({
                   )}
                   {details.priority && (
                     <Badge
-                      className={`${
+                      className={`whitespace-normal break-words ${
                         customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                       }`}
@@ -420,13 +426,13 @@ export default function MonumentDetailModal({
                   )}
                   {details.georadius && (
                     <Badge
-                      className={`${
+                      className={`whitespace-normal break-words ${
                         customStyle ||
                         "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                       }`}
                     >
                       {t("shortcut.tourist_attraction_details.radius")}:{" "}
-                      {details.georadius}m
+                      {details.georadius}
                     </Badge>
                   )}
                 </section>
@@ -482,7 +488,7 @@ export default function MonumentDetailModal({
                       {details.theme?.map((th: any, i: number) => (
                         <Badge
                           key={th._id || `theme-${i}`}
-                          className={`${
+                          className={`whitespace-normal break-words ${
                             customStyle ||
                             "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                           }`}
@@ -493,7 +499,7 @@ export default function MonumentDetailModal({
                       {details.subtheme?.map((sth: any, i: number) => (
                         <Badge
                           key={sth._id || `subtheme-${i}`}
-                          className={`${
+                          className={`whitespace-normal break-words ${
                             customStyle ||
                             "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600"
                           }`}
@@ -542,41 +548,40 @@ export default function MonumentDetailModal({
                         "shortcut.tourist_attraction_details.nearby_monuments"
                       )}
                     </h3>
-                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
                       {details.nearbymonuments.map((m: any) => (
                         <div
                           key={m._id}
-                          className="overflow-hidden rounded-xl border bg-card flex flex-col h-full shadow-sm hover:shadow-md transition"
+                          className="group relative flex flex-col h-full overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border"
                         >
-                          {m.image?.secure_url ? (
-                            <div className="relative h-40">
-                              <Image
+                          <div className="h-48 w-full overflow-hidden bg-muted flex items-center justify-center">
+                            {m.image?.secure_url ? (
+                              <img
                                 src={m.image.secure_url}
                                 alt={safeText(m.title)}
-                                fill
-                                className="object-cover"
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                               />
-                            </div>
-                          ) : (
-                            <div className="grid h-40 place-items-center bg-muted">
-                              <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                          )}
+                            ) : (
+                              <ImageIcon className="h-9 w-8 text-muted-foreground" />
+                            )}
+                          </div>
 
-                          <div className="flex flex-col justify-between h-full p-4">
+                          <div className="flex flex-col flex-1 justify-between p-4">
                             <h4 className="text-sm font-semibold text-foreground">
                               {safeText(m.title)}
                             </h4>
 
                             {m.content?.brief && (
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                 {stripHTML(m.content.brief)}
                               </p>
                             )}
+                            {/* If no content, keep height consistent */}
+                            {!m.content?.brief && <div className="h-5"></div>}
 
                             <Button
                               size="sm"
-                              className={`cursor-pointer w-full rounded-full ${
+                              className={`cursor-pointer w-full rounded-full mt-3 ${
                                 customStyle ||
                                 "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
                               }`}
@@ -598,56 +603,74 @@ export default function MonumentDetailModal({
                       <Route className="h-5 w-5 text-gray-500" />{" "}
                       {t("shortcut.tourist_attraction_details.related_tours")}
                     </h3>
-                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
                       {details.relatedtours
-                      .filter((tour: any) => !(localTourId && localTourId === tour._id))
-                      .map((tour: any) => (
-                        <div
-                          key={tour._id}
-                          className="overflow-hidden rounded-xl border bg-card flex flex-col h-full shadow-sm hover:shadow-md transition"
-                        >
-                          {tour.image?.secure_url ? (
-                            <div className="relative h-40">
-                              <Image
-                                src={tour.image.secure_url}
-                                alt={safeText(tour.title)}
-                                fill
-                                className="object-cover"
-                              />
+                        .filter(
+                          (tour: any) =>
+                            !(localTourId && localTourId === tour._id)
+                        )
+                        .map((tour: any) => (
+                          <div
+                            key={tour._id}
+                            className="group relative flex flex-col h-full overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border"
+                          >
+                            {/* IMAGE */}
+                            <div className="h-48 w-full overflow-hidden bg-muted flex items-center justify-center">
+                              {tour.image?.secure_url ? (
+                                <img
+                                  src={tour.image.secure_url}
+                                  alt={safeText(tour.title)}
+                                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                                />
+                              ) : (
+                                <ImageIcon className="h-9 w-8 text-muted-foreground" />
+                              )}
                             </div>
-                          ) : (
-                            <div className="grid h-40 place-items-center bg-muted">
-                              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+
+                            {/* CONTENT + BUTTON */}
+                            <div className="flex flex-col flex-1 justify-between p-4">
+                              {/* Text Section (auto-height) */}
+                              <div className="flex-1">
+                                <h3 className="line-clamp-1 text-base font-semibold text-sm font-semibold text-foreground">
+                                  {safeText(tour.title)}
+                                </h3>
+
+                                {tour.content?.brief && (
+                                  <p
+                                    className="text-xs text-muted-foreground mt-1 line-clamp-2"
+                                    dangerouslySetInnerHTML={{
+                                      __html: sanitizeHTML(tour.content.brief),
+                                    }}
+                                  />
+                                )}
+
+                                {/* If no content, keep height consistent */}
+                                {!tour.content?.brief && (
+                                  <div className="h-5"></div>
+                                )}
+                              </div>
+
+                              {/* BUTTON ALWAYS AT BOTTOM */}
+                              <Button
+                                size="sm"
+                                className={`cursor-pointer w-full rounded-full mt-3 ${
+                                  customStyle ||
+                                  "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+                                }`}
+                                onClick={() =>
+                                  router.push(`/tours/detail/?id=${tour._id}`)
+                                }
+                                disabled={
+                                  localTourId ? localTourId !== tour._id : false
+                                }
+                              >
+                                {t(
+                                  "shortcut.tourist_attraction_details.go_tour"
+                                )}
+                              </Button>
                             </div>
-                          )}
-
-                          <div className="flex flex-col justify-between h-full p-4">
-                            <h4 className="text-sm font-semibold text-foreground">
-                              {safeText(tour.title)}
-                            </h4>
-
-                            {tour.content?.brief && (
-                              <p className="text-xs text-muted-foreground">
-                                {stripHTML(tour.content.brief)}
-                              </p>
-                            )}
-
-                            <Button
-                              size="sm"
-                              className={`cursor-pointer w-full rounded-full ${
-                                customStyle ||
-                                "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 "
-                              }`}
-                              onClick={() =>
-                                router.push(`/tours/detail/?id=${tour._id}`)
-                              }
-                              disabled={localTourId ? localTourId !== tour._id : false}
-                            >
-                              {t("shortcut.tourist_attraction_details.go_tour")}
-                            </Button>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </section>
                 )}
@@ -659,33 +682,41 @@ export default function MonumentDetailModal({
                       <Store className="h-5 w-5 text-gray-500" />{" "}
                       {t("shortcut.tourist_attraction_details.nearby_services")}
                     </h3>
-                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
                       {details.nearbyservices.map((srv: any) => (
                         <div
                           key={srv._id || srv.name}
-                          className="p-4 rounded-xl border bg-card shadow-sm hover:shadow-md transition flex flex-col gap-2"
+                          className="group relative flex flex-col h-full overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border"
                         >
-                          {srv.image?.secure_url && (
-                            <div className="relative h-32 w-full overflow-hidden rounded-md">
-                              <Image
-                                src={srv.image.secure_url}
-                                alt={srv.name}
-                                fill
-                                className="object-cover"
+                          {/* IMAGE */}
+                          <div className="h-48 w-full overflow-hidden bg-muted flex items-center justify-center">
+                            {srv.image?.secure_url ? (
+                              <img
+                                src={srv.image?.secure_url}
+                                alt={safeText(srv.name)}
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                               />
-                            </div>
-                          )}
-                          <h4 className="font-medium text-sm text-foreground">
-                            {safeText(srv.name)}
-                          </h4>
-                          {srv.category && (
-                            <p className="text-xs text-muted-foreground">
-                              {t(
-                                "shortcut.tourist_attraction_details.category"
+                            ) : (
+                              <ImageIcon className="h-9 w-8 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="flex flex-col flex-1 justify-between p-4">
+                            <div className="flex-1">
+                              <h3 className="line-clamp-1 text-base font-semibold text-sm font-semibold text-foreground">
+                                {safeText(srv.name)}
+                              </h3>
+                              {srv.category && (
+                                <p className="text-xs text-muted-foreground">
+                                  {t(
+                                    "shortcut.tourist_attraction_details.category"
+                                  )}
+                                  : {safeText(srv.category.name)}
+                                </p>
                               )}
-                              : {safeText(srv.category.name)}
-                            </p>
-                          )}
+                              {/* If no content, keep height consistent */}
+                              {!srv.category && <div className="h-5"></div>}
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -699,46 +730,51 @@ export default function MonumentDetailModal({
                       {t("event_header")}
                     </h3>
 
-                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
                       {events.map((ev, i) => (
                         <div
                           key={ev._id || `event-${i}`}
-                          className="overflow-hidden rounded-xl border bg-card flex flex-col h-full shadow-sm hover:shadow-md transition"
+                          className="group relative flex flex-col h-full overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border"
                         >
                           {/* 🖼 Image */}
-                          {ev.image?.secure_url ? (
-                            <div className="relative h-40">
-                              <Image
+                          <div className="h-48 w-full overflow-hidden bg-muted flex items-center justify-center">
+                            {ev.image?.secure_url ? (
+                              <img
                                 src={ev.image.secure_url}
-                                alt={ev.title}
-                                fill
-                                className="object-cover"
+                                alt={safeText(ev.title)}
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                               />
-                            </div>
-                          ) : (
-                            <div className="grid h-40 place-items-center bg-muted">
-                              <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                          )}
+                            ) : (
+                              <ImageIcon className="h-9 w-8 text-muted-foreground" />
+                            )}
+                          </div>
 
                           {/* 📄 Event Info */}
-                          <div className="flex flex-col justify-between h-full p-4 space-y-2">
-                            <h4 className="text-sm font-semibold text-foreground">
-                              {ev.title}
-                            </h4>
+                          <div className="flex flex-col flex-1 justify-between p-4">
+                            <div className="flex-1">
+                              <h3 className="line-clamp-1 text-base font-semibold text-sm font-semibold text-foreground">
+                                {safeText(ev.title)}
+                              </h3>
 
-                            {/* {ev.displaydate && (
+                              {/* {ev.displaydate && (
               <p className="text-xs text-muted-foreground">
                 <CalendarDays className="inline h-3 w-3 mr-1 text-gray-500" />
                 {ev.displaydate}
               </p>
             )} */}
 
-                            {ev.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-3">
-                                {ev.description || ""}
-                              </p>
-                            )}
+                              {ev.description && (
+                                <p
+                                  className="text-xs text-muted-foreground mt-1 line-clamp-2"
+                                  dangerouslySetInnerHTML={{
+                                    __html: sanitizeHTML(ev.description),
+                                  }}
+                                />
+                              )}
+
+                              {/* If no content, keep height consistent */}
+                              {!ev.description && <div className="h-5"></div>}
+                            </div>
 
                             <Button
                               size="sm"
