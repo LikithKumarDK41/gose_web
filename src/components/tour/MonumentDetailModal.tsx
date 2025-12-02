@@ -209,28 +209,12 @@ export default function MonumentDetailModal({
     }
   };
 
-  // Fix for mobile Chrome resume issue (header half-hidden)
-  useEffect(() => {
-  const handleVisibility = () => {
-    if (document.visibilityState === "visible") {
-      contentRef.current?.scrollTo({ top: 0, behavior: "instant" });
-      setTimeout(() => window.dispatchEvent(new Event("resize")), 50);
-    }
-  };
-
-  document.addEventListener("visibilitychange", handleVisibility);
-  return () =>
-    document.removeEventListener("visibilitychange", handleVisibility);
-}, []);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
         showCloseButton={false}
-        className="z-50 w-screen h-screen bg-background p-0 !max-w-full overflow-hidden sm:min-h-screen"
-        style={{
-          height: "100dvh", // Applies only on mobile browsers that support it
-        }}
+        className="z-50 w-screen h-[90vh] md:h-[100vh] bg-background p-0 !max-w-full overflow-hidden"
       >
         {/* ---------------- Header ---------------- */}
         <DialogHeader className="flex items-center border-b bg-background py-4 px-8 relative">
