@@ -150,7 +150,7 @@ export default function MapTimelineRight({
               return (
                 <Fragment key={p._id}>
                   <li
-                    className={`grid grid-cols-[90px_1fr] gap-3 md:gap-6 ${
+                    className={`grid grid-cols-[90px_1fr] gap-4 md:gap-6 ${
                       hideBottom ? "pb-8" : "md:pb-10 pb-0"
                     }`}
                   >
@@ -250,15 +250,17 @@ export default function MapTimelineRight({
                 {/* ========================= MOBILE VIEW ========================= */}
                 <div className="md:hidden w-full px-4 mb-10">
                   {/* Step Number + Travel */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <div
-                      className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold"
-                      style={{ background: accent }}
-                    >
-                      {i}
-                    </div>
 
-                    <div className="flex items-center gap-2 text-gray-800 dark:text-gray-200 text-sm font-medium">
+
+                    <div className="grid grid-cols-[90px_1fr] gap-0 md:gap-6 md:pb-10 pb-10">
+                      <div className="relative h-full ">
+                        <div className="absolute left-[32px] md:left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                          <div className="grid grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ring-white/70 dark:ring-gray-800" style={{ background: accent }}>
+                            <span className="text-[13px] font-semibold">{i}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-800 dark:text-gray-200 text-sm font-medium">
                       {getTravelIcon(p.traveltype?.name || "walk")}
 
                       <span className="capitalize">
@@ -271,7 +273,9 @@ export default function MapTimelineRight({
                         </span>
                       )}
                     </div>
-                  </div>
+                    </div>
+
+                    
 
                   {/* MOBILE Card */}
                   <div className="rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-lg border border-gray-200 dark:border-gray-700">
