@@ -160,7 +160,7 @@ export default function MapTimelineRight({
                           hideTop ? "top-[50%]" : "top-0"
                         } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
                       />
-                      <div className="absolute left-[47px] md:left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                      <div className="absolute left-[48.3px] md:left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
                         <div
                           className={`grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ${colorClass}`}
                         >
