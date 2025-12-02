@@ -35,6 +35,8 @@ import {
 } from "@/services/userGlobalservice";
 import type { EventItem } from "@/lib/types/userGlobal.types";
 import { toast } from "sonner";
+import { useAppSelector } from "@/lib/store/hook";
+import { selectNav } from "@/lib/store/slices/navSlice";
 
 /* ------------------------------------------------------------------ */
 interface MonumentDetailModalProps {
@@ -59,6 +61,15 @@ export default function MonumentDetailModal({
   const router = useRouter();
   const contentRef = useRef<HTMLDivElement>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
+  const nav = useAppSelector(selectNav);
+
+
+   const localUsertour = nav.usertour;
+    const localUsertourId = localUsertour?._id ?? null;
+    const localTourId =
+      typeof localUsertour?.tour === "string"
+        ? localUsertour.tour
+        : localUsertour?.tour?._id ?? null;
 
   const userData =
     typeof window !== "undefined"
@@ -588,7 +599,9 @@ export default function MonumentDetailModal({
                       {t("shortcut.tourist_attraction_details.related_tours")}
                     </h3>
                     <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {details.relatedtours.map((tour: any) => (
+                      {details.relatedtours
+                      .filter((tour: any) => !(localTourId && localTourId === tour._id))
+                      .map((tour: any) => (
                         <div
                           key={tour._id}
                           className="overflow-hidden rounded-xl border bg-card flex flex-col h-full shadow-sm hover:shadow-md transition"
@@ -628,6 +641,7 @@ export default function MonumentDetailModal({
                               onClick={() =>
                                 router.push(`/tours/detail/?id=${tour._id}`)
                               }
+                              disabled={localTourId ? localTourId !== tour._id : false}
                             >
                               {t("shortcut.tourist_attraction_details.go_tour")}
                             </Button>
@@ -750,7 +764,7 @@ export default function MonumentDetailModal({
         </div>
 
         {/* ---------------- Footer ---------------- */}
-        <div className="border-t bg-background p-6">
+        {/* <div className="border-t bg-background p-6">
           <Button
             size="lg"
             className={`cursor-pointer w-full rounded-full flex items-center justify-center gap-2 ${
@@ -761,7 +775,7 @@ export default function MonumentDetailModal({
             <MapPin className="h-5 w-5" />
             {t("tourDetails.checkIn")}
           </Button>
-        </div>
+        </div> */}
       </DialogContent>
     </Dialog>
   );
