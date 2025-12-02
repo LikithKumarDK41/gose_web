@@ -10,6 +10,7 @@ import type { Tour, TourPoint } from "@/lib/types/userTour.types";
 /* -------------------- props -------------------- */
 type Props = {
   tour: Tour;
+  stampedPoints: TourPoint[]; // ⭐ NEW
   height?: number | string;
   profile?: "walking" | "driving" | "cycling";
 };
@@ -71,18 +72,6 @@ function sanitizeRichHtml(input?: string) {
   const wrapper = document.createElement("div");
   wrapper.innerHTML = input;
   wrapper.querySelectorAll("script, style, iframe, object, embed").forEach((n) => n.remove());
-  wrapper.querySelectorAll("*").forEach((el) => {
-    [...el.attributes].forEach((attr) => {
-      const tag = el.tagName.toLowerCase();
-      const name = attr.name.toLowerCase();
-      const allowed = tag === "a" ? ["href"] : [];
-      if (!allowed.includes(name)) el.removeAttribute(name);
-    });
-    if (el.tagName.toLowerCase() === "a") {
-      (el as HTMLAnchorElement).target = "_blank";
-      (el as HTMLAnchorElement).rel = "noopener noreferrer";
-    }
-  });
   const ALLOWED = new Set(["p", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li", "a"]);
   wrapper.querySelectorAll("*").forEach((el) => {
     if (!ALLOWED.has(el.tagName.toLowerCase())) {
@@ -98,19 +87,17 @@ function tidyParagraphs(html: string) {
   return html.replace(/<p>\s*<\/p>/g, "").replace(/(\s*<br>\s*){3,}/g, "<br><br>");
 }
 
-/** Update base map label language without reloading the style */
+/** Update base map label language */
 function applyLabelLanguage(map: mapboxgl.Map, locale: "ja" | "en") {
   const style = map.getStyle();
   const layers = style?.layers || [];
   const prop = ["get", locale === "ja" ? "name_ja" : "name_en"] as any;
 
   for (const layer of layers) {
-    if (layer.type === "symbol" && (layer.layout as any)?.["text-field"] !== undefined) {
+    if (layer.type === "symbol" && (layer.layout as any)?.["text-field"]) {
       try {
         map.setLayoutProperty(layer.id, "text-field", prop);
-      } catch {
-        /* ignore */
-      }
+      } catch { }
     }
   }
 }
@@ -118,6 +105,7 @@ function applyLabelLanguage(map: mapboxgl.Map, locale: "ja" | "en") {
 /* -------------------- component -------------------- */
 export default function MapboxTourMap({
   tour,
+  stampedPoints,
   height = 420,
   profile = "walking",
 }: Props) {
@@ -142,18 +130,20 @@ export default function MapboxTourMap({
     if (map.getSource("custom-route")) map.removeSource("custom-route");
   };
 
+  /* ---------------- MAIN EFFECT ---------------- */
   useEffect(() => {
     let disposed = false;
 
     (async () => {
       const mapboxglMod = await import("mapbox-gl");
-      const mapboxgl = mapboxglMod.default as typeof import("mapbox-gl").default;
+      const mapboxgl = mapboxglMod.default;
 
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
       if (!token) {
         setError("Missing NEXT_PUBLIC_MAPBOX_TOKEN");
         return;
       }
+
       mapboxgl.accessToken = token;
 
       const firstPoint =
@@ -163,7 +153,7 @@ export default function MapboxTourMap({
               (tp?.monument as any)?.location ?? (tp as any)?.location
             )
           )
-          .find((p): p is [number, number] => !!p) ?? [135.75, 34.41];
+          .find(Boolean) ?? [135.75, 34.41];
 
       const map = new mapboxgl.Map({
         container: mapDivRef.current!,
@@ -172,67 +162,55 @@ export default function MapboxTourMap({
         zoom: 13,
         antialias: true,
       });
+
       mapRef.current = map;
-
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
-      map.addControl(
-        new MapboxLanguage({ defaultLanguage: locale === "ja" ? "ja" : "en" })
-      );
+      map.addControl(new MapboxLanguage({ defaultLanguage: locale === "ja" ? "ja" : "en" }));
 
-      map.on("style.load", () => {
-        applyLabelLanguage(map, locale === "ja" ? "ja" : "en");
-      });
+      map.on("style.load", () => applyLabelLanguage(map, locale === "ja" ? "ja" : "en"));
 
       map.on("load", () => {
         if (disposed) return;
+
         setLoading(false);
         clearMarkers();
 
-        const points = (tour.tourpoints || []) as TourPoint[];
-        const pointPositions: [number, number][] = [];
+        const points = tour.tourpoints || [];
+        const positions: [number, number][] = [];
         let ordinal = 0;
 
-        /* -------- A) detect start & end positions -------- */
-        const startPoint = points.find(
-          (tp) =>
-            String((tp as any).waypointtype ?? (tp as any).pointtype)
-              .toLowerCase()
-              .trim() === "start"
+        /* ---- detect start/end ---- */
+        const start = points.find((tp) =>
+          String((tp as any).waypointtype ?? tp.pointtype).toLowerCase() === "start"
         );
-        const endPoint = points.find(
-          (tp) =>
-            String((tp as any).waypointtype ?? (tp as any).pointtype)
-              .toLowerCase()
-              .trim() === "end"
+        const end = points.find((tp) =>
+          String((tp as any).waypointtype ?? tp.pointtype).toLowerCase() === "end"
         );
 
         const startPos = normalizeLngLat(
-          (startPoint?.monument as any)?.location ??
-          (startPoint as any)?.location
+          (start as any)?.monument?.location ?? (start as any)?.location
         );
         const endPos = normalizeLngLat(
-          (endPoint?.monument as any)?.location ??
-          (endPoint as any)?.location
+          (end as any)?.monument?.location ?? (end as any)?.location
         );
 
         const samePlace =
-          !!startPos &&
-          !!endPos &&
+          startPos &&
+          endPos &&
           Math.abs(startPos[0] - endPos[0]) < 0.00001 &&
           Math.abs(startPos[1] - endPos[1]) < 0.00001;
 
-        /* -------- B) Render markers -------- */
+        /* -------------------- MARKERS -------------------- */
         points.forEach((tp: TourPoint) => {
           let pos = normalizeLngLat(
-            (tp?.monument as any)?.location ?? (tp as any)?.location
+            (tp as any)?.monument?.location ?? (tp as any)?.location
           );
           if (!pos) return;
 
-          const type = String((tp as any).waypointtype ?? (tp as any).pointtype ?? "")
+          const type = String((tp as any).waypointtype ?? tp.pointtype ?? "")
             .toLowerCase()
             .trim();
 
-          // ✅ Slight offset if start & end share same location
           if (samePlace && type === "end") {
             pos = [pos[0] + 0.0001, pos[1] + 0.0001];
           }
@@ -240,36 +218,62 @@ export default function MapboxTourMap({
           const isStart = type === "start";
           const isEnd = type === "end";
 
+          /* ---- numbering ---- */
           let pinEl: HTMLElement;
-          let titleLabel: string;
+          if (isStart) pinEl = makeNumberedPin("S", colorFor("start"));
+          else if (isEnd) pinEl = makeNumberedPin("E", colorFor("end"));
+          else pinEl = makeNumberedPin(String(++ordinal), colorFor(type));
 
-          if (isStart) {
-            pinEl = makeNumberedPin("S", colorFor("start"));
-            titleLabel = pickI18n(
-              (tp.monument?.title as any) ?? tp.name ?? "Start",
-              locale === "ja" ? "ja" : "en"
-            );
-          } else if (isEnd) {
-            pinEl = makeNumberedPin("E", colorFor("end"));
-            titleLabel = pickI18n(
-              (tp.monument?.title as any) ?? tp.name ?? "End",
-              locale === "ja" ? "ja" : "en"
-            );
-          } else {
-            ordinal += 1;
-            pinEl = makeNumberedPin(String(ordinal), colorFor(type));
-            titleLabel = pickI18n(
-              (tp.monument?.title as any) ?? tp.name ?? `Stop ${ordinal}`,
-              locale === "ja" ? "ja" : "en"
-            );
+          console.log(stampedPoints);
+
+          /* ----------------------------
+           ⭐ ADD STAMP BADGE HERE
+          ----------------------------- */
+          const isStamped = stampedPoints.some(
+            (sp) =>
+              String(sp._id) === String(tp._id) &&
+              sp.stamp &&
+              Object.keys(sp.stamp).length > 0 &&
+              tp.pointtype !== "station" &&
+              tp.pointtype !== "lunch"
+          );
+
+          if (isStamped) {
+            const badge = document.createElement("div");
+            badge.style.position = "absolute";
+            badge.style.top = "0";
+            badge.style.right = "0";
+
+            // magic alignment
+            badge.style.transform = "translate(40%, -40%)";
+
+            badge.style.background = "#16a34a";
+            badge.style.color = "white";
+            badge.style.width = "20px";
+            badge.style.height = "20px";
+            badge.style.borderRadius = "50%";
+            badge.style.display = "flex";
+            badge.style.alignItems = "center";
+            badge.style.justifyContent = "center";
+            badge.style.fontSize = "12px";
+            badge.style.fontWeight = "bold";
+            badge.style.boxShadow = "0 0 4px rgba(0,0,0,0.3)";
+            badge.textContent = "✓";
+            pinEl.appendChild(badge);
           }
 
-          const briefRaw: MaybeI18n = (tp.monument?.content as any)?.brief ?? "";
+          /* ----- popup ----- */
+          const title = pickI18n((tp.monument?.title as any) ?? tp.name, locale === "ja" ? "ja" : "en");
+
+          const briefRaw = (tp.monument?.content as any)?.brief;
           const brief = tidyParagraphs(
-            sanitizeRichHtml(pickI18n(briefRaw, locale === "ja" ? "ja" : "en"))
+            sanitizeRichHtml(
+              pickI18n(briefRaw, locale === "ja" ? "ja" : "en")
+            )
           );
+
           const img = tp.monument?.image?.secure_url
-            ? `<img src="${tp.monument.image.secure_url}" alt="" class="tour-popup__img" />`
+            ? `<img src="${tp.monument.image.secure_url}" class="tour-popup__img" />`
             : "";
 
           const chips = [
@@ -282,7 +286,7 @@ export default function MapboxTourMap({
             <div class="tour-popup__card">
               ${img ? `<div class="tour-popup__media">${img}</div>` : ""}
               <div class="tour-popup__body">
-                <div class="tour-popup__title">${escapeText(titleLabel)}</div>
+                <div class="tour-popup__title">${escapeText(title)}</div>
                 ${chips.length
               ? `<div class="tour-popup__chips">${chips
                 .map((c) => `<span class="tour-chip">${c}</span>`)
@@ -310,18 +314,52 @@ export default function MapboxTourMap({
 
           marker.addTo(map);
           markersRef.current.push(marker);
-          pointPositions.push(pos);
+          positions.push(pos);
+
+          /* -------------------------------------------------------
+             ⭐ EXTRA END MARKER
+             Use stamped END waypoint's real lat/lng
+          -------------------------------------------------------- */
+
+          // 1) Find stamped end waypoint
+          const stampedEndPoint = stampedPoints.find(
+            (sp) => String(sp.waypointtype || "").toLowerCase() === "end"
+          );
+
+          // 2) Convert to lng/lat
+          const stampedEndPos = stampedEndPoint
+            ? normalizeLngLat(
+              (stampedEndPoint as any)?.monument?.location ??
+              (stampedEndPoint as any)?.location
+            )
+            : null;
+
+          // 3) If stamped end exists AND THIS tp is the tp end → add extra marker
+          if (stampedEndPos) {
+            const tpIsEnd = String(tp.waypointtype || tp.pointtype || "")
+              .toLowerCase()
+              .includes("end");
+
+            if (tpIsEnd) {
+              const extraPin = makeNumberedPin("E", colorFor("end"));
+
+              // offset slightly so they don’t overlap
+              const nearPos: [number, number] = [
+                stampedEndPos[0] + 0.00018,
+                stampedEndPos[1] + 0.00015,
+              ];
+
+              const extraMarker = new mapboxgl.Marker({ element: extraPin })
+                .setLngLat(nearPos)
+                .addTo(map);
+
+              markersRef.current.push(extraMarker);
+            }
+          }
+
         });
 
-        /* -------- C) Fit map to bounds -------- */
-        let bounds: mapboxgl.LngLatBounds | null = null;
-        if (pointPositions.length) {
-          bounds = pointPositions.reduce(
-            (b, c) => b.extend(c),
-            new mapboxgl.LngLatBounds(pointPositions[0], pointPositions[0])
-          );
-        }
-
+        /* -------------------- ROUTE -------------------- */
         removeRouteLayers(map);
 
         if (tour.routeJson) {
@@ -334,42 +372,35 @@ export default function MapboxTourMap({
                 id: "custom-route-outline",
                 type: "line",
                 source: "custom-route",
-                paint: { "line-width": 8, "line-color": "#ffffff", "line-opacity": 0.85 },
+                paint: {
+                  "line-width": 8,
+                  "line-color": "#ffffff",
+                  "line-opacity": 0.85,
+                },
               });
 
               map.addLayer({
                 id: "custom-route-line",
                 type: "line",
                 source: "custom-route",
-                paint: { "line-width": 4, "line-color": "#f97316", "line-opacity": 0.95 },
+                paint: {
+                  "line-width": 4,
+                  "line-color": "#f97316",
+                  "line-opacity": 0.95,
+                },
               });
-
-              const coords: [number, number][] = [];
-              parsed.features?.forEach((f: any) => {
-                const g = f.geometry;
-                if (g?.type === "LineString" && Array.isArray(g.coordinates)) {
-                  coords.push(...g.coordinates);
-                } else if (g?.type === "MultiLineString") {
-                  g.coordinates?.forEach((line: [number, number][]) => coords.push(...line));
-                }
-              });
-
-              if (coords.length) {
-                if (bounds) coords.forEach((c) => bounds!.extend(c));
-                else {
-                  bounds = coords.reduce(
-                    (b, c) => b.extend(c),
-                    new mapboxgl.LngLatBounds(coords[0], coords[0])
-                  );
-                }
-              }
             }
-          } catch (e) {
-            console.error("Invalid routeJson:", e);
+          } catch (err) {
+            console.error("Invalid routeJson:", err);
           }
         }
 
-        if (bounds) {
+        /* ---- Fit bounds ---- */
+        if (positions.length) {
+          const bounds = positions.reduce(
+            (b, c) => b.extend(c),
+            new mapboxgl.LngLatBounds(positions[0], positions[0])
+          );
           map.fitBounds(bounds, { padding: 56, duration: 800 });
         }
 
@@ -389,7 +420,7 @@ export default function MapboxTourMap({
       } catch { }
       mapRef.current = null;
     };
-  }, [tour, profile, locale]);
+  }, [tour, profile, locale, stampedPoints]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -407,7 +438,7 @@ export default function MapboxTourMap({
         <div className="absolute inset-0 grid place-items-center">
           <div className="flex items-center gap-3 rounded-xl bg-white/80 p-3 shadow dark:bg-black/60">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
-            <span className="text-sm">{t("Loading map…") || "Loading map…"}</span>
+            <span className="text-sm">{t("Loading map…")}</span>
           </div>
         </div>
       )}
@@ -428,6 +459,7 @@ export default function MapboxTourMap({
               onClick={() => setShowImage(true)}
             />
           </div>
+
           {showImage && (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"

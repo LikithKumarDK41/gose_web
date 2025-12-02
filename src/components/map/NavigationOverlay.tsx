@@ -19,10 +19,8 @@ import {
   navStart,
   navPause,
   navResume,
-  navStop,
   setProfile,
   setActiveTour,
-  setStatus,
   syncUserTourStatus,
   selectUserTourPoints,
 } from "@/lib/store/slices/navSlice";
@@ -381,7 +379,6 @@ export default function NavigationOverlay({
       }
     }
     router.replace(`/tours/detail/navigation/finish?tourId=${tourId}`);
-    dispatch(setStatus("idle"));
   };
 
 

@@ -3,25 +3,20 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
+import html2canvas from "html2canvas";
 
 import {
   selectNav,
   selectUserTourPoints,
   resetAll as resetNav,
+  setStatus,
 } from "@/lib/store/slices/navSlice";
 
 import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
 import { clearTourDetail } from "@/lib/store/slices/touristSlice";
 
 import { Button } from "@/components/ui/button";
-import {
-  Share2,
-  ArrowLeft,
-  MapPin,
-  Clock,
-  Zap,
-} from "lucide-react";
-
+import { Share2, ArrowLeft } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
 import type { Tour, TourPoint } from "@/lib/types/userTour.types";
 import Image from "next/image";
@@ -37,33 +32,24 @@ export default function FinishPage() {
   const auth = useAppSelector((s) => s.auth);
   const nav = useAppSelector(selectNav);
 
-  // 🔵 Use this ONLY for stamping icons
   const reduxUserTourPoints = useAppSelector(selectUserTourPoints);
-
-  // 🔵 Full tour object including tourpoints + routeJson
   const detailTour = useAppSelector((s) => s.tourist.detail);
 
   const [isResetting, setIsResetting] = useState(false);
 
   const usertour = nav.usertour;
 
-  /* ========================================================
-      ⭐ MERGE TOUR DATA — finalTour used by Mapbox
-  ======================================================== */
-
+  /* ---------- MERGE TOUR DATA ---------- */
   let finalTour: Tour | null = null;
 
   if (detailTour && detailTour?._id === tourId) {
     finalTour = {
       ...detailTour,
-      tourpoints: detailTour.tourpoints ?? []
+      tourpoints: detailTour.tourpoints ?? [],
     };
   }
 
-  /* ========================================================
-      ⭐ Stamped & Total Points (use ONLY reduxUserTourPoints)
-  ======================================================== */
-
+  /* ---------- STAMPED / TOTAL POINTS ---------- */
   const stampedPoints = reduxUserTourPoints.filter(
     (p: TourPoint) =>
       p.pointtype !== "station" &&
@@ -77,9 +63,7 @@ export default function FinishPage() {
     (p: TourPoint) => p.pointtype !== "station" && p.pointtype !== "lunch"
   ).length;
 
-  /* ========================================================
-      ⭐ Browser Back — Reset Redux
-  ======================================================== */
+  /* ---------- RESET ON BROWSER BACK ---------- */
   useEffect(() => {
     const handler = () => resetAllData();
     window.addEventListener("popstate", handler);
@@ -92,95 +76,134 @@ export default function FinishPage() {
     dispatch(clearTourDetail());
   };
 
-  /* ========================================================
-      ⭐ Validate finish
-  ======================================================== */
+  /* ---------- VALIDATE TOUR END ---------- */
   useEffect(() => {
     if (!tourId || !auth.data?.user?._id || !usertour) return;
     if (usertour.status !== "end") console.warn("Tour not ended yet");
   }, [tourId, auth.data, usertour]);
 
-  /* ========================================================
-      ⭐ Share Achievement
-  ======================================================== */
-  const handleShare = () => {
-    const title = finalTour?.title || "Tour";
-    const message = `I completed the ${title} tour with ${stampedPoints.length}/${totalPoints} checkpoints! 🎉`;
+  /* ---------- SHARE ACHIEVEMENT ---------- */
+const handleShare = async () => {
+  try {
+    console.log("Requesting screen capture...");
 
-    if (navigator.share) {
-      navigator.share({ title: "Tour Completed!", text: message });
-    } else {
-      navigator.clipboard.writeText(message);
-      alert("Copied to clipboard!");
-    }
-  };
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true
+    });
 
-  /* ========================================================
-      ⭐ Back to Tours
-  ======================================================== */
+    const track = stream.getVideoTracks()[0];
+    const imageCapture = new (window as any).ImageCapture(track);
+
+    console.log("Capturing frame...");
+    const bitmap: ImageBitmap = await imageCapture.grabFrame();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context is null");
+
+    ctx.drawImage(bitmap, 0, 0);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((file) => {
+        if (file) resolve(file);
+        else reject("Failed to create Blob");
+      }, "image/png");
+    });
+
+    // STOP screen capture
+    stream.getTracks().forEach((t) => t.stop());
+
+    console.log("Screenshot generated.");
+
+    // Convert screenshot to image URL
+    const imgURL = URL.createObjectURL(blob);
+
+    // Open screenshot in new window
+    const win = window.open("");
+    win!.document.write(`
+      <html>
+        <body style="margin:0;background:#000;display:flex;justify-content:center;align-items:center;height:100vh;">
+          <img src="${imgURL}" style="max-width:100%;max-height:100%;" />
+        </body>
+      </html>
+    `);
+
+  } catch (err) {
+    console.error("SCREENSHOT ERROR:", err);
+    alert("Unable to capture screenshot.");
+  }
+};
+
+
+  /* ---------- BACK TO TOURS ---------- */
   const handleBackToTours = () => {
     setIsResetting(true);
+    dispatch(setStatus("idle"));
     resetAllData();
     router.replace("/tours");
   };
 
-  /* ========================================================
-      ⭐ Loader Screen (if no tour loaded yet)
-  ======================================================== */
+  /* ---------- LOADER WHILE LOADING ---------- */
   if (!finalTour) {
     return (
-      <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
+      <div className="fixed inset-0 z-[100] bg-white dark:bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin h-12 w-12 rounded-full border-b-2 border-emerald-400 mx-auto mb-4" />
-          <p className="text-gray-300">{t("loading")}...</p>
+          <div className="animate-spin h-12 w-12 rounded-full border-b-2 border-emerald-500 mx-auto mb-4" />
+          <p className="text-black dark:text-gray-300">{t("loading")}...</p>
         </div>
       </div>
     );
   }
 
-  /* ========================================================
-      ⭐ UI START
-  ======================================================== */
-
+  /* ---------- UI START ---------- */
   const tourImage = finalTour.image?.secure_url;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[100] bg-white dark:bg-black overflow-hidden flex flex-col">
 
-      {/* Scrollable Content */}
+      {/* Scrollable */}
       <div className="flex-1 overflow-y-auto">
 
         {/* HERO */}
-        <div className="relative bg-gradient-to-b from-slate-900 via-black to-black">
+        <div className="relative bg-gradient-to-b from-gray-100 via-white to-white dark:from-slate-900 dark:via-black dark:to-black">
           {tourImage ? (
             <div className="absolute inset-0">
               <Image
                 src={tourImage}
                 alt={finalTour.title}
                 fill
-                className="object-cover"
+                className="object-cover opacity-80 dark:opacity-90"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-black" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/70 to-white dark:from-black/60 dark:via-black/70 dark:to-black" />
             </div>
           ) : (
-            <div className="absolute inset-0 bg-gray-800"></div>
+            <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800"></div>
           )}
 
-          <div className="relative p-6 text-white">
+          <div className="relative p-6 text-black dark:text-white">
             <h1 className="text-5xl font-black mb-2">🎉</h1>
             <h2 className="text-3xl font-black">{t("tour_completed")}!</h2>
-            <p className="text-lg text-emerald-300">{finalTour.title}</p>
+            <p className="text-lg text-emerald-700 dark:text-emerald-300">
+              {finalTour.title}
+            </p>
 
-            <div className="mt-6 bg-emerald-500/20 p-4 rounded-xl text-center border border-emerald-400/30">
-              <span className="text-emerald-300 font-bold">
-                ✨ {t("congratulations")}!
-              </span>
+            <div className="mt-6 p-4 rounded-xl text-center border
+              bg-emerald-100 text-emerald-700 border-emerald-300
+              dark:bg-emerald-500/20 dark:border-emerald-400/30 dark:text-emerald-300">
+              <span className="font-bold">✨ {t("congratulations")}!</span>
               <br />
-              <span className="text-gray-200">
+              <span className="text-black dark:text-gray-200">
                 {t("you_collected")}{" "}
-                <b className="text-emerald-400">{stampedPoints.length}</b>{" "}
+                <b className="text-emerald-700 dark:text-emerald-400">
+                  {stampedPoints.length}
+                </b>{" "}
                 {t("out_of")}{" "}
-                <b className="text-cyan-400">{totalPoints}</b>{" "}
+                <b className="text-cyan-700 dark:text-cyan-400">
+                  {totalPoints}
+                </b>{" "}
                 {t("checkpoints")}
               </span>
             </div>
@@ -188,20 +211,37 @@ export default function FinishPage() {
         </div>
 
         {/* MAP SECTION */}
-        <div className="bg-black px-6 pb-6">
+        <div className="px-6 pb-6 bg-white dark:bg-black">
 
-          <h2 className="text-2xl font-black text-white flex items-center gap-2 mb-3">
-            <MapPin className="w-6 h-6 text-cyan-400" />
-            {t("tour_map")}
-          </h2>
+          {/* TOUR DETAILS */}
+          <div className="mb-6 p-5 rounded-2xl shadow-lg border
+            bg-white border-gray-300 
+            dark:bg-black dark:border-white/10">
+            <h2 className="text-3xl font-extrabold text-black dark:text-white mb-2">
+              {finalTour.title}
+            </h2>
 
-          <div className="rounded-2xl border border-white/10 overflow-hidden shadow-lg">
+            {finalTour.content?.brief && (
+              <p
+                className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3"
+                dangerouslySetInnerHTML={{ __html: finalTour.content.brief }}
+              />
+            )}
 
-            {/* 🔵 Map now shows full detailTour.tourpoints AND stamping overlays from Redux */}
+            {finalTour.content?.extended && (
+              <div
+                className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: finalTour.content.extended }}
+              />
+            )}
+          </div>
+
+          {/* MAP */}
+          <div className="rounded-2xl overflow-hidden border shadow-lg 
+            border-gray-300 dark:border-white/10">
             <MapboxTourMapFinish
               tour={finalTour}
               stampedPoints={reduxUserTourPoints}
-              usertour={usertour}
               height={360}
               profile="walking"
             />
@@ -211,7 +251,7 @@ export default function FinishPage() {
       </div>
 
       {/* FOOTER BUTTONS */}
-      <div className="p-6 space-y-3 bg-gradient-to-t from-black to-transparent">
+      <div className="p-6 space-y-3 bg-gradient-to-t from-gray-100 to-transparent dark:from-black dark:to-transparent">
 
         <Button
           onClick={handleShare}
@@ -223,10 +263,13 @@ export default function FinishPage() {
         <Button
           onClick={handleBackToTours}
           disabled={isResetting}
-          className="w-full border-2 border-gray-600 hover:border-emerald-400 text-white text-lg py-5 rounded-xl"
+          className="w-full py-5 rounded-xl text-lg
+            border-2 bg-gray-100 text-black border-gray-400 hover:bg-gray-200
+            dark:bg-white/10 dark:text-white dark:border-gray-600 dark:hover:bg-white/20"
         >
           <ArrowLeft className="mr-2" /> {t("back_to_tours")}
         </Button>
+
       </div>
     </div>
   );
