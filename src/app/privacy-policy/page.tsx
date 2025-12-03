@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
         </div>
       </section>
 
-      <div className="px-6">
+      <div className="sm:px-6">
         {/* Sections */}
         <div className="bg-white dark:bg-slate-900/40 p-8 rounded-2xl shadow-md">
           <PolicySection

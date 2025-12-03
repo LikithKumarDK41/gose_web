@@ -64,11 +64,9 @@ export default function MonumentDetailModal({
   const nav = useAppSelector(selectNav);
 
   const localUsertour = nav.usertour;
-  const localUsertourId = localUsertour?._id ?? null;
-  const localTourId =
-    typeof localUsertour?.tour === "string"
-      ? localUsertour.tour
-      : localUsertour?.tour?._id ?? null;
+  const localTourId = localUsertour?.tour?._id
+    ? localUsertour?.tour?._id
+    : null;
 
   const userData =
     typeof window !== "undefined"
