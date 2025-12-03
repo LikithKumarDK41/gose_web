@@ -87,21 +87,6 @@ function tidyParagraphs(html: string) {
   return html.replace(/<p>\s*<\/p>/g, "").replace(/(\s*<br>\s*){3,}/g, "<br><br>");
 }
 
-/** Update base map label language */
-function applyLabelLanguage(map: mapboxgl.Map, locale: "ja" | "en") {
-  const style = map.getStyle();
-  const layers = style?.layers || [];
-  const prop = ["get", locale === "ja" ? "name_ja" : "name_en"] as any;
-
-  for (const layer of layers) {
-    if (layer.type === "symbol" && (layer.layout as any)?.["text-field"]) {
-      try {
-        map.setLayoutProperty(layer.id, "text-field", prop);
-      } catch { }
-    }
-  }
-}
-
 /* -------------------- component -------------------- */
 export default function MapboxTourMap({
   tour,
@@ -166,8 +151,6 @@ export default function MapboxTourMap({
       mapRef.current = map;
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
       map.addControl(new MapboxLanguage({ defaultLanguage: locale === "ja" ? "ja" : "en" }));
-
-      map.on("style.load", () => applyLabelLanguage(map, locale === "ja" ? "ja" : "en"));
 
       map.on("load", () => {
         if (disposed) return;
@@ -317,16 +300,14 @@ export default function MapboxTourMap({
           positions.push(pos);
 
           /* -------------------------------------------------------
-             ⭐ EXTRA END MARKER
-             Use stamped END waypoint's real lat/lng
-          -------------------------------------------------------- */
+        ⭐ PLACE ONE EXTRA END MARKER AT STAMPED END POSITION
+     -------------------------------------------------------- */
+          const stampedEndPoint = stampedPoints.find((sp) => {
+            return String((sp as any).waypointtype ?? "")
+              .toLowerCase()
+              .trim() === "end";
+          });
 
-          // 1) Find stamped end waypoint
-          const stampedEndPoint = stampedPoints.find(
-            (sp) => String(sp.waypointtype || "").toLowerCase() === "end"
-          );
-
-          // 2) Convert to lng/lat
           const stampedEndPos = stampedEndPoint
             ? normalizeLngLat(
               (stampedEndPoint as any)?.monument?.location ??
@@ -334,29 +315,20 @@ export default function MapboxTourMap({
             )
             : null;
 
-          // 3) If stamped end exists AND THIS tp is the tp end → add extra marker
           if (stampedEndPos) {
-            const tpIsEnd = String(tp.waypointtype || tp.pointtype || "")
-              .toLowerCase()
-              .includes("end");
+            const nearPos: [number, number] = [
+              stampedEndPos[0] + 0.0002,
+              stampedEndPos[1] + 0.0002,
+            ];
 
-            if (tpIsEnd) {
-              const extraPin = makeNumberedPin("E", colorFor("end"));
+            const extraPin = makeNumberedPin("E", colorFor("end"));
 
-              // offset slightly so they don’t overlap
-              const nearPos: [number, number] = [
-                stampedEndPos[0] + 0.00018,
-                stampedEndPos[1] + 0.00015,
-              ];
+            const extraMarker = new mapboxgl.Marker({ element: extraPin })
+              .setLngLat(nearPos)
+              .addTo(map);
 
-              const extraMarker = new mapboxgl.Marker({ element: extraPin })
-                .setLngLat(nearPos)
-                .addTo(map);
-
-              markersRef.current.push(extraMarker);
-            }
+            markersRef.current.push(extraMarker);
           }
-
         });
 
         /* -------------------- ROUTE -------------------- */
@@ -421,11 +393,6 @@ export default function MapboxTourMap({
       mapRef.current = null;
     };
   }, [tour, profile, locale, stampedPoints]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (map) applyLabelLanguage(map, locale === "ja" ? "ja" : "en");
-  }, [locale]);
 
   return (
     <div

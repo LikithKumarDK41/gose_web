@@ -253,12 +253,12 @@ const handleShare = async () => {
       {/* FOOTER BUTTONS */}
       <div className="p-6 space-y-3 bg-gradient-to-t from-gray-100 to-transparent dark:from-black dark:to-transparent">
 
-        <Button
+        {/* <Button
           onClick={handleShare}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg py-5 rounded-xl font-bold"
         >
           <Share2 className="mr-2" /> {t("share_achievement")}
-        </Button>
+        </Button> */}
 
         <Button
           onClick={handleBackToTours}

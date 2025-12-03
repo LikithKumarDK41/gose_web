@@ -424,20 +424,32 @@ export default function MapboxTourMapNavigation({
             } catch { }
           }
 
-          /* ---------------------- FIXED REALTIME GPS TRACKING ---------------------- */
           if ("geolocation" in navigator && geoWatchIdRef.current == null) {
             geoWatchIdRef.current = navigator.geolocation.watchPosition(
               (pos) => {
-                if (!mapRef.current) return; // safety check
-
-                if (pos.coords.accuracy > 100) return;
-
                 const userPos: [number, number] = [
                   pos.coords.longitude,
                   pos.coords.latitude,
                 ];
 
-                // Create marker once
+                if (!map.isStyleLoaded()) {
+                  map.once("idle", () => {
+                    const el = document.createElement("div");
+                    el.className = "user-marker";
+                    el.style.width = "20px";
+                    el.style.height = "20px";
+                    el.style.borderRadius = "50%";
+                    el.style.background = "#2563eb";
+                    el.style.border = "3px solid white";
+                    el.style.boxShadow = "0 0 6px rgba(0,0,0,0.4)";
+                    userMarkerRef.current = new mapboxgl.Marker(el)
+                      .setLngLat(userPos)
+                      .addTo(map);
+                    map.easeTo({ center: userPos, duration: 1000 });
+                  });
+                  return;
+                }
+
                 if (!userMarkerRef.current) {
                   const el = document.createElement("div");
                   el.className = "user-marker";
@@ -447,27 +459,16 @@ export default function MapboxTourMapNavigation({
                   el.style.background = "#2563eb";
                   el.style.border = "3px solid white";
                   el.style.boxShadow = "0 0 6px rgba(0,0,0,0.4)";
-
                   userMarkerRef.current = new mapboxgl.Marker(el)
                     .setLngLat(userPos)
-                    .addTo(mapRef.current);
-
-                  // First center
-                  mapRef.current.flyTo({
-                    center: userPos,
-                    zoom: 16,
-                    speed: 1.2,
-                  });
+                    .addTo(map);
+                  map.easeTo({ center: userPos, duration: 800 });
                 } else {
                   userMarkerRef.current.setLngLat(userPos);
                 }
               },
               (err) => console.warn("GPS error:", err),
-              {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 10000,
-              }
+              { enableHighAccuracy: true, maximumAge: 1000 }
             );
           }
         } catch (e) {
