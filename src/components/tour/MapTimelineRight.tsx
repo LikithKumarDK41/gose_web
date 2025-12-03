@@ -152,7 +152,7 @@ export default function MapTimelineRight({
                   >
                     <div className="relative h-full w-[90px]">
                       <div
-                        className={`absolute left-[52px] w-[3px] bg-orange-500 ${
+                        className={`hidden md:block absolute left-[52px] w-[3px] bg-orange-500 ${
                           hideTop ? "top-[50%]" : "top-0"
                         } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
                       />
