@@ -49,7 +49,7 @@ export interface RegisterPayload {
   agegroup: string;
   country: string;
   nationality: string;
-  phoneNumber: number;
+  phoneNumber: string;
   firebaseUserId: string;
 }
 
