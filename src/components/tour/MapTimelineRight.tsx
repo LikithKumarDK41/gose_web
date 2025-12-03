@@ -351,8 +351,8 @@ export default function MapTimelineRight({
                               setCheckingIn(true);
 
                               /* ------------------------------------------------
-                                                 1️⃣ Validate User Logged In
-                                              ------------------------------------------------ */
+                                 1️⃣ Validate User Logged In
+                              ------------------------------------------------ */
                               const user =
                                 persisted?.user?._id ||
                                 persisted?.user?.id ||
@@ -360,18 +360,18 @@ export default function MapTimelineRight({
                                 null;
 
                               if (!user) {
-                                toast.error("Please sign in to check-in");
+                                toast.error(t("please_signin_to_checkin"));
                                 return;
                               }
 
                               /* ------------------------------------------------
-                                                 2️⃣ Monument & TourPoint Validation
-                                              ------------------------------------------------ */
+                                 2️⃣ Monument & TourPoint Validation
+                              ------------------------------------------------ */
                               const monumentId = p?.monument?._id;
                               const tourpointId = p?._id;
 
                               if (!monumentId || !tourpointId) {
-                                toast.error("Invalid point for check-in");
+                                toast.error(t("invalid_point_checkin"));
                                 return;
                               }
 
@@ -379,13 +379,13 @@ export default function MapTimelineRight({
                               const radius = m?.georadius ?? 0;
 
                               if (!m?.location) {
-                                toast.error("Monument location missing");
+                                toast.error(t("monument_location_missing"));
                                 return;
                               }
 
                               /* ------------------------------------------------
-                                                 3️⃣ Parse Monument Coordinates (array OR object)
-                                              ------------------------------------------------ */
+                                 3️⃣ Parse Monument Coordinates (array OR object)
+                              ------------------------------------------------ */
                               let monumentLat = 0;
                               let monumentLng = 0;
 
@@ -398,13 +398,13 @@ export default function MapTimelineRight({
                               }
 
                               if (!monumentLat || !monumentLng) {
-                                toast.error("Invalid monument coordinates");
+                                toast.error(t("invalid_monument_coordinates"));
                                 return;
                               }
 
                               /* ------------------------------------------------
-                                                 4️⃣ Get User Live Location
-                                              ------------------------------------------------ */
+                                 4️⃣ Get User Live Location
+                              ------------------------------------------------ */
                               const userLocation = await new Promise<{
                                 lat: number;
                                 lng: number;
@@ -420,13 +420,13 @@ export default function MapTimelineRight({
                               }).catch(() => null);
 
                               if (!userLocation) {
-                                toast.error("Location permission denied");
+                                toast.error(t("loc_perm_denied"));
                                 return;
                               }
 
                               /* ------------------------------------------------
-                                                 5️⃣ Calculate Distance (meters)
-                                              ------------------------------------------------ */
+                                 5️⃣ Calculate Distance (meters)
+                              ------------------------------------------------ */
                               const R = 6371e3;
                               const dLat =
                                 ((userLocation.lat - monumentLat) * Math.PI) /
@@ -447,8 +447,8 @@ export default function MapTimelineRight({
                               const distance = R * c;
 
                               /* ------------------------------------------------
-                                                 6️⃣ If user is far → popup (NO toast)
-                                              ------------------------------------------------ */
+                                 6️⃣ If user is far → popup (NO toast)
+                              ------------------------------------------------ */
                               if (distance > radius) {
                                 setDistancePopup({
                                   show: true,
@@ -459,8 +459,8 @@ export default function MapTimelineRight({
                               }
 
                               /* ------------------------------------------------
-                                                 8️⃣ Create Visit History
-                                              ------------------------------------------------ */
+                                 8️⃣ Create Visit History
+                              ------------------------------------------------ */
                               const visitPayload: VisitHistoryPayload = {
                                 user: String(user),
                                 historytype: "monument",
@@ -473,8 +473,8 @@ export default function MapTimelineRight({
                               await apiCreateVisitHistory(visitPayload);
 
                               /* ------------------------------------------------
-                                                 9️⃣ Create Stamp
-                                              ------------------------------------------------ */
+                                 9️⃣ Create Stamp
+                              ------------------------------------------------ */
                               await apiCreateStamp({
                                 monument: String(monumentId),
                                 tourpoint: String(tourpointId),
@@ -484,8 +484,8 @@ export default function MapTimelineRight({
                               });
 
                               /* ------------------------------------------------
-                                                 🔟 Success Notification
-                                              ------------------------------------------------ */
+                                 🔟 Success Notification
+                              ------------------------------------------------ */
                               toast.success(
                                 `🏅 Checked-in at ${m?.name ?? "location"}`,
                                 {
@@ -496,14 +496,14 @@ export default function MapTimelineRight({
                               );
 
                               /* ------------------------------------------------
-                                                 1️⃣1️⃣ Refresh TourPoints ONLY After Stamp Success
-                                              ------------------------------------------------ */
+                                 1️⃣1️⃣ Refresh TourPoints ONLY After Stamp Success
+                              ------------------------------------------------ */
                               if (onRefreshTourpoints) {
                                 await onRefreshTourpoints();
                               }
                             } catch (err) {
                               console.error("❌ Check-in failed:", err);
-                              toast.error("Check-in failed");
+                              toast.error(t("check_in_failed"));
                             } finally {
                               setCheckingIn(false);
                             }
@@ -625,7 +625,7 @@ export default function MapTimelineRight({
                                 null;
 
                               if (!user) {
-                                toast.error("Please sign in to check-in");
+                                toast.error(t("please_signin_to_checkin"));
                                 return;
                               }
 
@@ -636,7 +636,7 @@ export default function MapTimelineRight({
                               const tourpointId = p?._id;
 
                               if (!monumentId || !tourpointId) {
-                                toast.error("Invalid point for check-in");
+                                toast.error(t("invalid_point_checkin"));
                                 return;
                               }
 
@@ -644,7 +644,7 @@ export default function MapTimelineRight({
                               const radius = m?.georadius ?? 0;
 
                               if (!m?.location) {
-                                toast.error("Monument location missing");
+                                toast.error(t("monument_location_missing"));
                                 return;
                               }
 
@@ -663,7 +663,7 @@ export default function MapTimelineRight({
                               }
 
                               if (!monumentLat || !monumentLng) {
-                                toast.error("Invalid monument coordinates");
+                                toast.error(("invalid_monument_coordinates"));
                                 return;
                               }
 
@@ -685,7 +685,7 @@ export default function MapTimelineRight({
                               }).catch(() => null);
 
                               if (!userLocation) {
-                                toast.error("Location permission denied");
+                                toast.error(t("loc_perm_denied"));
                                 return;
                               }
 
@@ -768,7 +768,7 @@ export default function MapTimelineRight({
                               }
                             } catch (err) {
                               console.error("❌ Check-in failed:", err);
-                              toast.error("Check-in failed");
+                              toast.error(t("check_in_failed"));
                             } finally {
                               setCheckingIn(false);
                             }

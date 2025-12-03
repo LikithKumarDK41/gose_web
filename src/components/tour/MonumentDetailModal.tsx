@@ -179,7 +179,7 @@ export default function MonumentDetailModal({
 
   const handleBookmarkToggle = async () => {
     if (!userId || !details?._id) {
-      toast.error("Please log in to bookmark.");
+      toast.error(("login_bookmark"));
       return;
     }
 
@@ -221,7 +221,7 @@ export default function MonumentDetailModal({
       toast.success(t("bookmark_added"));
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
-      toast.error("Failed to update bookmark");
+      toast.error(t("failed_to_update_bookmark"));
     }
   };
 

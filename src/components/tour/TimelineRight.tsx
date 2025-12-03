@@ -43,7 +43,7 @@ export default function MapTimelineRight({
   onRefreshTourpoints?: () => Promise<void>;
 }) {
   const dispatch = useDispatch<AppDispatch>();
-  const { t } = useLocale();
+  const { t:translate } = useLocale();
   const { show, hide } = useGlobalLoader();
   const persisted = getPersistedUser();
   const userId = persisted?.user?._id ?? null;
@@ -196,12 +196,12 @@ export default function MapTimelineRight({
                       </h3>
                       {travelTitle && (
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {t("travel_mode")}: {travelTitle}
+                          {translate("travel_mode")}: {travelTitle}
                         </p>
                       )}
                       {p.traveltime && (
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {t("duration")}: {p.traveltime}
+                          {translate("duration")}: {p.traveltime}
                         </p>
                       )}
                     </div>
@@ -235,12 +235,12 @@ export default function MapTimelineRight({
                       <div className="flex items-center gap-3">
                         <UtensilsCrossed className="h-6 w-6 text-orange-500" />
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                          🍱 {p.name || t("lunch_break")}
+                          🍱 {p.name || translate("lunch_break")}
                         </h3>
                       </div>
                       {p.traveltime && (
                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                          {t("duration")}: {p.traveltime}
+                          {translate("duration")}: {p.traveltime}
                         </p>
                       )}
                     </div>
@@ -282,7 +282,7 @@ export default function MapTimelineRight({
                       {getTravelIcon(p.traveltype?.name || "walk")}
 
                       <span className="capitalize">
-                        {t(p.traveltype?.title || p.traveltype?.name || "walk")}
+                        {translate(p.traveltype?.title || p.traveltype?.name || "walk")}
                       </span>
 
                       {p.traveltime && (
@@ -310,7 +310,7 @@ export default function MapTimelineRight({
                             d="M5 13l4 4L19 7"
                           />
                         </svg>
-                        {t("checked_in")}
+                        {translate("checked_in")}
                       </div>
                     )}
                     <div
@@ -358,7 +358,7 @@ export default function MapTimelineRight({
                           className="flex-1 rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 font-medium border border-gray-300 dark:border-gray-700"
                           onClick={() => handleOpen(p._id)}
                         >
-                          {t("tourDetails.viewDetails")}
+                          {translate("tourDetails.viewDetails")}
                         </Button>
 
                         <Button
@@ -380,7 +380,7 @@ export default function MapTimelineRight({
                                 null;
 
                               if (!user) {
-                                toast.error("Please sign in to check-in");
+                                toast.error(translate("please_signin_to_checkin"));
                                 return;
                               }
 
@@ -391,7 +391,7 @@ export default function MapTimelineRight({
                               const tourpointId = p?._id;
 
                               if (!monumentId || !tourpointId) {
-                                toast.error("Invalid point for check-in");
+                                toast.error(translate("invalid_point_checkin"));
                                 return;
                               }
 
@@ -399,7 +399,7 @@ export default function MapTimelineRight({
                               const radius = m?.georadius ?? 0;
 
                               if (!m?.location) {
-                                toast.error("Monument location missing");
+                                toast.error(translate("monument_location_missing"));
                                 return;
                               }
 
@@ -418,7 +418,7 @@ export default function MapTimelineRight({
                               }
 
                               if (!monumentLat || !monumentLng) {
-                                toast.error("Invalid monument coordinates");
+                                toast.error(translate("invalid_monument_coordinates"));
                                 return;
                               }
 
@@ -440,7 +440,7 @@ export default function MapTimelineRight({
                               }).catch(() => null);
 
                               if (!userLocation) {
-                                toast.error("Location permission denied");
+                                toast.error(translate("loc_perm_denied"));
                                 return;
                               }
 
@@ -507,10 +507,10 @@ export default function MapTimelineRight({
                                  🔟 Success Notification
                               ------------------------------------------------ */
                               toast.success(
-                                `🏅 Checked-in at ${m?.name ?? "location"}`,
+                                `${translate('checked_in_at')} ${m?.name ?? "location"}`,
                                 {
                                   description:
-                                    "Visit + Stamp recorded successfully",
+                                    translate("visit_progress_success"),
                                   duration: 5000,
                                 }
                               );
@@ -523,7 +523,7 @@ export default function MapTimelineRight({
                               }
                             } catch (err) {
                               console.error("❌ Check-in failed:", err);
-                              toast.error("Check-in failed");
+                              toast.error(translate("check_in_failed"));
                             } finally {
                               setCheckingIn(false);
                             }
@@ -531,8 +531,8 @@ export default function MapTimelineRight({
                         >
                           <MapPin className="h-5 w-5" />
                           {checkingIn
-                            ? t("checking_in")
-                            : t("tourDetails.checkIn")}
+                            ? translate("checking_in")
+                            : translate("tourDetails.checkIn")}
                         </Button>
                       </div>
                     </div>
@@ -563,7 +563,7 @@ export default function MapTimelineRight({
                             d="M5 13l4 4L19 7"
                           />
                         </svg>
-                        {t("checked_in")}
+                        {translate("checked_in")}
                       </div>
                     )}
 
@@ -624,7 +624,7 @@ export default function MapTimelineRight({
                           className="flex-1 rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 font-medium border border-gray-300 dark:border-gray-700"
                           onClick={() => handleOpen(p._id)}
                         >
-                          {t("tourDetails.viewDetails")}
+                          {translate("tourDetails.viewDetails")}
                         </Button>
 
                         <Button
@@ -646,7 +646,7 @@ export default function MapTimelineRight({
                                 null;
 
                               if (!user) {
-                                toast.error("Please sign in to check-in");
+                                toast.error(translate("please_signin_to_checkin"));
                                 return;
                               }
 
@@ -657,7 +657,7 @@ export default function MapTimelineRight({
                               const tourpointId = p?._id;
 
                               if (!monumentId || !tourpointId) {
-                                toast.error("Invalid point for check-in");
+                                toast.error(translate("invalid_point_checkin"));
                                 return;
                               }
 
@@ -665,7 +665,7 @@ export default function MapTimelineRight({
                               const radius = m?.georadius ?? 0;
 
                               if (!m?.location) {
-                                toast.error("Monument location missing");
+                                toast.error(translate("monument_location_missing"));
                                 return;
                               }
 
@@ -684,7 +684,7 @@ export default function MapTimelineRight({
                               }
 
                               if (!monumentLat || !monumentLng) {
-                                toast.error("Invalid monument coordinates");
+                                toast.error(translate("invalid_monument_coordinates"));
                                 return;
                               }
 
@@ -706,7 +706,7 @@ export default function MapTimelineRight({
                               }).catch(() => null);
 
                               if (!userLocation) {
-                                toast.error("Location permission denied");
+                                toast.error(translate("loc_perm_denied"));
                                 return;
                               }
 
@@ -773,10 +773,10 @@ export default function MapTimelineRight({
                                  🔟 Success Notification
                               ------------------------------------------------ */
                               toast.success(
-                                `🏅 Checked-in at ${m?.name ?? "location"}`,
+                                `${translate('checked_in_at')} ${m?.name ?? "location"}`,
                                 {
                                   description:
-                                    "Visit + Stamp recorded successfully",
+                                    translate("visit_progress_success"),
                                   duration: 5000,
                                 }
                               );
@@ -789,7 +789,7 @@ export default function MapTimelineRight({
                               }
                             } catch (err) {
                               console.error("❌ Check-in failed:", err);
-                              toast.error("Check-in failed");
+                              toast.error(translate("check_in_failed"));
                             } finally {
                               setCheckingIn(false);
                             }
@@ -797,8 +797,8 @@ export default function MapTimelineRight({
                         >
                           <MapPin className="h-5 w-5" />
                           {checkingIn
-                            ? t("checking_in")
-                            : t("tourDetails.checkIn")}
+                            ? translate("checking_in")
+                            : translate("tourDetails.checkIn")}
                         </Button>
                       </div>
                     </div>

@@ -26,6 +26,7 @@ import {
 } from "@/services/myListService";
 
 import { apiCreateStamp } from "@/services/userNavService";
+import { useLocale } from "@/providers/LocaleProvider";
 
 /* ----------------------------------------------
    🧹 Sanitize HTML
@@ -44,6 +45,7 @@ function sanitizeHTML(input: string): string {
 ---------------------------------------------- */
 export default function GlobalCheckinToasts() {
   const dispatch = useAppDispatch();
+  const {t:translate}= useLocale();
 
   const queue = useAppSelector(selectGeofenceQueue);
   const shown = useAppSelector(selectGeofenceShown) || [];
@@ -139,7 +141,7 @@ export default function GlobalCheckinToasts() {
                         null;
 
                       if (!userId) {
-                        toast.error("Please sign in to check in");
+                        toast.error(translate("please_signin_to_checkin"));
                         toast.dismiss(t);
                         return;
                       }
@@ -184,13 +186,13 @@ export default function GlobalCheckinToasts() {
                       dispatch(markShown(item.id)); // ⭐ Never show again
 
                       toast.dismiss(t);
-                      toast.success(`🏅 Checked in at ${item.name}`);
+                      toast.success(`${translate('checked_in_at')} ${item.name}`);
 
                     } catch (err: any) {
                       console.error("Check-in error:", err);
 
-                      toast.error("Failed to complete check-in", {
-                        description: err?.message || "Please try again.",
+                      toast.error(translate("failed_to_complete_checkin"), {
+                        description: err?.message || translate("please_try_again"),
                       });
                     }
 
