@@ -98,23 +98,6 @@ function tidyParagraphs(html: string) {
   return html.replace(/<p>\s*<\/p>/g, "").replace(/(\s*<br>\s*){3,}/g, "<br><br>");
 }
 
-/** Update base map label language without reloading the style */
-function applyLabelLanguage(map: mapboxgl.Map, locale: "ja" | "en") {
-  const style = map.getStyle();
-  const layers = style?.layers || [];
-  const prop = ["get", locale === "ja" ? "name_ja" : "name_en"] as any;
-
-  for (const layer of layers) {
-    if (layer.type === "symbol" && (layer.layout as any)?.["text-field"] !== undefined) {
-      try {
-        map.setLayoutProperty(layer.id, "text-field", prop);
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-}
-
 /* -------------------- component -------------------- */
 export default function MapboxTourMap({
   tour,
@@ -178,10 +161,6 @@ export default function MapboxTourMap({
       map.addControl(
         new MapboxLanguage({ defaultLanguage: locale === "ja" ? "ja" : "en" })
       );
-
-      map.on("style.load", () => {
-        applyLabelLanguage(map, locale === "ja" ? "ja" : "en");
-      });
 
       map.on("load", () => {
         if (disposed) return;
@@ -390,11 +369,6 @@ export default function MapboxTourMap({
       mapRef.current = null;
     };
   }, [tour, profile, locale]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (map) applyLabelLanguage(map, locale === "ja" ? "ja" : "en");
-  }, [locale]);
 
   return (
     <div
