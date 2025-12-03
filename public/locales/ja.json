@@ -433,7 +433,16 @@
     "please_wait": "お待ちください...",
     "label_profile_image": "プロフィール写真",
     "label_upload_photo": "写真をアップロード",
-    "label_change_photo": "写真を変更"
+    "label_change_photo": "写真を変更",
+    "error_email_required": "メールアドレスは必須です",
+    "error_email_invalid": "メールアドレスの形式が正しくありません",
+    "error_name_required": "名前は必須です",
+    "error_age_required": "年齢は必須です",
+    "error_country_required": "国は必須です",
+    "error_nationality_required": "国籍は必須です",
+    "error_phone_required": "電話番号は必須です",
+    "error_phone_invalid": "電話番号は6桁以上で入力してください",
+    "error_gender_required": "性別は必須です"
   },
   "profile": {
     "editProfile": "プロフィールを編集",

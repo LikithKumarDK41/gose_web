@@ -434,7 +434,16 @@
     "please_wait": "Please wait...",
     "label_profile_image": "Profile Photo",
     "label_upload_photo": "Upload Photo",
-    "label_change_photo": "Change Photo"
+    "label_change_photo": "Change Photo",
+    "error_email_required": "Email required",
+    "error_email_invalid": "Invalid email format",
+    "error_name_required": "Name required",
+    "error_age_required": "Age required",
+    "error_country_required": "Country required",
+    "error_nationality_required": "Nationality required",
+    "error_phone_required": "Phone number required",
+    "error_phone_invalid": "Phone number must be at least 6 digits",
+    "error_gender_required": "Gender required"
   },
   "profile": {
     "editProfile": "Edit Profile",
