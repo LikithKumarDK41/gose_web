@@ -26,6 +26,7 @@ import { apiCreateStamp } from "@/services/userNavService";
 
 import type { QueueItem } from "@/lib/types/userTour.types";
 import type { VisitHistoryPayload } from "@/services/myListService";
+import { useLocale } from "@/providers/LocaleProvider";
 
 /* ----------------------------------------------
    🧹 Sanitize HTML
@@ -44,6 +45,7 @@ function sanitizeHTML(input: string): string {
 ---------------------------------------------- */
 export default function GlobalCheckinToasts() {
   const dispatch = useAppDispatch();
+  const { t: translate } = useLocale();
 
   const queue = useAppSelector(selectGeofenceQueue) as QueueItem[];
   const auth = useAppSelector((s) => s.auth.data);
@@ -126,7 +128,7 @@ export default function GlobalCheckinToasts() {
                           null;
 
                         if (!userId) {
-                          toast.error("Please sign in to check in");
+                          toast.error(translate("please_signin_to_checkin"));
                           toast.dismiss(t);
                           return;
                         }
@@ -197,17 +199,17 @@ export default function GlobalCheckinToasts() {
                         dispatch(confirm(String(item.id)));
                         toast.dismiss(t);
 
-                        toast.success(`🏅 Checked in at ${item.name}`, {
+                        toast.success(`${translate('checked_in_at')} ${item.name}`, {
                           description: nav.activeTourId
-                            ? "Visit + Stamp recorded (Tour Progress Updated)"
-                            : "Visit + Stamp recorded successfully.",
+                            ? `${translate('visit_progress_update')}`
+                            : `${translate('visit_progress_success')}`,
                           duration: 5000,
                         });
                       } catch (err: any) {
                         console.error("❌ Check-in error:", err);
-                        toast.error("Failed to complete check-in", {
+                        toast.error(translate("failed_to_complete_checkin"), {
                           description:
-                            err?.message || "Please try again.",
+                            err?.message || translate("please_try_again"),
                         });
                       }
                     }}

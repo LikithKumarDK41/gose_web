@@ -239,7 +239,7 @@ export default function NavigationOverlay({
         if (!tourId) return;
 
         if (!detail?.tourpoints?.length) {
-            toast.error("⚠️ Tourpoints not available");
+            toast.error(t("tourpoints_not_available"));
             return;
         }
 
@@ -254,14 +254,14 @@ export default function NavigationOverlay({
                 usertour.status === "start" &&
                 usertour?.tour?._id === tourId
             ) {
-                toast.info("✔ This tour is already running.");
+                toast.info(t("tour_already_running"));
                 return;
             }
         } catch { }
 
         const gps = geofence.last || (await getOneShotLocation());
         if (!gps) {
-            toast.error("⚠ Unable to get location. Enable GPS.");
+            toast.error(t("gps_enable"));
             return;
         }
 
@@ -274,7 +274,7 @@ export default function NavigationOverlay({
         dispatch(setProfile(defaultProfile));
         dispatch(navStart(tourId));
 
-        toast.success("🎯 Tour started");
+        toast.success(t("tour_started"));
 
         if (auth.data?.user?._id) {
             try {
@@ -288,7 +288,7 @@ export default function NavigationOverlay({
                 ).unwrap();
             } catch (err) {
                 console.error("Failed to sync tour status:", err);
-                toast.error("Failed to sync tour status");
+                toast.error(("failed_sync_status"));
             }
         }
 
@@ -307,7 +307,7 @@ export default function NavigationOverlay({
 
         if (nav.status === "running") {
             dispatch(navPause());
-            toast.warning("⏸️ Tour paused");
+            toast.warning(t("tour_paused"));
 
             try {
                 await dispatch(
@@ -323,7 +323,7 @@ export default function NavigationOverlay({
             }
         } else if (nav.status === "paused") {
             dispatch(navResume());
-            toast.success("▶️ Tour resumed");
+            toast.success(t("tour_resumed"));
 
             try {
                 await dispatch(
@@ -363,7 +363,7 @@ export default function NavigationOverlay({
         router.replace(`/tours/detail/navigation/finish?tourId=${tourId}`);
 
         dispatch(setStatus("idle"));
-        toast.success("✅ Tour finished!");
+        toast.success(("tour_finished"));
     };
 
     const handleBack = () => {

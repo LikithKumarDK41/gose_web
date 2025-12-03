@@ -11,6 +11,7 @@ import {
 import { locationTick } from "@/lib/store/slices/geofenceSlice";
 import { selectTourDetail } from "@/lib/store/slices/touristSlice";
 import { toast } from "sonner";
+import { useLocale } from "@/providers/LocaleProvider";
 
 const DEFAULT_RADIUS = 5000;
 const UPDATE_INTERVAL = 1500;
@@ -19,6 +20,7 @@ const RETRY_DELAY = 60000;
 
 export default function GeoWatcher() {
   const dispatch = useAppDispatch();
+  const {t} = useLocale();
   const nav = useAppSelector(selectNav);
   const tour = useAppSelector(selectTourDetail);
 
@@ -155,7 +157,7 @@ export default function GeoWatcher() {
 
   const startWatching = useCallback(() => {
     if (!navigator.geolocation) {
-      toast.error("Geolocation not supported by this browser.");
+      toast.error(t("geolocation_not_supported"));
       return;
     }
 
@@ -186,7 +188,7 @@ export default function GeoWatcher() {
       (err) => {
         console.error("❌ Geolocation error:", err);
         if (err.code === err.TIMEOUT) {
-          toast.warning("⏳ Location timeout, retrying...");
+          toast.warning(t("location_timeout"));
           retryTimer.current = setTimeout(startWatching, RETRY_DELAY);
         }
       },

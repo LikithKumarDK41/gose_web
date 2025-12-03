@@ -360,7 +360,7 @@ export default function MapTimelineRight({
                                 null;
 
                               if (!user) {
-                                toast.error("Please sign in to check-in");
+                                toast.error(t("please_signin_to_checkin"));
                                 return;
                               }
 
@@ -371,7 +371,7 @@ export default function MapTimelineRight({
                               const tourpointId = p?._id;
 
                               if (!monumentId || !tourpointId) {
-                                toast.error("Invalid point for check-in");
+                                toast.error(t("invalid_point_checkin"));
                                 return;
                               }
 
@@ -379,7 +379,7 @@ export default function MapTimelineRight({
                               const radius = m?.georadius ?? 0;
 
                               if (!m?.location) {
-                                toast.error("Monument location missing");
+                                toast.error(t("monument_location_missing"));
                                 return;
                               }
 
@@ -398,7 +398,7 @@ export default function MapTimelineRight({
                               }
 
                               if (!monumentLat || !monumentLng) {
-                                toast.error("Invalid monument coordinates");
+                                toast.error(t("invalid_monument_coordinates"));
                                 return;
                               }
 
@@ -420,7 +420,7 @@ export default function MapTimelineRight({
                               }).catch(() => null);
 
                               if (!userLocation) {
-                                toast.error("Location permission denied");
+                                toast.error(t("loc_perm_denied"));
                                 return;
                               }
 
@@ -503,7 +503,7 @@ export default function MapTimelineRight({
                               }
                             } catch (err) {
                               console.error("❌ Check-in failed:", err);
-                              toast.error("Check-in failed");
+                              toast.error(t("check_in_failed"));
                             } finally {
                               setCheckingIn(false);
                             }
@@ -625,7 +625,7 @@ export default function MapTimelineRight({
                                 null;
 
                               if (!user) {
-                                toast.error("Please sign in to check-in");
+                                toast.error(t("please_signin_to_checkin"));
                                 return;
                               }
 
@@ -636,7 +636,7 @@ export default function MapTimelineRight({
                               const tourpointId = p?._id;
 
                               if (!monumentId || !tourpointId) {
-                                toast.error("Invalid point for check-in");
+                                toast.error(t("invalid_point_checkin"));
                                 return;
                               }
 
@@ -644,7 +644,7 @@ export default function MapTimelineRight({
                               const radius = m?.georadius ?? 0;
 
                               if (!m?.location) {
-                                toast.error("Monument location missing");
+                                toast.error(t("monument_location_missing"));
                                 return;
                               }
 
@@ -663,7 +663,7 @@ export default function MapTimelineRight({
                               }
 
                               if (!monumentLat || !monumentLng) {
-                                toast.error("Invalid monument coordinates");
+                                toast.error(("invalid_monument_coordinates"));
                                 return;
                               }
 
@@ -685,7 +685,7 @@ export default function MapTimelineRight({
                               }).catch(() => null);
 
                               if (!userLocation) {
-                                toast.error("Location permission denied");
+                                toast.error(t("loc_perm_denied"));
                                 return;
                               }
 
@@ -768,7 +768,7 @@ export default function MapTimelineRight({
                               }
                             } catch (err) {
                               console.error("❌ Check-in failed:", err);
-                              toast.error("Check-in failed");
+                              toast.error(t("check_in_failed"));
                             } finally {
                               setCheckingIn(false);
                             }

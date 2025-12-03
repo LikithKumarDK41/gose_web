@@ -200,7 +200,7 @@ export default function TourDetailsClientPage() {
   ---------------------------- */
   const toggleBookmark = async () => {
     if (!userId) {
-      toast.error("Please log in to bookmark.");
+      toast.error(t("login_bookmark"));
       return;
     }
     if (!id) return;
@@ -234,7 +234,7 @@ export default function TourDetailsClientPage() {
       toast.success(t("bookmark_added"));
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
-      toast.error("Failed to update bookmark");
+      toast.error(t("failed_to_update_bookmark"));
     }
   };
 
@@ -309,7 +309,7 @@ export default function TourDetailsClientPage() {
       return;
     } catch (err) {
       console.error("handleStartNavigation error:", err);
-      toast.error("Failed to start navigation");
+      toast.error(t("failed_to_start_navigation"));
     } finally {
       hide();
     }
