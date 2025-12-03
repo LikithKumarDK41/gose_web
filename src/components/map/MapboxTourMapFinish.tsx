@@ -334,8 +334,8 @@ export default function MapboxTourMap({
 
           if (stampedEndPos) {
             const nearPos: [number, number] = [
-              stampedEndPos[0] + 0.0012,
-              stampedEndPos[1] + 0.0010,
+              stampedEndPos[0] + 0.0002,
+              stampedEndPos[1] + 0.0002,
             ];
 
             const extraPin = makeNumberedPin("E", colorFor("end"));
