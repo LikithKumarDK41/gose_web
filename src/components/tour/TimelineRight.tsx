@@ -27,6 +27,8 @@ import { toast } from "sonner";
 import { apiCreateVisitHistory } from "@/services/myListService";
 import { apiCreateStamp } from "@/services/userNavService";
 import type { VisitHistoryPayload } from "@/services/myListService";
+import { useAppSelector } from "@/lib/store/hook";
+import { selectNav } from "@/lib/store/slices/navSlice";
 
 /* ------------------------------------------------------------------ */
 export default function MapTimelineRight({
@@ -43,6 +45,8 @@ export default function MapTimelineRight({
   const { show, hide } = useGlobalLoader();
   const persisted = getPersistedUser();
   const userId = persisted?.user?._id ?? null;
+  const nav = useAppSelector(selectNav);
+  const userTourPoints = nav.usertourPoints;
 
   const loading = useSelector((s: any) => s.tourist.loading);
   const monumentDetail = useSelector((s: any) => s.tourist.monumentDetail);
@@ -94,6 +98,12 @@ export default function MapTimelineRight({
     } finally {
       setModalLoading(false);
     }
+  };
+
+  const isCheckedIn = (pointId: string): boolean => {
+    if (!userTourPoints || userTourPoints.length === 0) return false;
+
+    return userTourPoints.some((tp) => tp.stamp?.tourpoint === pointId);
   };
 
   const details =
@@ -251,16 +261,18 @@ export default function MapTimelineRight({
                 <div className="md:hidden w-full px-4 mb-10">
                   {/* Step Number + Travel */}
 
-
-                    <div className="grid grid-cols-[90px_1fr] gap-0 md:gap-6 md:pb-10 pb-10">
-                      <div className="relative h-full ">
-                        <div className="absolute left-[32px] md:left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
-                          <div className="grid grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ring-white/70 dark:ring-gray-800" style={{ background: accent }}>
-                            <span className="text-[13px] font-semibold">{i}</span>
-                          </div>
+                  <div className="grid grid-cols-[90px_1fr] gap-0 md:gap-6 md:pb-10 pb-10">
+                    <div className="relative h-full ">
+                      <div className="absolute left-[32px] md:left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <div
+                          className="grid grid h-14 w-14 place-items-center rounded-full text-white shadow-lg ring-4 ring-white/70 dark:ring-gray-800"
+                          style={{ background: accent }}
+                        >
+                          <span className="text-[13px] font-semibold">{i}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-800 dark:text-gray-200 text-sm font-medium">
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-800 dark:text-gray-200 text-sm font-medium">
                       {getTravelIcon(p.traveltype?.name || "walk")}
 
                       <span className="capitalize">
@@ -273,12 +285,28 @@ export default function MapTimelineRight({
                         </span>
                       )}
                     </div>
-                    </div>
-
-                    
+                  </div>
 
                   {/* MOBILE Card */}
-                  <div className="rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-lg border border-gray-200 dark:border-gray-700">
+                  <div className="relative rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-lg border border-gray-200 dark:border-gray-700">
+                    {isCheckedIn(p._id) && (
+                      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-green-600/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        {t("checked_in")}
+                      </div>
+                    )}
                     <div
                       className="relative w-full h-56"
                       onClick={() => handleOpen(p._id)}
@@ -514,7 +542,7 @@ export default function MapTimelineRight({
                   />
 
                   <article className="relative col-start-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-lg transition hover:-translate-y-[2px] hover:shadow-xl">
-                    {p.stamp && Object.keys(p.stamp).length > 0 && (
+                    {isCheckedIn(p._id) && (
                       <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-green-600/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">
                         <svg
                           className="w-4 h-4 text-white"
