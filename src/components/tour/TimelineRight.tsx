@@ -35,9 +35,11 @@ export default function MapTimelineRight({
   tourpoints,
   customStyle,
   onRefreshTourpoints,
+  tour_id
 }: {
   tourpoints: TourPoint[];
   customStyle?: string;
+  tour_id?:string;
   onRefreshTourpoints?: () => Promise<void>;
 }) {
   const dispatch = useDispatch<AppDispatch>();
@@ -47,6 +49,10 @@ export default function MapTimelineRight({
   const userId = persisted?.user?._id ?? null;
   const nav = useAppSelector(selectNav);
   const userTourPoints = nav.usertourPoints;
+  const usertour = nav.usertour;
+  const userTourId = usertour?.tour?._id
+    ? usertour?.tour?._id
+    : null;
 
   const loading = useSelector((s: any) => s.tourist.loading);
   const monumentDetail = useSelector((s: any) => s.tourist.monumentDetail);
@@ -359,7 +365,7 @@ export default function MapTimelineRight({
                           size="sm"
                           variant="outline"
                           className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
-                          disabled={checkingIn}
+                          disabled={checkingIn || userTourId != tour_id}
                           onClick={async () => {
                             try {
                               setCheckingIn(true);
@@ -625,7 +631,7 @@ export default function MapTimelineRight({
                           size="sm"
                           variant="outline"
                           className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
-                          disabled={checkingIn}
+                          disabled={checkingIn || userTourId != tour_id}
                           onClick={async () => {
                             try {
                               setCheckingIn(true);
