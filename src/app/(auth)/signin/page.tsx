@@ -274,7 +274,7 @@ export default function SignInPage() {
         agegroup: agegroup.trim(),
         country: country.trim(),
         nationality: nationality.trim(),
-        phoneNumber: Number(phoneNumber.replace(/\D/g, '')) || 0,
+        phoneNumber: String(phoneNumber.replace(/\D/g, '')) || "",
         firebaseUserId: '',
       };
 
