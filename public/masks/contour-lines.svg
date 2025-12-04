@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" preserveAspectRatio="xMidYMid slice">
+  <!-- Minimal lightweight contour lines for subtle reveal -->
+  <rect width="1024" height="1024" fill="#000"/>
+  <g fill="none" stroke="#fff" stroke-width="28" stroke-linecap="round" opacity="0.9">
+    <path d="M-40 220 C 120 180, 240 300, 420 260 S 720 160, 1064 260"/>
+    <path d="M-40 420 C 140 380, 260 500, 460 460 S 760 360, 1064 460"/>
+    <path d="M-40 620 C 160 580, 300 700, 520 660 S 800 560, 1064 660"/>
+    <path d="M-40 820 C 180 780, 340 900, 600 860 S 840 760, 1064 860"/>
+  </g>
+</svg>
+
+

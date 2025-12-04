@@ -1,0 +1,188 @@
+// src/services/userTourService.ts
+import api from "@/lib/api";
+
+import {
+    Monument,
+    TourPoint,
+    Tour,
+    MonumentSort,
+} from "@/lib/types/userTour.types";
+
+/* ------------------------------------------------------------
+   Helpers
+------------------------------------------------------------ */
+function parseAxiosError(err: any, fallback: string): string {
+    return err?.response?.data?.message || err?.message || fallback;
+}
+
+type ToursEnvelope = { tours?: { results?: Tour[] } } | { results?: Tour[] } | Tour[];
+
+function extractTours(data: ToursEnvelope): Tour[] {
+    if (Array.isArray(data)) return data;
+    if ("tours" in data && data.tours?.results) return data.tours.results!;
+    if ("results" in data && data.results) return data.results!;
+    return [];
+}
+
+/* ------------------------------------------------------------
+   API Services (Locale + Token handled globally in api.ts)
+------------------------------------------------------------ */
+
+/** Fetch all tours */
+export async function apiFetchTours(): Promise<Tour[]> {
+    try {
+        const { data } = await api.get<ToursEnvelope>("/v1/tours");
+        return extractTours(data);
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load tours"));
+    }
+}
+
+/** Fetch a single tour by ID */
+export async function apiFetchTourById(id: string): Promise<Tour> {
+    try {
+        const { data } = await api.get<{ tour: Tour }>(`/v1/tours/${id}`);
+        return data.tour;
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load tour"));
+    }
+}
+
+/** Fetch all tourpoints for a specific tour */
+export async function apiFetchTourPoints(tourId: string): Promise<TourPoint[]> {
+    try {
+        const filter = encodeURIComponent(JSON.stringify({ tour: tourId }));
+        const { data } = await api.get<{ tourpoints: { results: TourPoint[] } }>(
+            `/v1/tourpoints?filter=${filter}`
+        );
+
+        const results = data.tourpoints?.results ?? [];
+        const order: Record<"start" | "place" | "end", number> = { start: 1, place: 2, end: 3 };
+
+        return results.sort((a, b) => {
+            const ord = (t?: "start" | "place" | "end") => (t ? order[t] : 99);
+            return ord(a.waypointtype) - ord(b.waypointtype);
+        });
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load tourpoints"));
+    }
+}
+
+/** Fetch detailed monument data */
+export async function apiFetchMonumentDetails(monument: string): Promise<Monument> {
+    try {
+        const { data } = await api.post<{ monument: Monument }>("/v2/monument", { monument });
+        return data.monument;
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load monument details"));
+    }
+}
+
+/** ------------------------------------------------------------
+ * 🏛️ Fetch all monuments
+ * ------------------------------------------------------------
+ * GET /v1/monuments
+ * Returns: { monuments: { total: number; results: Monument[] } }
+ */
+export async function apiFetchAllMonuments(): Promise<Monument[]> {
+    try {
+        const { data } = await api.get<{ monuments: { total: number; results: Monument[] } }>(
+            "/v1/monuments"
+        );
+
+        // Safely extract results (if payload shape changes)
+        const results = data?.monuments?.results ?? [];
+        return results;
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load monuments"));
+    }
+}
+
+/* ------------------------------------------------------------
+   Fetch Monument Sorts
+------------------------------------------------------------ */
+/**
+ * 🗂️ Fetch all monument sorts
+ * ------------------------------------------------------------
+ * GET /v1/monumentsorts
+ * Returns: { monumentsorts: { total: number; results: MonumentSort[] } }
+ */
+export async function apiFetchMonumentSorts(): Promise<MonumentSort[]> {
+    try {
+        const { data } = await api.get<{ monumentsorts: { total: number; results: MonumentSort[] } }>(
+            "/v1/monumentsorts"
+        );
+
+        // Safely extract results (if payload shape changes)
+        const results = data?.monumentsorts?.results ?? [];
+        return results;
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load monument sorts"));
+    }
+}
+
+/**
+ * 🏛️ Fetch monuments with raw JSON filter and sort (same as Postman)
+ * ------------------------------------------------------------
+ * Example:
+ * apiFetchAllMonumentsWithQuery({
+ *   filter: { theme: "609e37a8c463476d312ba4b9" },
+ *   sort: "+title"
+ * });
+ *
+ * ✅ Sends exactly:
+ * https://api-gose.naraiseki.org/api/v1/monuments?filter={"theme":"609e37a8c463476d312ba4b9"}&sort=+title
+ */
+export async function apiFetchAllMonumentsWithQuery({
+    filter,
+    sort,
+}: {
+    filter?: Record<string, any>;
+    sort?: string;
+}): Promise<Monument[]> {
+    try {
+        // Manually construct raw query
+        let query = "";
+
+        if (filter) {
+            const filterString = JSON.stringify(filter);
+            query += `filter=${filterString}`;
+        }
+
+        if (sort) {
+            query += (query ? "&" : "") + `sort=${sort}`;
+        }
+
+        // Final URL (unencoded like Postman)
+        const url = `/v1/monuments${query ? `?${query}` : ""}`;
+
+        // Call API
+        const { data } = await api.get<{ monuments: { total: number; results: Monument[] } }>(url);
+
+        // Return clean result
+        return data?.monuments?.results ?? [];
+    } catch (err: any) {
+        throw new Error(parseAxiosError(err, "Failed to load monuments with query"));
+    }
+}
+
+/* ------------------------------------------------------------
+   🗑️ Delete (soft-remove) a User Tour
+   PATCH /v1/usertours/:id
+------------------------------------------------------------ */
+export async function apiDeleteUserTour(id: string): Promise<any> {
+    try {
+        const { data } = await api.patch(
+            `/v1/usertours/${id}`,
+            { status: "remove" }
+        );
+        return data;
+    } catch (err: any) {
+        throw new Error(
+            parseAxiosError(err, `Failed to delete user tour with ID: ${id}`)
+        );
+    }
+}
+
+
+

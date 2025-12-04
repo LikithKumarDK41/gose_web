@@ -117,9 +117,349 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    /* make body fully transparent */
+    position: relative;
+    /* enable layering */
+    isolation: isolate;
+    /* create stacking context so ::before -1 sits above background */
+    overflow-x: hidden;
   }
 }
 
-#map { width: 100%; height: 100vh; }
+#map {
+  width: 100%;
+  height: 100vh;
+}
+
+/* Masked tourism-themed background layer */
+html,
+body {
+  height: 100%;
+}
+
+/* Background micro-shapes layer (dots/diamonds) with a different theme color */
+html::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  /* deepest layer */
+  pointer-events: none;
+  /* rich, lightweight micro-shapes: colorful dots + subtle lines + conic splash */
+  background:
+    repeating-radial-gradient(circle at 20% 30%, color-mix(in oklab, var(--accent) 22%, transparent) 0 2px, transparent 2px 28px),
+    repeating-linear-gradient(45deg, color-mix(in oklab, var(--secondary) 14%, transparent) 0 2px, transparent 2px 26px),
+    conic-gradient(from 0deg at 82% 18%, color-mix(in oklab, var(--primary) 16%, transparent) 0 10%, transparent 10% 100%);
+  opacity: 0.26;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  /* behind app content, above body background */
+  pointer-events: none;
+  /* Vivid multi-stop gradients to colorize the lines richly */
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--primary) 55%, oklch(0.78 0.2 260)) 0%,
+      color-mix(in oklab, var(--secondary) 45%, oklch(0.86 0.19 180)) 48%,
+      color-mix(in oklab, var(--accent) 50%, oklch(0.88 0.2 35)) 100%),
+    linear-gradient(215deg,
+      oklch(0.9 0.16 330) 0%,
+      transparent 60%),
+    linear-gradient(180deg, color-mix(in oklab, var(--color-background) 90%, transparent), var(--color-background));
+  -webkit-mask-image: url('/masks/wave-lines.svg');
+  mask-image: url('/masks/wave-lines.svg');
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  mask-mode: luminance;
+  opacity: 1;
+}
+
+.dark body::before {
+  opacity: 0.9;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--primary) 30%, transparent), color-mix(in oklab, var(--secondary) 24%, transparent)),
+    linear-gradient(215deg, color-mix(in oklab, var(--accent) 22%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in oklab, var(--color-background) 96%, transparent), var(--color-background));
+}
+
+/* Fallback if CSS masks are unsupported: show the color wash softly */
+@supports not ((mask-image: url('/masks/wave-lines.svg')) or (-webkit-mask-image: url('/masks/wave-lines.svg'))) {
+  body::before {
+    -webkit-mask-image: none;
+    mask-image: none;
+    mix-blend-mode: multiply;
+    opacity: 0.25;
+    /* keep subtle so content remains readable */
+  }
+
+  .dark body::before {
+    opacity: 0.2;
+    mix-blend-mode: screen;
+  }
+}
+
+/* Frosted glass veil over the mask so foreground remains legible */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  /* above ::before mask, below app content (z-10) */
+  pointer-events: none;
+  /* Solid theme background overlay that hides mask while keeping glass feel */
+  background: color-mix(in oklab, var(--color-background) 86%, transparent);
+  backdrop-filter: blur(8px) saturate(110%);
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 6%, transparent);
+  opacity: 0.78;
+}
+
+.dark body::after {
+  background: color-mix(in oklab, var(--color-background) 90%, transparent);
+  opacity: 0.76;
+}
+
+/* =========================================
+   THEME TOKENS (Light default)
+   ========================================= */
+:root {
+  /* Popup */
+  --popup-bg: #ffffff;
+  --popup-fg: #111111;
+  --popup-shadow: 0 12px 30px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08);
+  --popup-tip: #ffffff;
+  --link: #0b57d0;
+
+  /* Popup close */
+  --close-bg: #ffffff;
+  --close-fg: #111111;
+  --close-border: rgba(17,17,17,.08);
+  --close-bg-hover: #f5f5f5;
+
+  /* Chips */
+  --chip-bg: #f2f2f2;
+  --chip-fg: #222222;
+  --chip-border: rgba(0,0,0,.06);
+
+  /* Marker wrapper effects */
+  --pin-shadow: drop-shadow(0 2px 6px rgba(0,0,0,.18))
+                drop-shadow(0 10px 20px rgba(0,0,0,.12));
+  --pin-ring: 0 0 0 0 rgba(0,0,0,0);
+  --pin-ring-hover: 0 0 0 4px rgba(249, 115, 22, .18); /* orange ring on hover */
+}
+
+/* FORCE DARK (when user picks dark) */
+html[data-theme="dark"],
+html[data-theme="dark"].dark {
+  --popup-bg: #101214;
+  --popup-fg: #e6e6e6;
+  --popup-shadow: 0 12px 30px rgba(0,0,0,.36), 0 2px 8px rgba(0,0,0,.24);
+  --popup-tip: #101214;
+  --link: #8ab4ff;
+
+  --close-bg: #15181c;
+  --close-fg: #e6e6e6;
+  --close-border: rgba(255,255,255,.08);
+  --close-bg-hover: #1b1f24;
+
+  --chip-bg: #1b1f24;
+  --chip-fg: #e6e6e6;
+  --chip-border: rgba(255,255,255,.08);
+
+  --pin-shadow: drop-shadow(0 2px 6px rgba(0,0,0,.5))
+                drop-shadow(0 10px 20px rgba(0,0,0,.35));
+  --pin-ring-hover: 0 0 0 4px rgba(138, 180, 255, .18);
+}
+
+/* FORCE LIGHT (when user picks light) */
+html[data-theme="light"] {
+  /* (same as :root but with higher specificity) */
+}
+
+/* SYSTEM: follow OS only if data-theme is absent OR "system" */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]),
+  :root[data-theme="system"] {
+    --popup-bg: #101214;
+    --popup-fg: #e6e6e6;
+    --popup-shadow: 0 12px 30px rgba(0,0,0,.36), 0 2px 8px rgba(0,0,0,.24);
+    --popup-tip: #101214;
+    --link: #8ab4ff;
+
+    --close-bg: #15181c;
+    --close-fg: #e6e6e6;
+    --close-border: rgba(255,255,255,.08);
+    --close-bg-hover: #1b1f24;
+
+    --chip-bg: #1b1f24;
+    --chip-fg: #e6e6e6;
+    --chip-border: rgba(255,255,255,.08);
+
+    --pin-shadow: drop-shadow(0 2px 6px rgba(0,0,0,.5))
+                  drop-shadow(0 10px 20px rgba(0,0,0,.35));
+    --pin-ring-hover: 0 0 0 4px rgba(138, 180, 255, .18);
+  }
+}
+
+/* =========================================
+   MARKERS (works with your current pins)
+   ========================================= */
+/* Style the pin container created by JS (any Mapbox marker -> our div) */
+.mapboxgl-marker > div {
+  filter: var(--pin-shadow);
+  transition: transform .16s ease, box-shadow .16s ease;
+  border-radius: 14px; /* helps the hover ring feel nicer */
+}
+.mapboxgl-marker > div:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: var(--pin-ring-hover);
+}
+
+/* If you give your pin element a class "tour-pin" in JS, these target more specifically: */
+/*
+.tour-pin { filter: var(--pin-shadow); transition: transform .16s ease, box-shadow .16s ease; border-radius: 14px; }
+.tour-pin:hover { transform: translateY(-1px) scale(1.02); box-shadow: var(--pin-ring-hover); }
+*/
+
+/* =========================================
+   POPUP: Readability baseline
+   ========================================= */
+.mapboxgl-popup.tour-popup,
+.mapboxgl-popup-content.tour-popup,
+.tour-popup .mapboxgl-popup-content {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.mapboxgl-popup-content {
+  color: var(--popup-fg);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mapboxgl-popup-content a {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+/* =========================================
+   POPUP: Card polish
+   ========================================= */
+.mapboxgl-popup.tour-popup .mapboxgl-popup-content {
+  padding: 0;
+  border-radius: 14px;
+  box-shadow: var(--popup-shadow);
+  overflow: hidden;
+  background: var(--popup-bg);
+  color: var(--popup-fg);
+}
+.mapboxgl-popup.tour-popup .mapboxgl-popup-tip {
+  border-top-color: var(--popup-tip) !important;
+}
+
+/* Close button — large, circular */
+.mapboxgl-popup.tour-popup .mapboxgl-popup-close-button {
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 28px; height: 28px; line-height: 26px;
+  border-radius: 9999px;
+  background: var(--close-bg);
+  color: var(--close-fg);
+  font-size: 18px; font-weight: 700; text-align: center;
+  border: 1px solid var(--close-border);
+  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  opacity: 1;
+}
+.mapboxgl-popup.tour-popup .mapboxgl-popup-close-button:hover {
+  background: var(--close-bg-hover);
+}
+
+/* =========================================
+   POPUP: Layout blocks
+   ========================================= */
+.tour-popup__card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  max-width: 320px;
+  color: var(--popup-fg);
+}
+
+.tour-popup__media .tour-popup__img {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+}
+
+.tour-popup__body {
+  padding: 12px 14px 14px;
+}
+
+.tour-popup__title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.tour-popup__chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.tour-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--chip-fg);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  border-radius: 9999px;
+}
+
+.tour-popup__brief p { margin: 6px 0; }
+.tour-popup__brief a { color: var(--link); text-decoration: underline; }
+
+@keyframes fadeIn {
+  from { opacity:0; transform: translateY(4px);}
+  to { opacity:1; transform:none;}
+}
+.animate-fadeIn { animation: fadeIn .3s ease-out; }
+/* Global Modern Scrollbar - Dark Theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+/* Hide scrollbar for Chrome, Safari and Edge */
+.scrollbar-hide::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Hide scrollbar for Firefox */
+.scrollbar-hide {
+  scrollbar-width: none;
+}

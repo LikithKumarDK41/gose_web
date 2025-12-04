@@ -16,12 +16,8 @@ export default [
   // Optional: ignore build artifacts
   { ignores: [".next/**", "out/**", "node_modules/**"] },
 
-  // Turn off `no-explicit-any` ONLY for these map UI files
+  // ✅ Turn off no-explicit-any globally
   {
-    files: [
-      "src/components/map/NavigationOverlay.tsx",
-      "src/components/map/MapboxTourMapNavigation.tsx",
-    ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
     },

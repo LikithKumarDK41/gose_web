@@ -1,573 +1,527 @@
-// src/components/map/MapboxTourMapNavigation.tsx
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import type mapboxgl from 'mapbox-gl';
-import type { Place } from '@/lib/data/tours';
+import { useEffect, useRef, useState } from "react";
+import "mapbox-gl/dist/mapbox-gl.css";
+import type mapboxgl from "mapbox-gl";
+import MapboxLanguage from "@mapbox/mapbox-gl-language";
+import { useLocale } from "@/providers/LocaleProvider";
+import type { Tour, TourPoint } from "@/lib/types/userTour.types";
+import type { Feature, Polygon } from "geojson";
 
-declare global {
-  interface Window {
-    __tourNavigateStart?: () => void;
-    __tourNavigatePause?: () => void;
-    __tourNavigateResume?: () => void;
-    __tourShouldFollow?: boolean; // persisted follow flag across screens
+import { useAppSelector } from "@/lib/store/hook";
+import { selectUserTourPoints } from "@/lib/store/slices/navSlice";
+
+/* -------------------- Helpers -------------------- */
+function normalizeLngLat(
+  loc?: [number, number] | { lat?: number; lng?: number } | null
+): [number, number] | null {
+  if (!loc) return null;
+  if (Array.isArray(loc) && loc.length >= 2) {
+    const [lng, lat] = loc;
+    return typeof lng === "number" && typeof lat === "number" ? [lng, lat] : null;
   }
+  if (typeof loc === "object" && loc !== null) {
+    const { lat, lng } = loc as any;
+    return typeof lat === "number" && typeof lng === "number" ? [lng, lat] : null;
+  }
+  return null;
 }
 
-type Props = {
-  places: Place[];
-  height?: number | string;
-  profile?: 'walking' | 'driving' | 'cycling';
-};
-
-type PlaceWithCoords = Place & { lat: number; lng: number };
-function hasCoords(p: Place): p is PlaceWithCoords {
-  return typeof p.lat === 'number' && typeof p.lng === 'number';
+function colorFor(kind?: string) {
+  if (!kind) return "#f59e0b";
+  const k = kind.toLowerCase();
+  if (k === "start") return "#16a34a";
+  if (k === "end") return "#ef4444";
+  return "#f59e0b";
 }
 
-/** SVG pin with a number/letter centered inside */
-function makePinMarker(label: string, color = '#2563eb', textColor = '#fff') {
-  const wrapper = document.createElement('div');
-  wrapper.style.width = '34px';
-  wrapper.style.height = '42px';
-  wrapper.style.transform = 'translateY(-2px)';
-  wrapper.innerHTML = `
-    <svg width="34" height="42" viewBox="0 0 34 42" xmlns="http://www.w3.org/2000/svg" style="display:block">
-      <path d="M17 1C9.27 1 3 7.27 3 15c0 9.68 12.1 26 13.04 27.29a1.2 1.2 0 0 0 1.92 0C18.9 41 31 24.68 31 15 31 7.27 24.73 1 17 1z"
-            fill="${color}" stroke="#ffffff" stroke-width="2"/>
-      <circle cx="17" cy="15" r="10" fill="${color}" />
-      <text x="17" y="15" text-anchor="middle" dominant-baseline="central"
-            font-size="12" font-weight="700" fill="${textColor}">${label}</text>
-    </svg>`;
-  return wrapper;
+function makeNumberedPin(label: string, fill: string) {
+  const el = document.createElement("div");
+  el.style.width = "40px";
+  el.style.height = "56px";
+  el.style.transform = "translateY(-6px)";
+  // el.style.position = "relative"; // needed for badge
+  el.innerHTML = `
+  <svg viewBox="0 0 40 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M20 0c11 0 20 8.6 20 19.2 0 12.7-13.6 26.5-18.4 31.1a2.2 2.2 0 0 1-3.2 0C13.6 45.7 0 31.9 0 19.2 0 8.6 9 0 20 0z" fill="${fill}" />
+    <circle cx="20" cy="19" r="12" fill="white"/>
+    <text x="20" y="20.5" text-anchor="middle" font-size="12" font-weight="800" fill="${fill}" dominant-baseline="middle">${label}</text>
+  </svg>`;
+  return el;
 }
 
-// Golden-angle HSL → HEX
-function hslToHex(h: number, s: number, l: number) {
-  s /= 100; l /= 100;
-  const k = (n: number) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) =>
-    l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-  const toHex = (x: number) => Math.round(255 * x).toString(16).padStart(2, '0');
-  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
-}
-function dynamicColor(i: number) {
-  const hue = (i * 137.508) % 360;
-  return hslToHex(hue, 70, 50);
+function escapeText(s?: string) {
+  if (!s) return "";
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// Haversine meters
-function haversine(a: [number, number], b: [number, number]) {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b[1] - a[1]);
-  const dLng = toRad(b[0] - a[0]);
-  const lat1 = toRad(a[1]), lat2 = toRad(b[1]);
-  const s = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
+type MaybeI18n = string | { ja?: string; en?: string } | undefined | null;
+function pickI18n(val: MaybeI18n, locale: "ja" | "en"): string {
+  if (!val) return "";
+  if (typeof val === "string") return val;
+  const wanted = val[locale];
+  const fallback = locale === "ja" ? val.en : val.ja;
+  return (wanted ?? fallback ?? "") as string;
 }
 
-// Bearing fallback when heading is unavailable
-function bearingFrom(a: [number, number], b: [number, number]) {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const toDeg = (r: number) => (r * 180) / Math.PI;
-  const dLng = toRad(b[0] - a[0]);
-  const lat1 = toRad(a[1]);
-  const lat2 = toRad(b[1]);
-  const y = Math.sin(dLng) * Math.cos(lat2);
-  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
-  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+function sanitizeRichHtml(input?: string) {
+  if (!input) return "";
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = input;
+  wrapper.querySelectorAll("script, style, iframe, object, embed").forEach((n) => n.remove());
+  const ALLOWED = new Set(["p", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li"]);
+  wrapper.querySelectorAll("*").forEach((el) => {
+    if (!ALLOWED.has(el.tagName.toLowerCase())) {
+      const parent = el.parentNode;
+      while (el.firstChild) parent?.insertBefore(el.firstChild, el);
+      parent?.removeChild(el);
+    }
+  });
+  return wrapper.innerHTML;
 }
 
-// Spiderfy helpers
-function offsetLngLat(lng: number, lat: number, meters: number, angleDeg: number): [number, number] {
-  const rad = (angleDeg * Math.PI) / 180;
-  const dNorth = Math.cos(rad) * meters;
-  const dEast = Math.sin(rad) * meters;
-  const dLat = dNorth / 111111;
-  const dLng = dEast / (111111 * Math.cos((lat * Math.PI) / 180));
-  return [lng + dLng, lat + dLat];
-}
-function spreadOffsets(lng: number, lat: number, n: number): [number, number][] {
-  if (n <= 1) return [[lng, lat]];
-  const base = 12;
-  const radius = base + Math.min(40, (n - 1) * 2);
-  const result: [number, number][] = [];
-  for (let i = 0; i < n; i++) result.push(offsetLngLat(lng, lat, radius, (360 / n) * i));
-  return result;
+function tidyParagraphs(html: string) {
+  return html.replace(/<p>\s*<\/p>/g, "").replace(/(\s*<br>\s*){3,}/g, "<br><br>");
 }
 
-// Geolocate typings
-type GeolocateEventLike = {
-  coords?: { longitude: number; latitude: number; heading?: number | null };
-  longitude?: number;
-  latitude?: number;
-  heading?: number | null;
-};
-type GeoCtrl = {
-  on: (ev: 'geolocate' | 'error', cb: (e: GeolocateEventLike | Error) => void) => void;
-  off?: (ev: 'geolocate' | 'error', cb: (e: GeolocateEventLike | Error) => void) => void;
-  trigger?: () => void;
-};
+function createCircle(center: [number, number], radius: number, points = 64): Feature<Polygon> {
+  const coords: [number, number][] = [];
+  const [lng, lat] = center;
+  const earthRadius = 6378137;
+  const latConv = (radius / earthRadius) * (180 / Math.PI);
+  const lngConv = (radius / earthRadius) * (180 / Math.PI) / Math.cos((lat * Math.PI) / 180);
 
+  for (let i = 0; i <= points; i++) {
+    const angle = (i * 360) / points;
+    const rad = (angle * Math.PI) / 180;
+    const x = lng + Math.sin(rad) * lngConv;
+    const y = lat + Math.cos(rad) * latConv;
+    coords.push([x, y]);
+  }
+
+  return {
+    type: "Feature",
+    geometry: { type: "Polygon", coordinates: [coords] },
+    properties: {},
+  };
+}
+
+function waitForStyle(map: mapboxgl.Map): Promise<void> {
+  if (map.isStyleLoaded()) return Promise.resolve();
+  return new Promise((resolve) => {
+    const check = () => {
+      if (map.isStyleLoaded()) {
+        map.off("render", check);
+        resolve();
+      }
+    };
+    map.on("render", check);
+  });
+}
+
+/* -------------------- Component -------------------- */
 export default function MapboxTourMapNavigation({
-  places,
-  height = '100vh',
-  profile = 'walking',
-}: Props) {
+  tour,
+  height = "100vh",
+  profile = "walking",
+}: {
+  tour: Tour;
+  height?: number | string;
+  profile?: "walking" | "driving" | "cycling";
+}) {
+  const { locale, t } = useLocale();
+  const mapLocale: "ja" | "en" = locale === "ja" ? "ja" : "en";
+
+  /* 🔥 REDUX Stamp Source */
+  const reduxTourPoints = useAppSelector(selectUserTourPoints);
+
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
-  const geolocateRef = useRef<mapboxgl.GeolocateControl | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const geoWatchIdRef = useRef<number | null>(null);
 
-  const geoEventFiredRef = useRef(false);
-  const browserWatchIdRef = useRef<number | null>(null);
-
-  const lastPosRef = useRef<[number, number] | null>(null);
-  const lastFetchTsRef = useRef<number>(0);
-  const followRef = useRef<boolean>(false);
-  const pausedRef = useRef<boolean>(false);
-
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<{ distance: number; duration: number } | null>(null);
-  const [loading, setLoading] = useState(true); // show loader until style loads
 
-  // Camera/profile
-  const FOLLOW_ZOOM = 17.5;
-  const FOLLOW_PITCH = 60;
-  const THROTTLE_MS = 5000;
-  const THROTTLE_M = 30;
+  const clearMarkers = () => {
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+  };
+
+  const removeRadiusLayers = (map: mapboxgl.Map) => {
+    const style = map.getStyle();
+    const sources = (style?.sources && Object.keys(style.sources)) || [];
+    for (const srcId of sources) {
+      if (!srcId.startsWith("radius-")) continue;
+      try {
+        if (map.getLayer(srcId)) map.removeLayer(srcId);
+        if (map.getLayer(`${srcId}-outline`)) map.removeLayer(`${srcId}-outline`);
+        if (map.getSource(srcId)) map.removeSource(srcId);
+      } catch { }
+    }
+  };
+
+  const removeRouteLayers = (map: mapboxgl.Map) => {
+    try {
+      if (map.getLayer("custom-route-line")) map.removeLayer("custom-route-line");
+      if (map.getLayer("custom-route-outline")) map.removeLayer("custom-route-outline");
+      if (map.getSource("custom-route")) map.removeSource("custom-route");
+    } catch { }
+    removeRadiusLayers(map);
+  };
 
   useEffect(() => {
-    let cleanup = () => { };
+    let disposed = false;
+
     (async () => {
-      if (typeof window !== 'undefined' && !window.isSecureContext && location.hostname !== 'localhost') {
-        setError('Geolocation requires HTTPS (or localhost).');
+      const mapboxglMod = await import("mapbox-gl");
+      const mapboxgl = mapboxglMod.default;
+
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      if (!token) {
+        setError("Missing NEXT_PUBLIC_MAPBOX_TOKEN");
+        return;
       }
 
-      const mapboxglMod = await import('mapbox-gl');
-      const mapboxgl = mapboxglMod.default;
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      if (!token) { setError('Missing NEXT_PUBLIC_MAPBOX_TOKEN'); return; }
       mapboxgl.accessToken = token;
 
-      const geoAll = (places ?? []).filter(hasCoords);
-      if (geoAll.length < 2) { setError('Need at least one stop plus End'); return; }
-
-      const end = geoAll[geoAll.length - 1];
-      const numbered = geoAll.slice(0, -1);
-      const endLL: [number, number] = [end.lng, end.lat];
-
-      const first = numbered[0];
-      const initialCenter: [number, number] = [first.lng, first.lat];
+      const firstPoint =
+        (tour.tourpoints || [])
+          .map((tp) => normalizeLngLat((tp as any)?.monument?.location ?? (tp as any)?.location) || undefined)
+          .find(Boolean) ?? [135.75, 34.41];
 
       const map = new mapboxgl.Map({
-        container: mapDivRef.current as HTMLDivElement,
-        style: 'mapbox://styles/mapbox/navigation-day-v1',
-        center: initialCenter,
-        zoom: FOLLOW_ZOOM,
-        pitch: FOLLOW_PITCH,
-        bearing: 0,
+        container: mapDivRef.current!,
+        style: "mapbox://styles/mapbox/streets-v11",
+        center: firstPoint as [number, number],
+        zoom: 13,
         antialias: true,
       });
+
       mapRef.current = map;
 
-      // Loader hides as soon as style is loaded
-      map.on('load', () => setLoading(false));
+      map.addControl(new mapboxgl.NavigationControl(), "top-right");
+      map.addControl(new MapboxLanguage({ defaultLanguage: mapLocale }));
 
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      const geolocate = new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: true,
-        showUserHeading: true,
-        fitBoundsOptions: { maxZoom: FOLLOW_ZOOM },
-      });
-      geolocateRef.current = geolocate;
-      map.addControl(geolocate, 'top-right');
+      map.once("load", async () => {
+        if (disposed) return;
 
-      // Stop auto-follow on manual interaction
-      const stopFollow = () => { followRef.current = false; };
-      map.on('dragstart', stopFollow);
-      map.on('zoomstart', stopFollow);
-      map.on('rotatestart', stopFollow);
-      map.on('pitchstart', stopFollow);
+        await waitForStyle(map);
 
-      // ---- Build display points & markers ----
-      type DisplayPt = {
-        lng: number; lat: number;
-        baseLng: number; baseLat: number;
-        label: string; color: string; popupHTML: string;
-      };
-      const displayPts: DisplayPt[] = [];
+        try {
+          setLoading(false);
+          clearMarkers();
+          removeRouteLayers(map);
 
-      numbered.forEach((p, idx) => {
-        const label = String(idx + 1);
-        const color = dynamicColor(idx);
-        displayPts.push({
-          lng: p.lng, lat: p.lat, baseLng: p.lng, baseLat: p.lat,
-          label, color,
-          popupHTML: `
-            <div style="min-width:220px">
-              <div style="font-weight:600;margin-bottom:4px">${label}. ${p.name}</div>
-              ${p.time ? `<div style="font-size:12px;color:#666">🕒 ${p.time}</div>` : ''}
-              ${p.blurb ? `<div style="font-size:13px;margin-top:6px">${p.blurb}</div>` : ''}
-              ${p.image ? `<img src="${p.image}" alt="${p.name}" style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover" />` : ''}
-            </div>
-          `,
-        });
-      });
+          const points = (tour.tourpoints || []) as TourPoint[];
+          const positions: [number, number][] = [];
+          let ordinal = 0;
 
-      displayPts.push({
-        lng: end.lng, lat: end.lat, baseLng: end.lng, baseLat: end.lat,
-        label: 'E', color: '#111827',
-        popupHTML: `<div style="min-width:200px;font-weight:600">End – ${end.name ?? 'Finish'}</div>`,
-      });
+          points.forEach((tp) => {
+            const pos =
+              normalizeLngLat(
+                (tp as any)?.monument?.location ?? (tp as any)?.location
+              ) || null;
 
-      const keyOf = (lng: number, lat: number) => `${lng.toFixed(6)},${lat.toFixed(6)}`;
-      const groups = new Map<string, DisplayPt[]>();
-      for (const pt of displayPts) {
-        const k = keyOf(pt.baseLng, pt.baseLat);
-        const arr = groups.get(k) ?? [];
-        arr.push(pt);
-        groups.set(k, arr);
-      }
+            if (!pos) return;
 
-      const markers: mapboxgl.Marker[] = [];
-      for (const [, arr] of groups) {
-        const offsets = spreadOffsets(arr[0].baseLng, arr[0].baseLat, arr.length);
-        arr.forEach((pt, i) => {
-          const [lng, lat] = offsets[i] ?? [pt.baseLng, pt.baseLat];
-          pt.lng = lng; pt.lat = lat;
+            const wtype = String(tp.waypointtype ?? "").toLowerCase();
+            const label = wtype === "start" ? "S" : wtype === "end" ? "E" : String(++ordinal);
+            const pin = makeNumberedPin(label, colorFor(wtype));
 
-          const popup = new mapboxgl.Popup({ offset: 28, maxWidth: '320px', className: 'tour-popup' })
-            .setHTML(pt.popupHTML)
-            .on('open', () => {
-              const el = popup.getElement();
-              if (el) el.style.zIndex = '9999';
-            });
+            /* ---------------------- 🔥 STAMP BADGE FROM REDUX ----------------------- */
+            const match = reduxTourPoints?.find(
+              (u: any) =>
+                String(u._id) === String(tp._id) &&
+                u.stamp &&
+                Object.keys(u.stamp).length > 0
+            );
 
-          const marker = new mapboxgl.Marker({ element: makePinMarker(pt.label, pt.color, '#fff') })
-            .setLngLat([lng, lat])
-            .setPopup(popup)
-            .addTo(map);
+            const hasStamp =
+              match &&
+              tp.pointtype !== "station" &&
+              tp.pointtype !== "lunch";
 
-          markers.push(marker);
-        });
-      }
+            if (hasStamp) {
+              const badge = document.createElement("div");
+              badge.style.position = "absolute";
+              badge.style.top = "0";
+              badge.style.right = "0";
 
-      // ---- Route layers ----
-      const emptyLine: GeoJSON.Feature<GeoJSON.LineString> = {
-        type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {},
-      };
+              // magic alignment
+              badge.style.transform = "translate(40%, -40%)";
 
-      map.on('load', async () => {
-        if (!map.getSource('tour-route')) {
-          map.addSource('tour-route', { type: 'geojson', data: emptyLine });
-        }
-        if (!map.getLayer('tour-route-casing')) {
-          map.addLayer({
-            id: 'tour-route-casing',
-            type: 'line',
-            source: 'tour-route',
-            paint: { 'line-width': 10, 'line-color': '#ffffff', 'line-opacity': 0.9 },
-            layout: { 'line-join': 'round', 'line-cap': 'round' },
+              badge.style.background = "#16a34a";
+              badge.style.color = "white";
+              badge.style.width = "20px";
+              badge.style.height = "20px";
+              badge.style.borderRadius = "50%";
+              badge.style.display = "flex";
+              badge.style.alignItems = "center";
+              badge.style.justifyContent = "center";
+              badge.style.fontSize = "12px";
+              badge.style.fontWeight = "bold";
+              badge.style.boxShadow = "0 0 4px rgba(0,0,0,0.3)";
+              badge.textContent = "✓";
+
+              pin.appendChild(badge);
+            }
+            /* ------------------------------------------------------------------------ */
+
+            const title = pickI18n(
+              (tp.monument?.title as any) ?? tp.name,
+              mapLocale
+            );
+
+            const briefRaw: MaybeI18n = (tp.monument?.content as any)?.brief ?? "";
+            const brief = tidyParagraphs(
+              sanitizeRichHtml(pickI18n(briefRaw, mapLocale))
+            );
+
+            const img = (tp as any)?.monument?.image?.secure_url
+              ? `<img src="${(tp as any).monument.image.secure_url}" alt="" class="tour-popup__img" />`
+              : "";
+
+            const chips = [
+              tp.starttime ? `🕒 ${escapeText(tp.starttime)}` : "",
+              (tour as any).duration ? `⏱ ${escapeText((tour as any).duration)}` : "",
+              (tour as any).traveltime ? `🚶 ${escapeText((tour as any).traveltime)}` : "",
+            ].filter(Boolean);
+
+            const popupHtml = `
+              <div class="tour-popup__card">
+                ${img ? `<div class="tour-popup__media">${img}</div>` : ""}
+                <div class="tour-popup__body">
+                  <div class="tour-popup__title">${escapeText(title || "Point")}</div>
+                  ${chips.length
+                ? `<div class="tour-popup__chips">${chips
+                  .map((c) => `<span class="tour-chip">${c}</span>`)
+                  .join("")}</div>`
+                : ""
+              }
+                  <div class="tour-popup__brief">${brief}</div>
+                </div>
+              </div>
+            `;
+
+            const popup = new mapboxgl.Popup({
+              offset: 25,
+              closeButton: true,
+              closeOnMove: false,
+              className: "tour-popup",
+              maxWidth: "320px",
+            }).setHTML(popupHtml);
+
+            const isStart = wtype === "start";
+            const isEnd = wtype === "end";
+            const isStation =
+              String((tp as any)?.pointtype || "").toLowerCase() === "station";
+
+            let marker: mapboxgl.Marker;
+
+            if (isStart || isEnd || isStation) {
+              marker = new mapboxgl.Marker({ element: pin }).setLngLat(pos).addTo(map);
+            } else {
+              marker = new mapboxgl.Marker({ element: pin })
+                .setLngLat(pos)
+                .setPopup(popup)
+                .addTo(map);
+            }
+
+            markersRef.current.push(marker);
+            positions.push(pos);
+
+            const mr = (tp as any)?.monument?.georadius;
+            const geoRadius = typeof mr === "number" && mr > 0 ? mr : 50;
+
+            if (geoRadius > 0) {
+              const circleFeature = createCircle(pos, geoRadius);
+              const baseId =
+                (tp as any).id ??
+                (tp as any)._id ??
+                (tp as any)?.monument?._id ??
+                label;
+              const srcId = `radius-${baseId}`;
+
+              if (!map.getSource(srcId)) {
+                map.addSource(srcId, { type: "geojson", data: circleFeature });
+                map.addLayer({
+                  id: srcId,
+                  type: "fill",
+                  source: srcId,
+                  paint: { "fill-color": "#3b82f6", "fill-opacity": 0.15 },
+                });
+                map.addLayer({
+                  id: `${srcId}-outline`,
+                  type: "line",
+                  source: srcId,
+                  paint: {
+                    "line-color": "#3b82f6",
+                    "line-width": 1.5,
+                    "line-opacity": 0.4,
+                  },
+                });
+              } else {
+                const s = map.getSource(srcId) as mapboxgl.GeoJSONSource;
+                s.setData(circleFeature);
+              }
+            }
           });
-        }
-        if (!map.getLayer('tour-route-line')) {
-          map.addLayer({
-            id: 'tour-route-line',
-            type: 'line',
-            source: 'tour-route',
-            paint: { 'line-width': 6, 'line-color': '#2563eb', 'line-opacity': 0.95 },
-            layout: { 'line-join': 'round', 'line-cap': 'round' },
-          });
-        }
 
-        const orderedCoords: [number, number][] = [
-          [numbered[0].lng, numbered[0].lat],
-          ...numbered.slice(1).map(p => [p.lng, p.lat] as [number, number]),
-          endLL,
-        ];
-        await fetchAndRenderDirections(orderedCoords, token, profile, map, setStats);
+          if (tour.routeJson) {
+            try {
+              const parsed = JSON.parse(tour.routeJson);
+              if (parsed?.type === "FeatureCollection") {
+                if (!map.getSource("custom-route")) {
+                  map.addSource("custom-route", {
+                    type: "geojson",
+                    data: parsed,
+                  });
+                } else {
+                  const s = map.getSource("custom-route") as mapboxgl.GeoJSONSource;
+                  s.setData(parsed);
+                }
 
-        const b = new mapboxgl.LngLatBounds();
-        orderedCoords.forEach(([lng, lat]) => b.extend([lng, lat]));
-        if (!b.isEmpty()) map.fitBounds(b, { padding: 60, duration: 600, maxZoom: 16 });
-      });
+                if (!map.getLayer("custom-route-outline")) {
+                  map.addLayer({
+                    id: "custom-route-outline",
+                    type: "line",
+                    source: "custom-route",
+                    paint: {
+                      "line-width": 8,
+                      "line-color": "#fff",
+                      "line-opacity": 0.8,
+                    },
+                  });
+                }
 
-      // ---------- Reliable START/PAUSE/RESUME ----------
-      const geoCtrl = geolocate as unknown as GeoCtrl;
-
-      const startBrowserWatch = () => {
-        if (browserWatchIdRef.current != null) return;
-        if ('geolocation' in navigator) {
-          browserWatchIdRef.current = navigator.geolocation.watchPosition(
-            (pos) => {
-              const e: GeolocateEventLike = {
-                coords: {
-                  longitude: pos.coords.longitude,
-                  latitude: pos.coords.latitude,
-                  heading: pos.coords.heading ?? null,
-                },
-              };
-              handleGeolocate(e);
-            },
-            () => { },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-          );
-        }
-      };
-
-      const kickstartGeolocation = () => {
-        geoEventFiredRef.current = false;
-        geoCtrl.trigger?.();
-        // If Mapbox doesn't emit quickly, fall back to browser watch.
-        window.setTimeout(() => {
-          if (!geoEventFiredRef.current) {
-            startBrowserWatch();
+                if (!map.getLayer("custom-route-line")) {
+                  map.addLayer({
+                    id: "custom-route-line",
+                    type: "line",
+                    source: "custom-route",
+                    paint: {
+                      "line-width": 4,
+                      "line-color": "#f97316",
+                      "line-opacity": 0.95,
+                    },
+                  });
+                }
+              }
+            } catch (e) {
+              console.error("Invalid routeJson:", e);
+            }
           }
-        }, 1500);
-      };
 
-      window.__tourNavigateStart = () => {
-        pausedRef.current = false;
-        followRef.current = true;
-        window.__tourShouldFollow = true;
-        kickstartGeolocation();
-      };
-      window.__tourNavigatePause = () => {
-        pausedRef.current = true;
-        followRef.current = false;
-        window.__tourShouldFollow = false;
-      };
-      window.__tourNavigateResume = () => {
-        pausedRef.current = false;
-        followRef.current = true;
-        window.__tourShouldFollow = true;
-        kickstartGeolocation();
-      };
+          if (positions.length) {
+            try {
+              const bounds = positions.reduce(
+                (b, c) => b.extend(c),
+                new mapboxgl.LngLatBounds(positions[0], positions[0])
+              );
+              map.fitBounds(bounds, { padding: 56, duration: 800 });
+            } catch { }
+          }
 
-      // If user returns to this screen AND tour was running, start immediately
-      if (window.__tourShouldFollow) {
-        window.__tourNavigateResume?.();
-      }
+          /* ---------------------- FIXED REALTIME GPS TRACKING ---------------------- */
+          if ("geolocation" in navigator && geoWatchIdRef.current == null) {
+            geoWatchIdRef.current = navigator.geolocation.watchPosition(
+              (pos) => {
+                if (!mapRef.current) return; // safety check
 
-      const onStartEvent = () => window.__tourNavigateStart?.();
-      const onPauseEvent = () => window.__tourNavigatePause?.();
-      const onResumeEvent = () => window.__tourNavigateResume?.();
+                if (pos.coords.accuracy > 100) return;
 
-      window.addEventListener('tour:start', onStartEvent);
-      window.addEventListener('tour:pause', onPauseEvent);
-      window.addEventListener('tour:resume', onResumeEvent);
+                const userPos: [number, number] = [
+                  pos.coords.longitude,
+                  pos.coords.latitude,
+                ];
 
-      // ---- Live updates (map follow + reroute) ----
-      const onGeo = async (evt: GeolocateEventLike) => {
-        if (pausedRef.current) return;
+                // Create marker once
+                if (!userMarkerRef.current) {
+                  const el = document.createElement("div");
+                  el.className = "user-marker";
+                  el.style.width = "20px";
+                  el.style.height = "20px";
+                  el.style.borderRadius = "50%";
+                  el.style.background = "#2563eb";
+                  el.style.border = "3px solid white";
+                  el.style.boxShadow = "0 0 6px rgba(0,0,0,0.4)";
 
-        const lng = evt?.coords?.longitude ?? evt?.longitude;
-        const lat = evt?.coords?.latitude ?? evt?.latitude;
-        const heading = (evt?.coords?.heading ?? evt?.heading) ?? undefined;
-        if (typeof lng !== 'number' || typeof lat !== 'number') return;
+                  userMarkerRef.current = new mapboxgl.Marker(el)
+                    .setLngLat(userPos)
+                    .addTo(mapRef.current);
 
-        const curr: [number, number] = [lng, lat];
-
-        const now = Date.now();
-        const last = lastPosRef.current;
-        const dt = now - lastFetchTsRef.current;
-        const moved = last ? haversine(last, curr) : Infinity;
-
-        if (dt < THROTTLE_MS && moved < THROTTLE_M) return;
-        lastPosRef.current = curr;
-        lastFetchTsRef.current = now;
-
-        if (followRef.current) {
-          const br = typeof heading === 'number' ? heading : (last ? bearingFrom(last, curr) : 0);
-          map.easeTo({
-            center: curr,
-            zoom: FOLLOW_ZOOM,
-            pitch: FOLLOW_PITCH,
-            bearing: br,
-            duration: 500,
-            padding: { top: 80, right: 40, bottom: 220, left: 40 },
-          });
+                  // First center
+                  mapRef.current.flyTo({
+                    center: userPos,
+                    zoom: 16,
+                    speed: 1.2,
+                  });
+                } else {
+                  userMarkerRef.current.setLngLat(userPos);
+                }
+              },
+              (err) => console.warn("GPS error:", err),
+              {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 10000,
+              }
+            );
+          }
+        } catch (e) {
+          console.error(e);
+          setError("Map style failed to load.");
         }
+      });
 
-        const orderedFromHere: [number, number][] = [
-          curr,
-          ...numbered.map(p => [p.lng, p.lat] as [number, number]),
-          endLL,
-        ];
-        await fetchAndRenderDirections(orderedFromHere, token, profile, map, setStats);
-      };
-
-      const handleGeolocate = (e: GeolocateEventLike | Error) => {
-        if (!(e instanceof Error)) {
-          geoEventFiredRef.current = true;
-          void onGeo(e);
-        }
-      };
-      const handleGeoError = (e: GeolocateEventLike | Error) => {
-        const msg = (e as Error)?.message ?? 'Geolocation error';
-        setError(msg);
-      };
-
-      geoCtrl.on('geolocate', handleGeolocate);
-      geoCtrl.on('error', handleGeoError);
-
-      cleanup = () => {
-        delete window.__tourNavigateStart;
-        delete window.__tourNavigatePause;
-        delete window.__tourNavigateResume;
-
-        window.removeEventListener('tour:start', onStartEvent);
-        window.removeEventListener('tour:pause', onPauseEvent);
-        window.removeEventListener('tour:resume', onResumeEvent);
-
-        geoCtrl.off?.('geolocate', handleGeolocate);
-        geoCtrl.off?.('error', handleGeoError);
-
-        if (browserWatchIdRef.current != null) {
-          navigator.geolocation.clearWatch(browserWatchIdRef.current);
-          browserWatchIdRef.current = null;
-        }
-
-        markers.forEach(m => m.remove());
-        map.remove();
-        mapRef.current = null;
-      };
     })().catch((e) => setError(String(e)));
 
-    return () => cleanup();
-  }, [places, profile]);
+    return () => {
+      disposed = true;
 
-  const pretty = (s?: { distance: number; duration: number } | null) => {
-    if (!s) return '';
-    const km = (s.distance / 1000).toFixed(2);
-    const mins = Math.round(s.duration / 60);
-    const hh = Math.floor(mins / 60);
-    const mm = mins % 60;
-    return `${km} km • ${hh ? `${hh}h ` : ''}${mm}m`;
-  };
+      if (geoWatchIdRef.current != null) {
+        try {
+          navigator.geolocation.clearWatch(geoWatchIdRef.current);
+        } catch { }
+        geoWatchIdRef.current = null;
+      }
+
+      try {
+        clearMarkers();
+        const map = mapRef.current;
+        if (map) {
+          removeRouteLayers(map);
+          map.remove();
+        }
+      } catch { }
+      mapRef.current = null;
+    };
+  }, [tour, profile, mapLocale, reduxTourPoints]);
+
 
   return (
     <div
       className="relative w-full overflow-hidden rounded-lg border bg-gray-50 dark:bg-gray-900"
       style={{ height }}
     >
-      {/* Map container */}
       <div ref={mapDivRef} className="h-full w-full" />
 
-      {/* Loader while style loads */}
       {loading && (
-        <div className="absolute inset-0 grid place-items-center">
-          <div className="flex items-center gap-3 rounded-xl bg-white/80 p-3 shadow dark:bg-black/60">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
-            <span className="text-sm">Loading map…</span>
+        <div className="absolute inset-0 grid place-items-center bg-white/70 dark:bg-black/60">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-t-transparent" />
+            {t("Loading map…") || "Loading map…"}
           </div>
         </div>
       )}
 
-      {/* Errors */}
       {error && (
-        <div className="pointer-events-none absolute left-3 top-3 rounded bg-black/70 px-3 py-2 text-xs text-white">
+        <div className="absolute left-3 top-3 rounded bg-black/80 px-3 py-2 text-xs text-white">
           {error}
-        </div>
-      )}
-
-      {/* Route stats */}
-      {stats && !error && (
-        <div className="absolute right-3 top-3 rounded bg-white/90 px-3 py-2 text-xs shadow dark:bg-black/70 dark:text-white">
-          Route: {pretty(stats)}
         </div>
       )}
     </div>
   );
 }
-
-// ---- Directions helper (safe) ----
-function safeSetRouteData(
-  map: mapboxgl.Map,
-  geometry: GeoJSON.LineString
-) {
-  // If style not loaded yet, wait once and retry
-  if (!map.isStyleLoaded()) {
-    map.once('load', () => safeSetRouteData(map, geometry));
-    return;
-  }
-
-  // Ensure the source exists (layers may have been added elsewhere)
-  let src = map.getSource('tour-route') as mapboxgl.GeoJSONSource | undefined;
-  if (!src) {
-    // Create the source and layers if missing
-    map.addSource('tour-route', {
-      type: 'geojson',
-      data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} }
-    });
-
-    if (!map.getLayer('tour-route-casing')) {
-      map.addLayer({
-        id: 'tour-route-casing',
-        type: 'line',
-        source: 'tour-route',
-        paint: { 'line-width': 10, 'line-color': '#ffffff', 'line-opacity': 0.9 },
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-      });
-    }
-    if (!map.getLayer('tour-route-line')) {
-      map.addLayer({
-        id: 'tour-route-line',
-        type: 'line',
-        source: 'tour-route',
-        paint: { 'line-width': 6, 'line-color': '#2563eb', 'line-opacity': 0.95 },
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-      });
-    }
-
-    src = map.getSource('tour-route') as mapboxgl.GeoJSONSource;
-  }
-
-  // Finally safe to set
-  src.setData({ type: 'Feature', geometry, properties: {} });
-}
-
-async function fetchAndRenderDirections(
-  waypoints: [number, number][],
-  token: string,
-  profile: 'walking' | 'driving' | 'cycling',
-  map: mapboxgl.Map,
-  setStats: (s: { distance: number; duration: number } | null) => void,
-) {
-  const MAX = 25;
-  if (waypoints.length > MAX) {
-    const res: [number, number][] = [];
-    const step = (waypoints.length - 1) / (MAX - 1);
-    for (let i = 0; i < MAX; i++) {
-      const idx = Math.round(i * step);
-      res.push(waypoints[Math.min(idx, waypoints.length - 1)]);
-    }
-    waypoints = res;
-  }
-
-  const coordsParam = waypoints.map(([lng, lat]) => `${lng},${lat}`).join(';');
-  const url =
-    `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordsParam}` +
-    `?alternatives=false&geometries=geojson&overview=full&access_token=${token}`;
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Directions API ${res.status}`);
-    const data = await res.json() as {
-      routes: { geometry: GeoJSON.LineString; distance: number; duration: number }[];
-    };
-    const route = data.routes?.[0];
-    if (!route) throw new Error('No route');
-
-    safeSetRouteData(map, route.geometry);
-    setStats({ distance: route.distance, duration: route.duration });
-  } catch {
-    // Fallback: draw straight polyline between waypoints
-    safeSetRouteData(map, { type: 'LineString', coordinates: waypoints });
-  }
-}
-

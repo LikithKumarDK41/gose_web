@@ -1,257 +1,426 @@
-// src/components/map/MapboxTourMap.tsx
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import type mapboxgl from 'mapbox-gl';
-import type { Place } from '@/lib/data/tours';
+import { useEffect, useRef, useState } from "react";
+import "mapbox-gl/dist/mapbox-gl.css";
+import type mapboxgl from "mapbox-gl";
+import MapboxLanguage from "@mapbox/mapbox-gl-language";
+import { useLocale } from "@/providers/LocaleProvider";
+import type { Tour, TourPoint } from "@/lib/types/userTour.types";
 
+/* -------------------- props -------------------- */
 type Props = {
-  places: Place[];
-  height?: number | string;   // ⬅️ allow "100vh"
-  profile?: 'walking' | 'driving' | 'cycling';
+  tour: Tour;
+  height?: number | string;
+  profile?: "walking" | "driving" | "cycling";
 };
 
-// Only places with numeric coords
-type PlaceWithCoords = Place & { lat: number; lng: number };
-function hasCoords(p: Place): p is PlaceWithCoords {
-  return typeof p.lat === 'number' && typeof p.lng === 'number';
+/* -------------------- helpers -------------------- */
+function normalizeLngLat(
+  loc?: [number, number] | { lat?: number; lng?: number } | null
+): [number, number] | null {
+  if (!loc) return null;
+  if (Array.isArray(loc) && loc.length >= 2) {
+    const [lng, lat] = loc;
+    return typeof lng === "number" && typeof lat === "number" ? [lng, lat] : null;
+  }
+  if (typeof loc === "object") {
+    const { lat, lng } = loc as any;
+    return typeof lat === "number" && typeof lng === "number" ? [lng, lat] : null;
+  }
+  return null;
 }
 
-// Geolocation with timeout
-function getCurrentPosition(opts?: PositionOptions, timeoutMs = 8000) {
-  return new Promise<GeolocationPosition>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Geolocation timeout')), timeoutMs);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { clearTimeout(timer); resolve(pos); },
-      (err) => { clearTimeout(timer); reject(err); },
-      opts
-    );
+function colorFor(kind?: string) {
+  if (!kind) return "#f59e0b";
+  const k = kind.toLowerCase();
+  if (k === "start") return "#16a34a";
+  if (k === "end") return "#ef4444";
+  return "#f59e0b";
+}
+
+function makeNumberedPin(label: string, fill: string) {
+  const el = document.createElement("div");
+  el.style.width = "40px";
+  el.style.height = "56px";
+  el.style.transform = "translateY(-6px)";
+  el.innerHTML = `
+  <svg viewBox="0 0 40 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M20 0c11 0 20 8.6 20 19.2 0 12.7-13.6 26.5-18.4 31.1a2.2 2.2 0 0 1-3.2 0C13.6 45.7 0 31.9 0 19.2 0 8.6 9 0 20 0z" fill="${fill}" />
+    <circle cx="20" cy="19" r="12" fill="white"/>
+    <text x="20" y="20.5" text-anchor="middle" font-size="12" font-weight="800" fill="${fill}" dominant-baseline="middle">${label}</text>
+  </svg>`;
+  return el;
+}
+
+function escapeText(s?: string) {
+  if (!s) return "";
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+type MaybeI18n = string | { ja?: string; en?: string } | undefined | null;
+function pickI18n(val: MaybeI18n, locale: "ja" | "en"): string {
+  if (!val) return "";
+  if (typeof val === "string") return val;
+  const wanted = val[locale];
+  const fallback = locale === "ja" ? val.en : val.ja;
+  return (wanted ?? fallback ?? "") as string;
+}
+
+function sanitizeRichHtml(input?: string) {
+  if (!input) return "";
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = input;
+  wrapper.querySelectorAll("script, style, iframe, object, embed").forEach((n) => n.remove());
+  wrapper.querySelectorAll("*").forEach((el) => {
+    [...el.attributes].forEach((attr) => {
+      const tag = el.tagName.toLowerCase();
+      const name = attr.name.toLowerCase();
+      const allowed = tag === "a" ? ["href"] : [];
+      if (!allowed.includes(name)) el.removeAttribute(name);
+    });
+    if (el.tagName.toLowerCase() === "a") {
+      (el as HTMLAnchorElement).target = "_blank";
+      (el as HTMLAnchorElement).rel = "noopener noreferrer";
+    }
   });
+  const ALLOWED = new Set(["p", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li", "a"]);
+  wrapper.querySelectorAll("*").forEach((el) => {
+    if (!ALLOWED.has(el.tagName.toLowerCase())) {
+      const parent = el.parentNode;
+      while (el.firstChild) parent?.insertBefore(el.firstChild, el);
+      parent?.removeChild(el);
+    }
+  });
+  return wrapper.innerHTML;
 }
 
-// Generate infinite distinct colors via golden-angle HSL -> HEX
-function hslToHex(h: number, s: number, l: number) {
-  s /= 100; l /= 100;
-  const k = (n: number) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) =>
-    l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-  const toHex = (x: number) => Math.round(255 * x).toString(16).padStart(2, '0');
-  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
-}
-function dynamicColor(index: number) {
-  const golden = 137.508; // golden angle in degrees
-  const hue = (index * golden) % 360;
-  return hslToHex(hue, 70, 50); // vivid-ish
+function tidyParagraphs(html: string) {
+  return html.replace(/<p>\s*<\/p>/g, "").replace(/(\s*<br>\s*){3,}/g, "<br><br>");
 }
 
+/* -------------------- component -------------------- */
 export default function MapboxTourMap({
-  places,
+  tour,
   height = 420,
-  profile = 'walking',
+  profile = "walking",
 }: Props) {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const { locale, t } = useLocale();
+
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<{ distance: number; duration: number } | null>(null); // meters, seconds
+  const [showImage, setShowImage] = useState(false);
+
+  const clearMarkers = () => {
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+  };
+
+  const removeRouteLayers = (map: mapboxgl.Map) => {
+    ["custom-route-line", "custom-route-outline"].forEach((id) => {
+      if (map.getLayer(id)) map.removeLayer(id);
+    });
+    if (map.getSource("custom-route")) map.removeSource("custom-route");
+  };
 
   useEffect(() => {
-    let cleanup = () => {};
+    let disposed = false;
+
     (async () => {
-      const mapboxglMod = await import('mapbox-gl');
-      const mapboxgl = mapboxglMod.default;
+      const mapboxglMod = await import("mapbox-gl");
+      const mapboxgl = mapboxglMod.default as typeof import("mapbox-gl").default;
 
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      if (!token) { setError('Missing NEXT_PUBLIC_MAPBOX_TOKEN'); return; }
+      if (!token) {
+        setError("Missing NEXT_PUBLIC_MAPBOX_TOKEN");
+        return;
+      }
       mapboxgl.accessToken = token;
 
-      const geoPlaces = (places ?? []).filter(hasCoords);
+      const firstPoint =
+        (tour.tourpoints || [])
+          .map((tp) =>
+            normalizeLngLat(
+              (tp?.monument as any)?.location ?? (tp as any)?.location
+            )
+          )
+          .find((p): p is [number, number] => !!p) ?? [135.75, 34.41];
 
-      // ---------- resolve START (entry point) before creating the map ----------
-      // Default to first place; else a BLR fallback
-      let start: [number, number] =
-        geoPlaces.length ? [geoPlaces[0].lng, geoPlaces[0].lat] : ([77.5946, 12.9716] as [number, number]);
-
-      // Prefer device location if available (entry = current location)
-      if ('geolocation' in navigator) {
-        try {
-          const pos = await getCurrentPosition({ enableHighAccuracy: true });
-          start = [pos.coords.longitude, pos.coords.latitude];
-        } catch { /* keep fallback */ }
-      }
-
-      // ---------- create map centered on ENTRY POINT ----------
       const map = new mapboxgl.Map({
-        container: mapDivRef.current as HTMLDivElement,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: start,        // 👈 initial center = entry point
-        zoom: geoPlaces.length ? 13 : 11,
+        container: mapDivRef.current!,
+        style: "mapbox://styles/mapbox/streets-v11",
+        center: firstPoint,
+        zoom: 13,
+        antialias: true,
       });
       mapRef.current = map;
 
-      // Controls
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      map.addControl(new mapboxgl.NavigationControl(), "top-right");
       map.addControl(
-        new mapboxgl.GeolocateControl({
-          positionOptions: { enableHighAccuracy: true },
-          trackUserLocation: true,
-          showUserHeading: true,
-          fitBoundsOptions: { maxZoom: 15 },
-        }),
-        'top-right'
+        new MapboxLanguage({ defaultLanguage: locale === "ja" ? "ja" : "en" })
       );
 
-      // ------- START MARKER (distinct red pin) -------
-      const startMarker = new mapboxgl.Marker({ color: '#ef4444' }) // red
-        .setLngLat(start)
-        .setPopup(new mapboxgl.Popup({ offset: 16 }).setText('Start'))
-        .addTo(map);
+      map.on("load", () => {
+        if (disposed) return;
+        setLoading(false);
+        clearMarkers();
 
-      // ------- OTHER PLACE MARKERS (dynamic-color pins) -------
-      const placeMarkers: mapboxgl.Marker[] = [];
-      geoPlaces.forEach((p, idx) => {
-        const color = dynamicColor(idx); // any N
-        const marker = new mapboxgl.Marker({ color })
-          .setLngLat([p.lng, p.lat])
-          .setPopup(
-            new mapboxgl.Popup({ offset: 16 }).setHTML(`
-              <div style="min-width:200px">
-                <div style="font-weight:600;margin-bottom:4px">${idx + 1}. ${p.name}</div>
-                ${p.time ? `<div style="font-size:12px;color:#666">🕒 ${p.time}</div>` : ''}
-                ${p.blurb ? `<div style="font-size:13px;margin-top:6px">${p.blurb}</div>` : ''}
-                ${p.image ? `<img src="${p.image}" alt="${p.name}" style="margin-top:8px;border-radius:8px;width:100%;height:auto;object-fit:cover" />` : ''}
+        const points = (tour.tourpoints || []) as TourPoint[];
+        const pointPositions: [number, number][] = [];
+        let ordinal = 0;
+
+        /* -------- A) detect start & end positions -------- */
+        const startPoint = points.find(
+          (tp) =>
+            String((tp as any).waypointtype ?? (tp as any).pointtype)
+              .toLowerCase()
+              .trim() === "start"
+        );
+        const endPoint = points.find(
+          (tp) =>
+            String((tp as any).waypointtype ?? (tp as any).pointtype)
+              .toLowerCase()
+              .trim() === "end"
+        );
+
+        const startPos = normalizeLngLat(
+          (startPoint?.monument as any)?.location ??
+          (startPoint as any)?.location
+        );
+        const endPos = normalizeLngLat(
+          (endPoint?.monument as any)?.location ??
+          (endPoint as any)?.location
+        );
+
+        const samePlace =
+          !!startPos &&
+          !!endPos &&
+          Math.abs(startPos[0] - endPos[0]) < 0.00001 &&
+          Math.abs(startPos[1] - endPos[1]) < 0.00001;
+
+        /* -------- B) Render markers -------- */
+        points.forEach((tp: TourPoint) => {
+          let pos = normalizeLngLat(
+            (tp?.monument as any)?.location ?? (tp as any)?.location
+          );
+          if (!pos) return;
+
+          const type = String((tp as any).waypointtype ?? (tp as any).pointtype ?? "")
+            .toLowerCase()
+            .trim();
+
+          // ✅ Slight offset if start & end share same location
+          if (samePlace && type === "end") {
+            pos = [pos[0] + 0.0001, pos[1] + 0.0001];
+          }
+
+          const isStart = type === "start";
+          const isEnd = type === "end";
+
+          let pinEl: HTMLElement;
+          let titleLabel: string;
+
+          if (isStart) {
+            pinEl = makeNumberedPin("S", colorFor("start"));
+            titleLabel = pickI18n(
+              (tp.monument?.title as any) ?? tp.name ?? "Start",
+              locale === "ja" ? "ja" : "en"
+            );
+          } else if (isEnd) {
+            pinEl = makeNumberedPin("E", colorFor("end"));
+            titleLabel = pickI18n(
+              (tp.monument?.title as any) ?? tp.name ?? "End",
+              locale === "ja" ? "ja" : "en"
+            );
+          } else {
+            ordinal += 1;
+            pinEl = makeNumberedPin(String(ordinal), colorFor(type));
+            titleLabel = pickI18n(
+              (tp.monument?.title as any) ?? tp.name ?? `Stop ${ordinal}`,
+              locale === "ja" ? "ja" : "en"
+            );
+          }
+
+          const briefRaw: MaybeI18n = (tp.monument?.content as any)?.brief ?? "";
+          const brief = tidyParagraphs(
+            sanitizeRichHtml(pickI18n(briefRaw, locale === "ja" ? "ja" : "en"))
+          );
+          const img = tp.monument?.image?.secure_url
+            ? `<img src="${tp.monument.image.secure_url}" alt="" class="tour-popup__img" />`
+            : "";
+
+          const chips = [
+            tp.starttime ? `🕒 ${escapeText(tp.starttime)}` : "",
+            tour.duration ? `⏱ ${escapeText(tour.duration)}` : "",
+            tour.traveltime ? `🚶 ${escapeText(tour.traveltime)}` : "",
+          ].filter(Boolean);
+
+          const html = `
+            <div class="tour-popup__card">
+              ${img ? `<div class="tour-popup__media">${img}</div>` : ""}
+              <div class="tour-popup__body">
+                <div class="tour-popup__title">${escapeText(titleLabel)}</div>
+                ${chips.length
+              ? `<div class="tour-popup__chips">${chips
+                .map((c) => `<span class="tour-chip">${c}</span>`)
+                .join("")}</div>`
+              : ""
+            }
+                <div class="tour-popup__brief">${brief}</div>
               </div>
-            `)
-          )
-          .addTo(map);
-        placeMarkers.push(marker);
+            </div>
+          `;
+
+          const marker = new mapboxgl.Marker({ element: pinEl }).setLngLat(pos);
+
+          if (!isStart && !isEnd) {
+            marker.setPopup(
+              new mapboxgl.Popup({
+                offset: 22,
+                className: "tour-popup",
+                closeButton: true,
+                closeOnMove: false,
+                maxWidth: "320px",
+              }).setHTML(html)
+            );
+          }
+
+          marker.addTo(map);
+          markersRef.current.push(marker);
+          pointPositions.push(pos);
+        });
+
+        /* -------- C) Fit map to bounds -------- */
+        let bounds: mapboxgl.LngLatBounds | null = null;
+        if (pointPositions.length) {
+          bounds = pointPositions.reduce(
+            (b, c) => b.extend(c),
+            new mapboxgl.LngLatBounds(pointPositions[0], pointPositions[0])
+          );
+        }
+
+        removeRouteLayers(map);
+
+        if (tour.routeJson) {
+          try {
+            const parsed = JSON.parse(tour.routeJson);
+            if (parsed?.type === "FeatureCollection") {
+              map.addSource("custom-route", { type: "geojson", data: parsed });
+
+              map.addLayer({
+                id: "custom-route-outline",
+                type: "line",
+                source: "custom-route",
+                paint: { "line-width": 8, "line-color": "#ffffff", "line-opacity": 0.85 },
+              });
+
+              map.addLayer({
+                id: "custom-route-line",
+                type: "line",
+                source: "custom-route",
+                paint: { "line-width": 4, "line-color": "#f97316", "line-opacity": 0.95 },
+              });
+
+              const coords: [number, number][] = [];
+              parsed.features?.forEach((f: any) => {
+                const g = f.geometry;
+                if (g?.type === "LineString" && Array.isArray(g.coordinates)) {
+                  coords.push(...g.coordinates);
+                } else if (g?.type === "MultiLineString") {
+                  g.coordinates?.forEach((line: [number, number][]) => coords.push(...line));
+                }
+              });
+
+              if (coords.length) {
+                if (bounds) coords.forEach((c) => bounds!.extend(c));
+                else {
+                  bounds = coords.reduce(
+                    (b, c) => b.extend(c),
+                    new mapboxgl.LngLatBounds(coords[0], coords[0])
+                  );
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Invalid routeJson:", e);
+          }
+        }
+
+        if (bounds) {
+          map.fitBounds(bounds, { padding: 56, duration: 800 });
+        }
+
+        setTimeout(() => map.resize(), 200);
       });
-
-      // ------- DIRECTIONS (route map: start → places → start) -------
-      const tourCoords = geoPlaces.map<[number, number]>((p) => [p.lng, p.lat]);
-
-      // Closed loop waypoints
-      let waypoints: [number, number][] =
-        tourCoords.length > 0 ? [start, ...tourCoords, start] : [start, start];
-
-      // Mapbox Directions API limit (25 coords)
-      const MAX_WAYPOINTS = 25;
-      if (waypoints.length > MAX_WAYPOINTS) {
-        const keep = (arr: [number, number][], max: number) => {
-          const res: [number, number][] = [];
-          const step = (arr.length - 1) / (max - 1);
-          for (let i = 0; i < max; i++) {
-            const idx = Math.round(i * step);
-            res.push(arr[Math.min(idx, arr.length - 1)]);
-          }
-          return res;
-        };
-        waypoints = keep(waypoints, MAX_WAYPOINTS);
-      }
-
-      const coordsParam = waypoints.map(([lng, lat]) => `${lng},${lat}`).join(';');
-      const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordsParam}?alternatives=false&geometries=geojson&overview=full&access_token=${token}`;
-
-      const emptyLine: GeoJSON.Feature<GeoJSON.LineString> = {
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates: [] },
-        properties: {},
-      };
-
-      map.on('load', async () => {
-        // Route layer
-        if (!map.getSource('tour-route')) {
-          map.addSource('tour-route', { type: 'geojson', data: emptyLine });
-        }
-        if (!map.getLayer('tour-route-line')) {
-          map.addLayer({
-            id: 'tour-route-line',
-            type: 'line',
-            source: 'tour-route',
-            paint: {
-              'line-width': 5,
-              'line-color': '#2563eb', // blue route
-              'line-opacity': 0.95,
-            },
-            layout: { 'line-join': 'round', 'line-cap': 'round' },
-          });
-        }
-
-        // Fetch directions
-        try {
-          const res = await fetch(directionsUrl);
-          if (!res.ok) throw new Error(`Directions API ${res.status}`);
-          const data = await res.json() as {
-            routes: { geometry: GeoJSON.LineString; distance: number; duration: number }[];
-          };
-          const route = data.routes?.[0];
-          if (!route) throw new Error('No route found');
-
-          (map.getSource('tour-route') as mapboxgl.GeoJSONSource).setData({
-            type: 'Feature',
-            geometry: route.geometry,
-            properties: {},
-          });
-
-          setStats({ distance: route.distance, duration: route.duration });
-
-          // Optionally fit bounds to the route AFTER first render
-          const bounds = new mapboxgl.LngLatBounds();
-          route.geometry.coordinates.forEach(([lng, lat]) => bounds.extend([lng, lat]));
-          if (!bounds.isEmpty()) {
-            map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 16 });
-          }
-        } catch {
-          // Fallback to straight lines (still centered initially at start)
-          (map.getSource('tour-route') as mapboxgl.GeoJSONSource).setData({
-            type: 'Feature',
-            geometry: { type: 'LineString', coordinates: waypoints },
-            properties: {},
-          });
-
-          const fbounds = new mapboxgl.LngLatBounds();
-          waypoints.forEach(([lng, lat]) => fbounds.extend([lng, lat]));
-          if (!fbounds.isEmpty()) {
-            map.fitBounds(fbounds, { padding: 60, duration: 600, maxZoom: 16 });
-          }
-        }
-      });
-
-      // Cleanup
-      cleanup = () => {
-        placeMarkers.forEach((m) => m.remove());
-        startMarker.remove();
-        map.remove();
-        mapRef.current = null;
-      };
     })().catch((e) => setError(String(e)));
 
-    return () => cleanup();
-  }, [places, profile]);
-
-  // Small formatter for stats
-  const pretty = (s?: { distance: number; duration: number } | null) => {
-    if (!s) return '';
-    const km = (s.distance / 1000).toFixed(2);
-    const mins = Math.round(s.duration / 60);
-    const hh = Math.floor(mins / 60);
-    const mm = mins % 60;
-    return `${km} km • ${hh ? `${hh}h ` : ''}${mm}m`;
-  };
+    return () => {
+      disposed = true;
+      try {
+        clearMarkers();
+        const map = mapRef.current;
+        if (map) {
+          removeRouteLayers(map);
+          map.remove();
+        }
+      } catch { }
+      mapRef.current = null;
+    };
+  }, [tour, profile, locale]);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-lg border" style={{ height }}>
+    <div
+      className="relative w-full overflow-hidden rounded-lg border bg-gray-50 dark:bg-gray-900"
+      style={{ height }}
+    >
       <div ref={mapDivRef} className="h-full w-full" />
+
+      {loading && (
+        <div className="absolute inset-0 grid place-items-center">
+          <div className="flex items-center gap-3 rounded-xl bg-white/80 p-3 shadow dark:bg-black/60">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
+            <span className="text-sm">{t("Loading map…") || "Loading map…"}</span>
+          </div>
+        </div>
+      )}
+
       {error && (
-        <div className="pointer-events-none absolute left-3 top-3 rounded bg-black/70 px-3 py-2 text-xs text-white">
+        <div className="absolute left-3 top-3 rounded bg-black/70 px-3 py-2 text-xs text-white">
           {error}
         </div>
       )}
-      {stats && !error && (
-        <div className="absolute right-3 top-3 rounded bg-white/90 px-3 py-2 text-xs shadow">
-          Route: {pretty(stats)}
-        </div>
+
+      {tour.routeImage?.secure_url && (
+        <>
+          <div className="absolute left-3 top-3 z-10">
+            <img
+              src={tour.routeImage.secure_url}
+              alt="Route preview"
+              className="h-24 w-36 md:h-28 md:w-44 cursor-pointer rounded-md border shadow-md hover:scale-105 transition-all object-cover"
+              onClick={() => setShowImage(true)}
+            />
+          </div>
+          {showImage && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+              onClick={() => setShowImage(false)}
+            >
+              <button
+                className="absolute right-5 top-5 text-white text-2xl font-bold"
+                onClick={() => setShowImage(false)}
+              >
+                ✕
+              </button>
+              <img
+                src={tour.routeImage.secure_url}
+                alt="Route full"
+                className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg object-contain"
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

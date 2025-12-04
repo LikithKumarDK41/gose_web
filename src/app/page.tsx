@@ -1,289 +1,927 @@
-// src/app/page.tsx
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { ImageIcon } from "lucide-react";
+import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
+import { useRouter } from "next/navigation";
+import {
+  fetchShortcuts,
+  selectShortcuts,
+  selectGlobalLoading,
+  setActiveTheme,
+} from "@/lib/store/slices/globalSlice";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CalendarDays, MapPinned, Clock3, Star, Plane, ListChecks, ArrowRight } from "lucide-react";
+import {
+  apiFetchMonumentDetails,
+  apiFetchTours,
+} from "@/services/userTourService";
+import type { Tour } from "@/lib/types/userTour.types";
 
-export default function Dashboard() {
+export default function ToursDashboardPage() {
+  const { t } = useLocale();
+  const dispatch = useAppDispatch();
+  const { show, hide } = useGlobalLoader();
+
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const shortcuts = useAppSelector(selectShortcuts);
+  const globalLoading = useAppSelector(selectGlobalLoading);
+
+  /* -------------------- Fetch Tours + Shortcuts -------------------- */
+  useEffect(() => {
+    let mounted = true;
+    const loadData = async () => {
+      try {
+        show();
+        const [tourData] = await Promise.all([
+          apiFetchTours(),
+          dispatch(fetchShortcuts()),
+        ]);
+        if (mounted) {
+          setTours(tourData);
+        }
+      } catch (err) {
+        console.error("Failed to load tours:", err);
+      } finally {
+        if (mounted) {
+          hide();
+          setLoading(false);
+        }
+      }
+    };
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, [dispatch, show, hide]);
+
+  const hasTours = (tours?.length ?? 0) > 0;
+
+  /* -------------------- Priority Placement -------------------- */
+  function placeByPriority(list: any[]) {
+    const ordered: any[] = [];
+    const nullZero: any[] = [];
+    const leftovers: any[] = [];
+
+    list.forEach((s) => {
+      const p = s.priority ?? 0;
+      if (p === 0) {
+        nullZero.push(s);
+      } else if (Number.isInteger(p) && p > 0) {
+        ordered[p] = s;
+      } else {
+        leftovers.push(s);
+      }
+    });
+
+    return nullZero.concat(ordered.filter(Boolean)).concat(leftovers);
+  }
+
+  const sectionOne = placeByPriority(
+    shortcuts.filter((s) => {
+      const p = s.priority ?? 0;
+      return p >= 0 && p <= 3;
+    })
+  );
+
+  const sectionTwo = placeByPriority(
+    shortcuts.filter((s) => {
+      const p = s.priority ?? 0;
+      return p >= 4 && p <= 9;
+    })
+  );
+
+  /* -------------------- Render -------------------- */
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Welcome back 👋</h1>
-          <p className="text-muted-foreground">
-            Plan routes, manage trips, and keep your saved places organized.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/tour">
-              Create Itinerary
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/admin">Manage Areas</Link>
-          </Button>
-        </div>
-      </div>
+    <>
+      <div className="space-y-12">
+        {/* ===== Shortcuts by Priority ===== */}
+        <div className="space-y-10">
+          {globalLoading ? (
+            <div className="text-center text-sm text-muted-foreground">
+              {t("loading_shortcuts")}
+            </div>
+          ) : (
+            <>
+              {sectionOne.length > 0 && (
+                <section className="space-y-8">
+                  <div className="flex items-center justify-center space-x-4">
+                    <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent dark:via-indigo-500" />
+                    <h2 className="bg-gradient-to-r from-indigo-500 to-sky-500 dark:from-indigo-300 dark:to-sky-400 bg-clip-text text-transparent text-2xl font-extrabold tracking-wide">
+                      {t("main_categories")}
+                    </h2>
+                    <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent dark:via-indigo-500" />
+                  </div>
+                  <ShortcutGrid shortcuts={sectionOne} />
+                </section>
+              )}
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Upcoming Trips"
-          value="3"
-          hint="+1 this month"
-          icon={<CalendarDays className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Saved Places"
-          value="42"
-          hint="8 new"
-          icon={<MapPinned className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Hours Planned"
-          value="67h"
-          hint="across all trips"
-          icon={<Clock3 className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Favorites"
-          value="15"
-          hint="highly rated"
-          icon={<Star className="h-4 w-4" />}
-        />
-      </div>
+              {sectionTwo.length > 0 && (
+                <section className="space-y-8">
+                  <div className="flex items-center justify-center space-x-4">
+                    <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent dark:via-pink-500" />
+                    <h2 className="bg-gradient-to-r from-pink-500 to-fuchsia-500 dark:from-pink-300 dark:to-fuchsia-400 bg-clip-text text-transparent text-2xl font-extrabold tracking-wide">
+                      {t("more_options")}
+                    </h2>
+                    <span className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-pink-400 to-transparent dark:via-pink-500" />
+                  </div>
+                  <ShortcutGrid shortcuts={sectionTwo} />
+                </section>
+              )}
+            </>
+          )}
+        </div>
 
-      {/* Main two‑column content */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Left column */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-base">Your Itineraries</CardTitle>
-              <Tabs defaultValue="active" className="w-auto">
-                <TabsList>
-                  <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="drafts">Drafts</TabsTrigger>
-                </TabsList>
-                <TabsContent value="active" />
-                <TabsContent value="drafts" />
-              </Tabs>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <ItineraryRow
-                title="Katsuragi Kodo Road"
-                days="1 day"
-                stops={16}
-                progress={78}
-                badge="Japan"
-              />
-              <Separator />
-              <ItineraryRow
-                title="Nara Heritage Walk"
-                days="Half‑day"
-                stops={9}
-                progress={45}
-                badge="Japan"
-              />
-              <Separator />
-              <ItineraryRow
-                title="Kyoto Temples Circuit"
-                days="2 days"
-                stops={24}
-                progress={22}
-                badge="Japan"
-              />
-              <div className="pt-2">
-                <Button variant="ghost" className="gap-2" asChild>
-                  <Link href="/tour">
-                    View all itineraries <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
+        {/* ===== Tours grid (Updated Design) ===== */}
+        {!loading && hasTours && (
+          <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+            {tours.slice(0, 6).map((tour) => (
+              <div
+                key={tour._id}
+                className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border"
+              >
+                {/* Image Section */}
+                <div className="relative h-48 w-full overflow-hidden">
+                  {tour.image?.secure_url ? (
+                    <img
+                      src={tour.image.secure_url}
+                      alt={tour.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                    />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
+                      <ImageIcon className="h-8 w-8" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Content Section */}
+                <div className="flex flex-1 flex-col justify-between p-4">
+                  <div>
+                    <h3 className="line-clamp-1 text-base font-semibold text-sky-700 dark:text-cyan-300">
+                      {tour.title}
+                    </h3>
+                    {tour.content?.brief && (
+                      <p
+                        className="text-xs text-muted-foreground mt-1 line-clamp-2"
+                        dangerouslySetInnerHTML={{
+                          __html: (tour.content.brief ?? "")
+                            .replace(/<[^>]+>/g, "")
+                            .replace(/&nbsp;|&#160;/gi, " ")
+                            .trim(),
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  <Button
+                    onClick={() =>
+                      (window.location.href = `/tours/detail?id=${tour._id}`)
+                    }
+                    className="cursor-pointer mt-3 h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90 transition-all"
+                  >
+                    {t("actions.details")}
+                  </Button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
+        )}
 
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-base">Recent Activity</CardTitle>
-              <p className="text-xs text-muted-foreground">Last 24 hours</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ActivityItem
-                title="Added 'Emperor Jinmu Shrine' to favorites"
-                time="2h ago"
-                who="N"
-              />
-              <ActivityItem
-                title="Created new area 'Kashihara Stations'"
-                time="5h ago"
-                who="N"
-              />
-              <ActivityItem
-                title="Reordered stops in 'Kodo Road'"
-                time="yesterday"
-                who="N"
-              />
-            </CardContent>
-          </Card>
-        </div>
+        {tours.length > 6 && (
+          <div className="mt-6 flex justify-center">
+            <Button
+              asChild
+              className="rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90"
+            >
+              <Link href="/tours">{t("actions.show_more")}</Link>
+            </Button>
+          </div>
+        )}
 
-        {/* Right column */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-base">Quick Actions</CardTitle>
-              <p className="text-xs text-muted-foreground">Jump back in</p>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              <Button variant="secondary" className="justify-start gap-2" asChild>
-                <Link href="/tour"><ListChecks className="h-4 w-4" /> Resume planning</Link>
-              </Button>
-              <Button variant="secondary" className="justify-start gap-2" asChild>
-                <Link href="/admin"><MapPinned className="h-4 w-4" /> Manage geofences</Link>
-              </Button>
-              <Button variant="secondary" className="justify-start gap-2" asChild>
-                <Link href="/"><Plane className="h-4 w-4" /> Import sample trip</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-base">Saved Places (nearby)</CardTitle>
-              <p className="text-xs text-muted-foreground">Based on your last position</p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <PlaceRow name="Emperor Jinmu Shrine" tag="Shrine" rating="4.7" />
-              <PlaceRow name="Hohoma Shrine" tag="Shrine" rating="4.5" />
-              <PlaceRow name="Kisshosoji Temple" tag="Temple" rating="4.6" />
-              <div className="pt-1">
-                <Button variant="ghost" className="gap-2" asChild>
-                  <Link href="/tour">See all places <ArrowRight className="h-4 w-4" /></Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Announcements</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Announcement
-                title="New: Dark mode & language toggle"
-                blurb="Switch between light/dark and EN/JP from the header."
-              />
-              <Announcement
-                title="PWA install"
-                blurb="Add the app to your home screen for an offline‑friendly experience."
-              />
-            </CardContent>
-          </Card>
-        </div>
+        {!loading && !hasTours && (
+          <div className="rounded-xl border p-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t("no_tours_available")}
+            </p>
+          </div>
+        )}
       </div>
+      {/* ===== Floating Search Button ===== */}
+      <SearchFab />
+    </>
+  );
+}
+
+/* =========================================================
+   🌈 Reusable Shortcuts Grid
+========================================================= */
+function ShortcutGrid({ shortcuts }: { shortcuts: any[] }) {
+  const gradients = [
+    "from-indigo-400 to-sky-400",
+    "from-emerald-400 to-teal-400",
+    "from-pink-400 to-rose-400",
+    "from-amber-400 to-orange-400",
+    "from-fuchsia-400 to-violet-400",
+    "from-cyan-400 to-blue-400",
+  ];
+
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+
+  const handleShortcutClick = (shortcut: any) => {
+    try {
+      if (shortcut.link && shortcut.link.trim().startsWith("{")) {
+        const parsedLink = JSON.parse(shortcut.link);
+        if (parsedLink.theme) {
+          dispatch(setActiveTheme(parsedLink.theme));
+        }
+      }
+
+      const priority = shortcut.priority ?? null;
+
+      switch (priority) {
+        case null:
+          router.push("/shortcuts/tourist-map");
+          break;
+        case 2:
+          router.push("/shortcuts/tourist-attractions");
+          break;
+        case 3:
+          router.push("/shortcuts/about");
+          break;
+        case 4:
+          router.push("/shortcuts/events");
+          break;
+        case 5:
+          router.push("/shortcuts/gourmet-products");
+          break;
+        case 6:
+          router.push("/shortcuts/facility");
+          break;
+        case 7:
+          router.push("/shortcuts/mt-kongo-and-katsuragi");
+          break;
+        case 8:
+          router.push("/shortcuts/city-promotion");
+          break;
+        case 9:
+          router.push("/shortcuts/meetings");
+          break;
+        default:
+          router.push("/shortcuts/others");
+          break;
+      }
+    } catch (err) {
+      console.error("❌ Error parsing shortcut link:", err);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap justify-center gap-8">
+      {shortcuts.map((item, idx) => {
+        const gradient = gradients[idx % gradients.length];
+
+        return (
+          <div
+            key={item._id}
+            className="flex flex-col items-center text-center cursor-pointer w-32"
+            onClick={() => handleShortcutClick(item)}
+          >
+            <div
+              className={`h-20 w-20 rounded-full flex items-center justify-center 
+                          bg-gradient-to-br ${gradient} text-white shadow-md
+                          hover:scale-105 transition-transform`}
+            >
+              {item.icon?.secure_url ? (
+                <img
+                  src={item.icon.secure_url}
+                  alt={item.title}
+                  className="h-12 w-12 object-contain"
+                />
+              ) : (
+                <ImageIcon className="h-8 w-8" />
+              )}
+            </div>
+            <span className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+              {item.title}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-/* ---------- small pieces ---------- */
+/* =========================================================
+   🔍 Fullscreen Search FAB + Themed Modal + API Data
+   (Autocomplete + FreeText & Multi-Select Filters)
+========================================================= */
+import { useMemo } from "react";
+import { Search, X, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  apiFetchSearchFilters,
+  apiFetchSearchSuggestionsAdv,
+  apiFetchFreeTextSearch,
+} from "@/services/userGlobalservice";
 
-function StatCard({
-  title,
-  value,
-  hint,
-  icon,
+import { apiFetchAllMonumentsWithQuery } from "@/services/userTourService";
+import type { SearchFilter } from "@/lib/types/userGlobal.types";
+import type { Monument } from "@/lib/types/userTour.types";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
+
+function SearchFab() {
+  const [open, setOpen] = useState(false);
+  const [filters, setFilters] = useState<SearchFilter[]>([]);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [monuments, setMonuments] = useState<Monument[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [perPage] = useState(6);
+  const [keyword, setKeyword] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const { t, locale } = useLocale();
+  const [selectedMonument, setSelectedMonument] = useState<Monument | null>(
+    null
+  );
+
+  /* -------------------- Initial Load -------------------- */
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      fetchDefaultData();
+    } else {
+      document.body.style.overflow = "auto";
+    }
+  }, [open]);
+
+  async function fetchDefaultData() {
+    try {
+      setLoading(true);
+      const [filtersData, monumentsData] = await Promise.all([
+        apiFetchSearchFilters(),
+        apiFetchAllMonumentsWithQuery({ sort: "-popularity" }),
+      ]);
+      setFilters(filtersData);
+      setMonuments(monumentsData);
+    } catch (err) {
+      console.error("Failed to load data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function openMonumentModal(id: string) {
+    try {
+      setLoading(true);
+      const data = await apiFetchMonumentDetails(id);
+      setSelectedMonument(data);
+    } catch (err) {
+      console.error("Failed to fetch monument details:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* -------------------- Filter Change -------------------- */
+  useEffect(() => {
+    if (selectedFilters.length === 0) {
+      fetchDefaultData();
+      return;
+    }
+
+    async function applyFilters() {
+      try {
+        setLoading(true);
+
+        const selectedData = filters.filter((f) =>
+          selectedFilters.includes(f._id)
+        );
+
+        // Identify your filter 1 & 2 (update condition if you use title)
+        const filter1 = filters[0];
+        const filter2 = filters[1];
+
+        const isFilter1Selected =
+          filter1 && selectedFilters.includes(filter1._id);
+        const isFilter2Selected =
+          filter2 && selectedFilters.includes(filter2._id);
+
+        // Case 1: Only filter 1 & 2 selected → call both APIs & combine
+        if (
+          isFilter1Selected &&
+          isFilter2Selected &&
+          selectedFilters.length === 2
+        ) {
+          const results = await Promise.all(
+            [filter1, filter2].map(async (f) => {
+              try {
+                const parsed = f.link ? JSON.parse(f.link) : {};
+                const sortOrder = f.sortby || "-popularity";
+                const payload = { filter: parsed, sort: sortOrder };
+                const data: any = await apiFetchAllMonumentsWithQuery(payload);
+
+                return Array.isArray(data)
+                  ? data
+                  : data?.monuments?.results || [];
+              } catch (err) {
+                console.warn("Error fetching filter:", f.title);
+                return [];
+              }
+            })
+          );
+
+          // Combine & remove duplicates
+          const combined = results.flat();
+          const unique = combined.filter(
+            (m, i, arr) => arr.findIndex((x) => x._id === m._id) === i
+          );
+
+          setMonuments(unique);
+          return; // stop here, don't continue to merge logic
+        }
+
+        //  Case 2: For all other filters → merge filters normally
+        const mergedFilter: Record<string, any> = {};
+        let sortOrder = "-popularity";
+
+        selectedData.forEach((f) => {
+          try {
+            const parsed = f.link ? JSON.parse(f.link) : {};
+            Object.assign(mergedFilter, parsed);
+            if (f.sortby) sortOrder = f.sortby;
+          } catch (err) {
+            console.warn("Invalid link JSON:", f.link);
+          }
+        });
+
+        const payload = { filter: mergedFilter, sort: sortOrder };
+        const data: any = await apiFetchAllMonumentsWithQuery(payload);
+        const results = Array.isArray(data)
+          ? data
+          : data?.monuments?.results || [];
+        setMonuments(results);
+      } catch (err) {
+        console.error("Failed to apply filters:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    applyFilters();
+  }, [selectedFilters]);
+
+  function toggleFilter(id: string) {
+    setSelectedFilters((prev) =>
+      prev.includes(id) ? prev.filter((fid) => fid !== id) : [...prev, id]
+    );
+  }
+
+  /* -------------------- Autocomplete Suggestions -------------------- */
+  useEffect(() => {
+    if (!keyword.trim()) {
+      setSuggestions([]);
+      return;
+    }
+
+    const debounce = setTimeout(async () => {
+      try {
+        setSearchLoading(true);
+        const data = await apiFetchSearchSuggestionsAdv(keyword);
+        setSuggestions(data || []);
+      } catch (err) {
+        console.error("Failed to fetch suggestions:", err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(debounce);
+  }, [keyword]);
+
+  /* -------------------- Handle Suggestion Click -------------------- */
+  async function handleSuggestionClick(item: any, isAll: boolean) {
+    try {
+      setLoading(true);
+      setSuggestions([]);
+      setPage(1);
+
+      if (isAll) {
+        const data = await apiFetchFreeTextSearch(keyword);
+        setMonuments(data?.monuments || []);
+      } else {
+        const payload = {
+          filter: item.filters || {},
+          sort: "-popularity",
+        };
+        const data = await apiFetchAllMonumentsWithQuery(payload);
+        setMonuments(data || []);
+      }
+
+      setSuggestions([]);
+    } catch (err) {
+      console.error("Failed to load monuments:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* -------------------- Handle Clear -------------------- */
+  async function handleClear() {
+    setKeyword("");
+    setSuggestions([]);
+    setSelectedFilters([]);
+    await fetchDefaultData();
+  }
+
+  function resetAll() {
+    setKeyword("");
+    setSuggestions([]);
+    setSelectedFilters([]);
+    setMonuments([]);
+    setFilters([]);
+    setPage(1);
+  }
+
+  /* -------------------- Pagination -------------------- */
+  const total = monuments.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const current = Math.min(page, totalPages);
+  const startIdx = (current - 1) * perPage;
+  const pageItems = useMemo(
+    () => monuments.slice(startIdx, startIdx + perPage),
+    [monuments, startIdx, perPage]
+  );
+
+  /* =========================================================
+     💠 Render
+  ========================================================= */
+  return (
+    <>
+      {/* Floating Button */}
+      <button
+        onClick={() => setOpen(true)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center 
+                   rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 
+                   text-white shadow-lg hover:scale-105 hover:shadow-xl transition-transform"
+      >
+        <Search className="h-6 w-6" />
+      </button>
+
+      {/* Fullscreen Modal */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[9999] bg-white dark:bg-slate-950/95 
+                       backdrop-blur-md flex flex-col items-center justify-start 
+                       overflow-y-auto"
+          >
+            {/* Close button */}
+            <button
+              onClick={() => {
+                resetAll();
+                setOpen(false);
+              }}
+              className="absolute top-6 right-6 text-gray-600 dark:text-gray-300 
+             hover:text-sky-500 transition-colors"
+            >
+              <X className="h-7 w-7" />
+            </button>
+
+            {/* Search Bar + Suggestions */}
+            <motion.div
+              initial={{ y: -30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              className="relative w-full max-w-2xl mt-24 px-6 z-50 mx-auto flex justify-center"
+            >
+              <div className="relative w-full max-w-[640px]">
+                <div
+                  className={`flex items-center w-full px-5 py-4 shadow-lg transition-all 
+                  border border-sky-400/60 dark:border-cyan-500/50 
+                  bg-gray-50 dark:bg-slate-900 focus-within:ring-2 
+                  focus-within:ring-sky-400
+                  ${
+                    keyword && suggestions.length > 0
+                      ? "rounded-t-2xl"
+                      : "rounded-2xl"
+                  }`}
+                >
+                  <Search className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-3" />
+
+                  <input
+                    type="text"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder={locale == "en" ? "Search" :"検索"}
+                    className="w-full bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none text-base"
+                    autoFocus
+                  />
+
+                  {keyword && (
+                    <button
+                      onClick={handleClear}
+                      className="ml-2 text-gray-400 hover:text-sky-500 dark:hover:text-cyan-400 transition-colors focus:outline-none"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Autocomplete Dropdown */}
+                {keyword && suggestions.length > 0 && (
+                  <div
+                    className="absolute top-full left-0 right-0 border-x border-b border-sky-400/60 dark:border-cyan-500/50 bg-white dark:bg-slate-900 shadow-xl rounded-b-2xl overflow-y-auto max-h-56 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                    style={{ zIndex: 9999 }}
+                  >
+                    {searchLoading ? (
+                      <div className="flex justify-center py-6">
+                        <div className="w-8 h-8 border-4 border-t-transparent border-sky-500 rounded-full animate-spin"></div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Static "All" Option */}
+                        <div
+                          key="static-all"
+                          onClick={() => handleSuggestionClick(null, true)}
+                          className="px-5 py-3 text-sm text-gray-800 dark:text-gray-200 hover:bg-sky-50 dark:hover:bg-slate-800 cursor-pointer transition-colors border-b border-gray-100/40 dark:border-slate-800/40"
+                        >
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {keyword}
+                          </span>{" "}
+                          <span className="text-gray-500">@</span>{" "}
+                          <span className="text-sky-600 dark:text-cyan-400">
+                            All
+                          </span>
+                        </div>
+
+                        {/* API Suggestions */}
+                        {suggestions.map((s: any, i: number) => (
+                          <div
+                            key={i}
+                            onClick={() => handleSuggestionClick(s, false)}
+                            className="px-5 py-3 text-sm text-gray-800 dark:text-gray-200 hover:bg-sky-50 dark:hover:bg-slate-800 cursor-pointer transition-colors border-b border-gray-100/40 dark:border-slate-800/40 last:border-0"
+                          >
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {keyword}
+                            </span>{" "}
+                            <span className="text-gray-500">@</span>{" "}
+                            <span className="text-sky-600 dark:text-cyan-400">
+                              {s.title || s.key || ""}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Filters Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-12 w-full px-6 flex flex-col items-center z-10"
+            >
+              {filters.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-10">
+                  {filters.map((f) => {
+                    const isActive = selectedFilters.includes(f._id);
+                    return (
+                      <div
+                        key={f._id}
+                        onClick={() => toggleFilter(f._id)}
+                        className={`flex flex-col items-center cursor-pointer transition-transform hover:scale-105 ${
+                          isActive
+                            ? "opacity-100"
+                            : "opacity-80 hover:opacity-100"
+                        }`}
+                      >
+                        <div
+                          className={`relative h-20 w-20 rounded-full flex items-center justify-center shadow-md transition-all ${
+                            isActive
+                              ? "bg-gradient-to-br from-emerald-500 to-sky-500"
+                              : "bg-gradient-to-br from-sky-400 to-emerald-400 dark:from-sky-600 dark:to-emerald-600"
+                          }`}
+                        >
+                          {f.icon?.secure_url ? (
+                            <img
+                              src={f.icon.secure_url}
+                              alt={f.title}
+                              className="h-12 w-12 object-contain"
+                            />
+                          ) : (
+                            <Search className="h-8 w-8 text-white" />
+                          )}
+                          {isActive && (
+                            <div className="absolute bottom-1 right-1 bg-white dark:bg-slate-800 rounded-full p-1 shadow">
+                              <Check className="h-4 w-4 text-emerald-500" />
+                            </div>
+                          )}
+                        </div>
+                        <span className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-200 text-center">
+                          {f.title}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+
+            {/* Monuments Grid */}
+            <div className="mt-16 w-full max-w-7xl px-6 pb-20 relative z-0">
+              {loading ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="w-10 h-10 border-4 border-t-transparent border-sky-500 rounded-full animate-spin"></div>
+                </div>
+              ) : pageItems.length > 0 ? (
+                <>
+                  <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
+                    {pageItems.map((m) => (
+                      <div
+                        key={m._id}
+                        className="group relative flex flex-col overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl transition-all border border-gray-200 dark:border-slate-800"
+                      >
+                        <div className="relative h-48 w-full overflow-hidden">
+                          {m.image?.secure_url ? (
+                            <img
+                              src={m.image.secure_url}
+                              alt={m.title || m.name}
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                            />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">
+                              <Search className="h-8 w-8" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-4 flex flex-col justify-between flex-1">
+                          <div>
+                            <h3 className="line-clamp-1 text-base font-semibold text-sky-700 dark:text-cyan-300">
+                              {m.title || m.name}
+                            </h3>
+                            {m.content?.brief && (
+                              <p
+                                className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2"
+                                dangerouslySetInnerHTML={{
+                                  __html: (m.content.brief ?? "")
+                                    .replace(/<[^>]+>/g, "")
+                                    .replace(/&nbsp;|&#160;/gi, " ")
+                                    .trim(),
+                                }}
+                              />
+                            )}
+                          </div>
+                          <Button
+                            onClick={() => openMonumentModal(m._id)}
+                            className="cursor-pointer mt-3 h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90 transition-all"
+                          >
+                            {t("actions.details")}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <PageNavigator
+                    totalPages={totalPages}
+                    page={page}
+                    onPageChange={setPage}
+                    t={t}
+                  />
+
+                  {selectedMonument && (
+                    <MonumentDetailModal
+                      open={selectedMonument !== null}
+                      onClose={() => setSelectedMonument(null)}
+                      loading={loading}
+                      details={selectedMonument}
+                      onOpenAnother={(id: string) => openMonumentModal(id)}
+                    />
+                  )}
+                </>
+              ) : (
+                <div className="text-center text-gray-600 dark:text-gray-400">
+                  {t("no_information_to_display")}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+/* =========================================================
+   🌿 Pagination Component (Fixed Page Numbers)
+========================================================= */
+function PageNavigator({
+  totalPages,
+  page,
+  onPageChange,
+  t,
 }: {
-  title: string;
-  value: string;
-  hint: string;
-  icon: React.ReactNode;
+  totalPages: number;
+  page: number;
+  onPageChange: (n: number) => void;
+  t: any;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className="text-muted-foreground">{icon}</div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-semibold">{value}</div>
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      </CardContent>
-    </Card>
-  );
-}
+    <div className="flex items-center justify-between gap-3 pt-8">
+      {/* Left Info */}
+      <div className="text-xs text-muted-foreground">
+        ページ {page} / {totalPages}
+      </div>
 
-function ItineraryRow({
-  title,
-  days,
-  stops,
-  progress,
-  badge,
-}: {
-  title: string;
-  days: string;
-  stops: number;
-  progress: number;
-  badge: string;
-}) {
-  return (
-    <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium truncate">{title}</span>
-          <Badge variant="secondary" className="whitespace-nowrap">{badge}</Badge>
+      {/* Pagination Controls */}
+      <div className="flex items-center gap-1">
+        {/* Prev */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+        >
+          ‹ {t("tours.prev")}
+        </Button>
+
+        {/* Page Numbers */}
+        <div className="flex items-center gap-1">
+          {rangeAround(page, totalPages, 2).map((n, i) =>
+            n === "…" ? (
+              <span
+                key={`dots-${i}`}
+                className="px-2 text-sm text-muted-foreground"
+              >
+                …
+              </span>
+            ) : (
+              <button
+                key={`page-${n}-${i}`}
+                onClick={() => onPageChange(n)}
+                className={`cursor-pointer h-8 min-w-8 rounded-md px-2 text-sm ${
+                  n === page
+                    ? "bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white shadow-sm"
+                    : "hover:bg-sky-50 dark:hover:bg-slate-800 text-sky-700 dark:text-cyan-300"
+                }`}
+              >
+                {n}
+              </button>
+            )
+          )}
         </div>
-        <p className="text-xs text-muted-foreground">{days} • {stops} stops</p>
-        <div className="mt-2">
-          <Progress value={progress} className="h-2" />
-        </div>
-      </div>
-      <Button variant="outline" size="sm" className="mt-2 sm:mt-0" asChild>
-        <Link href="/tour">Open</Link>
-      </Button>
-    </div>
-  );
-}
 
-function ActivityItem({ title, time, who }: { title: string; time: string; who: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <Avatar className="h-8 w-8">
-        <AvatarImage alt="user" />
-        <AvatarFallback>{who}</AvatarFallback>
-      </Avatar>
-      <div className="min-w-0">
-        <p className="truncate text-sm">{title}</p>
-        <p className="text-xs text-muted-foreground">{time}</p>
+        {/* Next */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-sky-600 hover:bg-sky-50 dark:hover:bg-slate-800"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+        >
+          {t("tours.next")} ›
+        </Button>
       </div>
     </div>
   );
 }
 
-function PlaceRow({ name, tag, rating }: { name: string; tag: string; rating: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <div>
-        <div className="font-medium">{name}</div>
-        <div className="text-xs text-muted-foreground">{tag}</div>
-      </div>
-      <Badge variant="outline">{rating}★</Badge>
-    </div>
-  );
-}
-
-function Announcement({ title, blurb }: { title: string; blurb: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-3">
-      <div className="font-medium">{title}</div>
-      <p className="text-sm text-muted-foreground">{blurb}</p>
-    </div>
-  );
+/* =========================================================
+   📎 Helper (Same as ToursPage)
+========================================================= */
+function rangeAround(
+  current: number,
+  total: number,
+  radius: number
+): (number | "…")[] {
+  const out: (number | "…")[] = [];
+  const start = Math.max(1, current - radius);
+  const end = Math.min(total, current + radius);
+  if (start > 1) {
+    out.push(1);
+    if (start > 2) out.push("…");
+  }
+  for (let i = start; i <= end; i++) out.push(i);
+  if (end < total) {
+    if (end < total - 1) out.push("…");
+    out.push(total);
+  }
+  return out;
 }

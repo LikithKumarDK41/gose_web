@@ -1,218 +1,237 @@
-// src/components/nav/GlobalCheckinToasts.tsx
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
+import { store } from "@/lib/store";
 
-// Incoming event shape from GeofenceProvider
-export type CheckinDetail = {
-  id: string;
-  name: string;
-  blurb?: string;
-  time?: string;
-  lat: number;
-  lng: number;
-  radius: number;   // meters
-  distance: number; // meters at trigger time
-};
+import {
+  selectGeofenceQueue,
+  confirm,
+  markShown,
+  selectGeofenceShown,
+} from "@/lib/store/slices/geofenceSlice";
 
-// Small helper (meters)
-function haversine(a: [number, number], b: [number, number]) {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b[1] - a[1]);
-  const dLng = toRad(b[0] - a[0]);
-  const lat1 = toRad(a[1]), lat2 = toRad(b[1]);
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
+import { selectNav, fetchUserTourPoints } from "@/lib/store/slices/navSlice";
+
+import { selectTourDetail } from "@/lib/store/slices/touristSlice";
+
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+
+import { apiCreateVisitHistory } from "@/services/myListService";
+import { apiCreateStamp } from "@/services/userNavService";
+import { useLocale } from "@/providers/LocaleProvider";
+
+/* --------------------
+    Sanitize HTML
+-------------------- */
+function sanitizeHTML(input: string): string {
+  if (!input) return "";
+  return input
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/on\w+="[^"]*"/gi, "");
 }
 
-// A cluster groups multiple nearby check-in candidates
-type Cluster = {
-  key: string;              // unique for React
-  center: [number, number]; // lng, lat
-  items: CheckinDetail[];   // one or many places in this area
-};
-
-const MERGE_WITHIN_METERS = 60; // cluster if geofences are ~60m apart
-
+/* ----------------------------------------------
+   GLOBAL CHECK-IN POPUP
+---------------------------------------------- */
 export default function GlobalCheckinToasts() {
-  const [clusters, setClusters] = useState<Cluster[]>([]);
+  const dispatch = useAppDispatch();
+  const { t: translate } = useLocale();
 
-  // Listen globally for geofence events
+  const queue = useAppSelector(selectGeofenceQueue);
+  const shown = useAppSelector(selectGeofenceShown) || [];
+
+  const nav = useAppSelector(selectNav);
+  const tourDetail = useAppSelector(selectTourDetail);
+  const auth = useAppSelector((s) => s.auth.data);
+
+  const popupLock = useRef(false);
+
+  /* -------------------------------------------------------
+     EFFECT → Opens popup whenever queue has new item
+  -------------------------------------------------------- */
   useEffect(() => {
-    const onCheckin = (e: Event) => {
-      const ce = e as CustomEvent<CheckinDetail>;
-      const p = ce.detail;
-      const pt: [number, number] = [p.lng, p.lat];
+    if (popupLock.current) return;
+    if (!queue.length) return;
 
-      setClusters((prev) => {
-        // If this place already exists in a cluster, ignore duplicates
-        for (const c of prev) {
-          if (c.items.some((it) => it.id === p.id)) return prev;
-        }
+    const item = queue[0];
+    const successText = translate("checked_in_at");
+    const failedCheckInText = translate("failed_to_complete_checkin");
+    const pleaseTryAgainText = translate("please_try_again");
+    const pleaseSignInText = translate("please_signin_to_checkin");
+    const nearText = translate("you_are_near");
+    const reachedText = translate("reached_check_in_location");
+    const latText = translate("lat");
+    const longText = translate("long");
+    const radiusText = translate("radius");
+    const closeText = translate("close");
+    const checkInText = translate("check_in");
 
-        // Try to merge with an existing cluster by distance
-        const i = prev.findIndex(
-          (c) => haversine(c.center, pt) <= MERGE_WITHIN_METERS
-        );
+    if (shown.includes(item.id)) {
+      dispatch(confirm(item.id));
+      return;
+    }
 
-        if (i >= 0) {
-          const copy = [...prev];
-          copy[i] = { ...copy[i], items: [...copy[i].items, p] };
-          return copy;
-        }
+    popupLock.current = true;
 
-        // Otherwise create a new cluster
-        return [...prev, { key: `${p.id}-${Date.now()}`, center: pt, items: [p] }];
-      });
-    };
+    toast.custom(
+      (t) =>
+        createPortal(
+          <div className="fixed inset-0 z-[9999999] flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-sm">
+            <div className="relative w-[90%] max-w-md p-6 rounded-2xl shadow-2xl bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-slate-700">
+              {/* Title */}
+              <h3 className="font-semibold text-lg mb-3 break-words">
+                {nearText}: {item.name}
+              </h3>
 
-    window.addEventListener('tour:checkin', onCheckin);
-    return () => window.removeEventListener('tour:checkin', onCheckin);
-  }, []);
-
-  if (clusters.length === 0) return null;
-
-  return (
-    <>
-      {/* Background overlay (visual only; doesn't block clicks under it) */}
-      <div className="pointer-events-none fixed inset-0 z-[99]">
-        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm dark:bg-black/60" />
-      </div>
-
-      {/* Centered stack (multiple clusters possible) */}
-      <div className="pointer-events-none fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2 space-y-3 p-3">
-        {clusters.map((cluster) => (
-          <ToastCard
-            key={cluster.key}
-            cluster={cluster}
-            onClose={() =>
-              setClusters((prev) => prev.filter((c) => c.key !== cluster.key))
-            }
-            onCheckin={(placeId) => {
-              // Fire a confirmation event you can handle globally
-              window.dispatchEvent(
-                new CustomEvent('tour:checkin:confirm', { detail: { id: placeId } })
-              );
-              // Remove only that place from the cluster; drop the cluster if empty
-              setClusters((prev) => {
-                const copy = prev.map((c) =>
-                  c.key === cluster.key
-                    ? { ...c, items: c.items.filter((i) => i.id !== placeId) }
-                    : c
-                );
-                return copy.filter((c) => c.items.length > 0);
-              });
-            }}
-          />
-        ))}
-      </div>
-    </>
-  );
-}
-
-/* ---------- Presentation ---------- */
-
-function ToastCard({
-  cluster,
-  onClose,
-  onCheckin,
-}: {
-  cluster: Cluster;
-  onClose: () => void;
-  onCheckin: (placeId: string) => void;
-}) {
-  const multiple = cluster.items.length > 1;
-  const title = multiple
-    ? `You're near multiple places`
-    : `You're near: ${cluster.items[0].name}`;
-
-  // Keep UI compact on phones while staying centered
-  const widthClass = useMemo(() => 'w-[min(92vw,28rem)]', []);
-
-  return (
-    <div
-      className={`pointer-events-auto ${widthClass} rounded-xl border bg-white/95 p-4 shadow-xl backdrop-blur dark:border-white/10 dark:bg-black/85`}
-      role="dialog"
-      aria-modal="false"
-    >
-      <div className="flex items-start gap-3">
-        <CheckCircle className="mt-0.5 h-5 w-5 text-green-600" />
-        <div className="min-w-0 flex-1">
-          <div className="font-semibold">{title}</div>
-
-          {!multiple && (
-            <SinglePlace
-              item={cluster.items[0]}
-              onCheckin={() => onCheckin(cluster.items[0].id)}
-            />
-          )}
-
-          {multiple && (
-            <div className="mt-2 max-h-72 space-y-2 overflow-auto pr-1">
-              {cluster.items.map((it) => (
+              {/* Description */}
+              {item.blurb ? (
                 <div
-                  key={it.id}
-                  className="flex items-start justify-between rounded-lg border bg-background/50 p-3 dark:border-white/10"
+                  className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed prose dark:prose-invert"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHTML(item.blurb) }}
+                />
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  {reachedText}
+                </p>
+              )}
+
+              {/* Coordinates */}
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-4 space-y-1 text-left">
+                <p>
+                  <strong>{latText}:</strong> {item.lat?.toFixed(6) ?? "—"}
+                </p>
+                <p>
+                  <strong>{longText}:</strong> {item.lng?.toFixed(6) ?? "—"}
+                </p>
+                <p>
+                  <strong>{radiusText}:</strong> {item.radius ?? "—"} m
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-center gap-3">
+                {/* Close */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    toast.dismiss(t);
+                    dispatch(confirm(item.id));
+                    dispatch(markShown(item.id));
+                    popupLock.current = false;
+                  }}
                 >
-                  <div className="min-w-0 pr-3">
-                    <div className="truncate font-medium">{it.name}</div>
-                    <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                      {it.blurb ?? 'Check in to mark this stop.'}
-                    </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground">
-                      ~{Math.max(0, Math.round(it.distance))} m inside • radius {it.radius} m
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="shrink-0 rounded-full"
-                    onClick={() => onCheckin(it.id)}
-                  >
-                    Check in
-                  </Button>
-                </div>
-              ))}
+                  {closeText}
+                </Button>
+
+                {/* CHECK-IN BUTTON */}
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={async () => {
+                    try {
+                      /* --------------------------------
+                         1️⃣ Validate user
+                      -------------------------------- */
+                      const userId =
+                        auth?.user?._id ||
+                        auth?.user?.id ||
+                        auth?.user?.uuid ||
+                        null;
+
+                      if (!userId) {
+                        toast.error(pleaseSignInText);
+                        toast.dismiss(t);
+                        return;
+                      }
+
+                      /* --------------------------------
+                         2️⃣ Create Visit History
+                      -------------------------------- */
+                      await apiCreateVisitHistory({
+                        user: userId,
+                        historytype: "monument",
+                        monument: String(item.monumentId),
+                        status: "active",
+                        visitmode: "manual",
+                        historytime: Date.now().toString(),
+                      });
+
+                      /* --------------------------------
+                         3️⃣ Create Stamp
+                      -------------------------------- */
+                      if (item.monumentId && item.tourpointId) {
+                        await apiCreateStamp({
+                          monument: String(item.monumentId),
+                          tourpoint: String(item.tourpointId),
+                          user: String(userId),
+                          status: "active",
+                          stamptime: Date.now(),
+                        });
+                      }
+
+                      /* --------------------------------
+                         4️⃣ Refresh usertourPoints (FIXED)
+                      -------------------------------- */
+                      try {
+                        await new Promise((res) => setTimeout(res, 50)); // 🔥 Give Redux time to update
+
+                        // Always fetch the latest IDs from store
+                        const state = store.getState();
+                        const freshNav = state.nav;
+                        const freshTour = state.tourist.detail;
+
+                        const usertourId =
+                          freshNav.usertour?._id || nav.usertour?._id;
+
+                        const tourId = freshTour?._id || tourDetail?._id;
+
+                        if (usertourId && tourId) {
+                          await dispatch(
+                            fetchUserTourPoints({ tourId, usertourId })
+                          ).unwrap();
+                        }
+                      } catch (err) {
+                        console.error("Error refreshing tourpoints:", err);
+                      }
+
+                      /* --------------------------------
+                         5️⃣ Complete
+                      -------------------------------- */
+                      dispatch(confirm(item.id));
+                      dispatch(markShown(item.id));
+
+                      toast.dismiss(t);
+                      toast.success(
+                        `${successText} ${item.name}`
+                      );
+                    } catch (err: any) {
+                      console.error("Check-in error:", err);
+
+                      toast.error(failedCheckInText, {
+                        description:
+                          err?.message || pleaseTryAgainText,
+                      });
+                    }
+
+                    popupLock.current = false;
+                  }}
+                >
+                  {checkInText}
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
+          </div>,
+          document.body
+        ),
+      { id: `checkin-${item.id}`, duration: Infinity }
+    );
+  }, [queue, shown]); // 👈 cleaned deps (no stale refs)
 
-        <button
-          className="ml-2 rounded-full p-1 hover:bg-black/5 dark:hover:bg-white/10"
-          aria-label="Close"
-          onClick={onClose}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function SinglePlace({
-  item,
-  onCheckin,
-}: {
-  item: CheckinDetail;
-  onCheckin: () => void;
-}) {
-  return (
-    <div className="mt-1">
-      <div className="mt-1 text-xs text-muted-foreground">
-        {item.blurb ?? 'You’ve entered the check-in area.'}
-      </div>
-      <div className="mt-1 text-[11px] text-muted-foreground">
-        ~{Math.max(0, Math.round(item.distance))} m inside • radius {item.radius} m
-      </div>
-      <div className="mt-3">
-        <Button size="sm" className="rounded-full" onClick={onCheckin}>
-          Check in
-        </Button>
-      </div>
-    </div>
-  );
+  return null;
 }

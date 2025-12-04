@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" preserveAspectRatio="xMidYMid slice">
+  <!-- Rice terrace inspired mask: flowing contour bands create layered valleys. -->
+  <defs>
+    <linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+  </defs>
+  <!-- Base black canvas -->
+  <rect width="1024" height="1024" fill="#000"/>
+  <!-- Carved terraces (white = reveal) -->
+  <g fill="url(#g)" opacity="0.98">
+    <path d="M0 220c160-70 320-96 512-84s352 70 512 132v100C864 308 704 272 512 262S160 276 0 324V220Z"/>
+    <path d="M0 396c170-64 326-80 512-70s344 50 512 108v96C850 474 694 448 512 440S170 458 0 512v-116Z"/>
+    <path d="M0 586c174-60 326-66 512-58s338 40 512 92v96c-166-54-318-74-512-82S176 640 0 706v-120Z"/>
+    <path d="M0 782c178-54 330-56 512-48s332 34 512 80v96c-162-50-312-68-512-76S182 842 0 900v-118Z"/>
+  </g>
+</svg>
+
+
