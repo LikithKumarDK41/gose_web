@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
-import { apiFetchTours } from "@/services/userTourService";
-import type { Tour } from "@/lib/types/userTour.types";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
+
+import { apiFetchTours } from "@/services/userTourService";
+import type { Tour } from "@/lib/types/userTour.types";
 
 export default function ToursPage() {
   const router = useRouter();

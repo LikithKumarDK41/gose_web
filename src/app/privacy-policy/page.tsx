@@ -2,8 +2,6 @@
 
 import React from "react";
 import { useLocale } from "@/providers/LocaleProvider";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 
 export default function PrivacyPolicyPage() {
   const { t, locale } = useLocale();

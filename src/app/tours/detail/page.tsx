@@ -7,14 +7,15 @@ import React, {
   Suspense,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Bookmark, BookmarkCheck } from "lucide-react";
+import { toast } from "sonner";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
+
 import { Button } from "@/components/ui/button";
 import MapboxTourMap from "@/components/map/MapboxTourMap";
 import TimelineRight from "@/components/tour/TimelineRight";
-import { Compass, Bookmark, BookmarkCheck } from "lucide-react";
-import { useLocale } from "@/providers/LocaleProvider";
-import { useGlobalLoader } from "@/providers/LoaderProvider";
-import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
-import { toast } from "sonner";
 
 // ⭐ DIRECT API IMPORT — for this page's tour data
 import {

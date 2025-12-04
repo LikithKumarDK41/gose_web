@@ -2,13 +2,14 @@
 
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { ImageIcon, MapPin } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchMonumentDetails, clearMonumentDetail } from "@/lib/store/slices/touristSlice";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { ImageIcon, MapPin } from "lucide-react";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
+
+import { Button } from "@/components/ui/button";
 
 export default function MonumentDetailPage() {
   const sp = useSearchParams();

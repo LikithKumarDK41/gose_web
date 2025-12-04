@@ -9,16 +9,12 @@ import {
   Landmark,
   ArrowUpDown,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
-import {
-  apiFetchAllMonumentsWithQuery,
-  apiFetchMonumentDetails,
-  apiFetchMonumentSorts,
-} from "@/services/userTourService";
-import type { Monument, MonumentSort } from "@/lib/types/userTour.types";
-import { useLocale } from "@/providers/LocaleProvider";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -27,8 +23,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useGlobalLoader } from "@/providers/LoaderProvider";
-import { useSelector } from "react-redux";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
+import {
+  apiFetchAllMonumentsWithQuery,
+  apiFetchMonumentDetails,
+  apiFetchMonumentSorts,
+} from "@/services/userTourService";
+import type { Monument, MonumentSort } from "@/lib/types/userTour.types";
 
 /* =========================================================
    🏛️ Monuments Page
@@ -415,7 +416,6 @@ function MonumentsToolbar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -455,7 +455,9 @@ function MonumentsToolbar({
               </DropdownMenuItem>
             ))
           ) : (
-            <DropdownMenuItem disabled>{t("facility.no_sort_options")}</DropdownMenuItem>
+            <DropdownMenuItem disabled>
+              {t("facility.no_sort_options")}
+            </DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

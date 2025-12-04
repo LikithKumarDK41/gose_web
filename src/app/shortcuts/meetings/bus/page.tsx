@@ -33,12 +33,12 @@ export default function TimetablePage() {
   // TODO: replace hrefs with your real URLs
   const communityBusItems: Item[] = [
     {
-      label: t("bus.community_timetable"), // コミュニティバス時刻表
+      label: t("bus.community_timetable"),
       href: "/docs/himawari_timing.pdf",
       kind: "pdf",
     },
     {
-      label: t("bus.sunflower_about"), // コミュニティバスひまわり号について（ルート図）
+      label: t("bus.sunflower_about"),
       href: "/docs/himawari_map.pdf",
       kind: "pdf",
     },
@@ -46,7 +46,7 @@ export default function TimetablePage() {
 
   const ropewayItems: Item[] = [
     {
-      label: t("bus.kinetsu_bus_ropeway"), // 近鉄電車・奈良交通バス・葛城索道線連絡時刻表
+      label: t("bus.kinetsu_bus_ropeway"),
       href: "https://www.kintetsu.co.jp/railway/Dia/katsuragi/connect01.html",
       kind: "web",
     },
@@ -65,7 +65,7 @@ export default function TimetablePage() {
           className="rounded-xl shadow-sm text-white font-semibold px-4 py-3 mb-4
                         bg-gradient-to-r from-green-700 via-yellow-500 to-orange-500"
         >
-          {t("bus.himawari_header") /* 御所市コミュニティバス「ひまわり号」 */}
+          {t("bus.himawari_header")}
         </div>
 
         <div className="flex flex-col gap-4 pl-1">
@@ -81,7 +81,7 @@ export default function TimetablePage() {
           className="rounded-xl shadow-sm text-white font-semibold px-4 py-3 mb-4
                         bg-gradient-to-r from-green-700 via-yellow-500 to-orange-500"
         >
-          {t("bus.katsuragi_ropeway_header") /* 葛城山ロープウェイ */}
+          {t("bus.katsuragi_ropeway_header")}
         </div>
 
         <div className="flex flex-col gap-4 pl-1">

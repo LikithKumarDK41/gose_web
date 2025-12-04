@@ -7,8 +7,7 @@ export default function CityPromotionPage() {
 
   return (
     <div className="w-full min-h-screen">
-
-       <section className="relative w-full mx-auto bg-gradient-to-r from-purple-800 via-indigo-800 to-blue-700 text-white rounded-2xl shadow-xl mt-4 mb-10">
+      <section className="relative w-full mx-auto bg-gradient-to-r from-purple-800 via-indigo-800 to-blue-700 text-white rounded-2xl shadow-xl mt-4 mb-10">
         <div className="max-w-5xl mx-auto py-16 px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide mb-3 drop-shadow-md">
             {t("city_promotion")}

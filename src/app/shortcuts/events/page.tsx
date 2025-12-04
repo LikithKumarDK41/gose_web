@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useDispatch } from "react-redux";
+import { useSearchParams } from "next/navigation";
 import type { AppDispatch } from "@/lib/store";
-import { apiFetchEvents } from "@/services/userGlobalservice";
-import type { EventItem } from "@/lib/types/userGlobal.types";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
-import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useLocale } from "@/providers/LocaleProvider";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useRef } from "react";
+import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
+
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
+import { apiFetchEvents } from "@/services/userGlobalservice";
+import type { EventItem } from "@/lib/types/userGlobal.types";
 
 /* ------------------------------------------------------------
    🌅 Events Page (Sunrise Rose–Amber–Lime Theme)
@@ -27,7 +27,6 @@ export default function EventsPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [activeMonument, setActiveMonument] = useState<any | null>(null);
   const searchParams = useSearchParams();
-  const router = useRouter();
   const eventIdFromURL = searchParams.get("id");
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const eventRefs = useRef<Record<string, HTMLDivElement | null>>({});

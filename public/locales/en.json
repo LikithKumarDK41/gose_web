@@ -540,5 +540,18 @@
   "away": "away.",
   "must_be": "You must be within",
   "within_for_checkin": "of this monument to check-in.",
-  "okay_close": "Okay, Close"
+  "okay_close": "Okay, Close",
+  "tokyo_tour_desc": "Explore the highlights of Tokyo! Shibuya Crossing, Senso-ji Temple, Tokyo Tower, and many more attractions await.",
+  "kyoto_tour_desc": "Kyoto, the city of Japanese tradition and culture. Enjoy historic landmarks such as Kinkaku-ji, Fushimi Inari, and Kiyomizu-dera.",
+  "osaka_tour_desc": "Osaka is full of delicious food and vibrant energy. Experience Dotonbori, Osaka Castle, and Universal Studios Japan.",
+  "upload_video": "Upload Video",
+  "select_tour": "Select Tour",
+  "choose_tour": "Choose a tour",
+  "choose_video_file": "Choose Video File",
+  "upload": "Upload",
+  "in_dev": "In development",
+  "under_dev": "This page is under active development",
+  "under_dev_desc": "We’re crafting a guided experience here. Check back soon for tips, walkthroughs,and curated routes.",
+  "back_to_home": "Back to Home",
+  "explore_tours": "Explore Tours"
 }

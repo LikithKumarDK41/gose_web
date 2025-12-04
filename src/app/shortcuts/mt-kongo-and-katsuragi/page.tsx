@@ -9,16 +9,12 @@ import {
   Landmark,
   ArrowUpDown,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
-import {
-  apiFetchAllMonumentsWithQuery,
-  apiFetchMonumentDetails,
-  apiFetchMonumentSorts,
-} from "@/services/userTourService";
-import type { Monument, MonumentSort } from "@/lib/types/userTour.types";
-import { useLocale } from "@/providers/LocaleProvider";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -27,8 +23,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useGlobalLoader } from "@/providers/LoaderProvider";
-import { useSelector } from "react-redux";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
+import {
+  apiFetchAllMonumentsWithQuery,
+  apiFetchMonumentDetails,
+  apiFetchMonumentSorts,
+} from "@/services/userTourService";
+import type { Monument, MonumentSort } from "@/lib/types/userTour.types";
 
 /* =========================================================
    🏛️ Monuments Page
@@ -391,7 +392,7 @@ function MonumentsToolbar({
 
   return (
     <div className="flex justify-end items-center gap-2 mb-6">
-       <DropdownMenu>
+      <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -405,14 +406,14 @@ function MonumentsToolbar({
           <DropdownMenuLabel>
             {t("shortcut.tourist_attraction_search")}
           </DropdownMenuLabel>
-        <Input
-          placeholder={t("shortcut.tourist_attraction_search_placeholder")}
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-           className="mt-2"
-        />
- </DropdownMenuContent>
+          <Input
+            placeholder={t("shortcut.tourist_attraction_search_placeholder")}
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="mt-2"
+          />
+        </DropdownMenuContent>
       </DropdownMenu>
 
       <DropdownMenu>
@@ -454,7 +455,9 @@ function MonumentsToolbar({
               </DropdownMenuItem>
             ))
           ) : (
-            <DropdownMenuItem disabled>{t("mt_kongo_and_katsuragi.no_sort_options")}</DropdownMenuItem>
+            <DropdownMenuItem disabled>
+              {t("mt_kongo_and_katsuragi.no_sort_options")}
+            </DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

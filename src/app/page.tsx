@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ImageIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useAppSelector, useAppDispatch } from "@/lib/store/hook";
+import { useRouter } from "next/navigation";
 import {
   fetchShortcuts,
   selectShortcuts,
@@ -13,18 +13,18 @@ import {
 } from "@/lib/store/slices/globalSlice";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useGlobalLoader } from "@/providers/LoaderProvider";
-import { useRouter } from "next/navigation";
-import { apiFetchTours } from "@/services/userTourService";
+
+import { Button } from "@/components/ui/button";
+import {
+  apiFetchMonumentDetails,
+  apiFetchTours,
+} from "@/services/userTourService";
 import type { Tour } from "@/lib/types/userTour.types";
 
-/* =========================================================
-   🧭 Tours Dashboard Page
-========================================================= */
 export default function ToursDashboardPage() {
   const { t } = useLocale();
   const dispatch = useAppDispatch();
   const { show, hide } = useGlobalLoader();
-  const router = useRouter();
 
   const [tours, setTours] = useState<Tour[]>([]);
   const [loading, setLoading] = useState(true);
@@ -330,15 +330,11 @@ import {
   apiFetchSearchSuggestionsAdv,
   apiFetchFreeTextSearch,
 } from "@/services/userGlobalservice";
-import type {
-  SearchFilter,
-} from "@/lib/types/userGlobal.types";
-import {
-  apiFetchAllMonumentsWithQuery,
-} from "@/services/userTourService";
-import type {
-  Monument,
-} from "@/lib/types/userTour.types";
+
+import { apiFetchAllMonumentsWithQuery } from "@/services/userTourService";
+import type { SearchFilter } from "@/lib/types/userGlobal.types";
+import type { Monument } from "@/lib/types/userTour.types";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 
 function SearchFab() {
   const [open, setOpen] = useState(false);
@@ -351,7 +347,10 @@ function SearchFab() {
   const [keyword, setKeyword] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const [selectedMonument, setSelectedMonument] = useState<Monument | null>(
+    null
+  );
 
   /* -------------------- Initial Load -------------------- */
   useEffect(() => {
@@ -374,6 +373,18 @@ function SearchFab() {
       setMonuments(monumentsData);
     } catch (err) {
       console.error("Failed to load data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function openMonumentModal(id: string) {
+    try {
+      setLoading(true);
+      const data = await apiFetchMonumentDetails(id);
+      setSelectedMonument(data);
+    } catch (err) {
+      console.error("Failed to fetch monument details:", err);
     } finally {
       setLoading(false);
     }
@@ -613,7 +624,7 @@ function SearchFab() {
                     type="text"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
-                    placeholder={t("search")}
+                    placeholder={locale == "en" ? "Search" :"検索"}
                     className="w-full bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none text-base"
                     autoFocus
                   />
@@ -777,9 +788,7 @@ function SearchFab() {
                             )}
                           </div>
                           <Button
-                            onClick={() =>
-                              (window.location.href = `/monuments/detail?id=${m._id}`)
-                            }
+                            onClick={() => openMonumentModal(m._id)}
                             className="cursor-pointer mt-3 h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90 transition-all"
                           >
                             {t("actions.details")}
@@ -795,6 +804,16 @@ function SearchFab() {
                     onPageChange={setPage}
                     t={t}
                   />
+
+                  {selectedMonument && (
+                    <MonumentDetailModal
+                      open={selectedMonument !== null}
+                      onClose={() => setSelectedMonument(null)}
+                      loading={loading}
+                      details={selectedMonument}
+                      onOpenAnother={(id: string) => openMonumentModal(id)}
+                    />
+                  )}
                 </>
               ) : (
                 <div className="text-center text-gray-600 dark:text-gray-400">
