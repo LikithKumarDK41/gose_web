@@ -487,10 +487,10 @@ export default function MapTimelineRight({
                                  🔟 Success Notification
                               ------------------------------------------------ */
                               toast.success(
-                                `🏅 Checked-in at ${m?.name ?? "location"}`,
+                                `${t('checked_in_at')} ${m?.name ?? "location"}`,
                                 {
                                   description:
-                                    "Visit + Stamp recorded successfully",
+                                    t("visit_progress_success"),
                                   duration: 5000,
                                 }
                               );
@@ -752,10 +752,10 @@ export default function MapTimelineRight({
                                  🔟 Success Notification
                               ------------------------------------------------ */
                               toast.success(
-                                `🏅 Checked-in at ${m?.name ?? "location"}`,
+                                `${t('checked_in_at')} ${m?.name ?? "location"}`,
                                 {
                                   description:
-                                    "Visit + Stamp recorded successfully",
+                                   t("visit_progress_success"),
                                   duration: 5000,
                                 }
                               );
@@ -832,21 +832,21 @@ export default function MapTimelineRight({
             </div>
 
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              You’re Too Far Away
+              {t("too_far_away")}
             </h3>
 
             <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              You are currently{" "}
+              {t("currently")}{" "}
               <strong className="text-gray-900 dark:text-gray-100">
                 {distancePopup.distance}m
               </strong>{" "}
-              away.
+              {t("away")}
               <br />
-              You must be within{" "}
+              {t("must_be")}{" "}
               <strong className="text-gray-900 dark:text-gray-100">
                 {distancePopup.required}m
               </strong>{" "}
-              of this monument to check-in.
+              {t("within_for_checkin")}
             </p>
 
             {/* Close Button */}
@@ -854,7 +854,7 @@ export default function MapTimelineRight({
               onClick={() => setDistancePopup({ show: false })}
               className="mt-6 w-full py-2.5 rounded-xl bg-gray-900 text-white dark:bg-gray-700 dark:text-white font-semibold hover:bg-gray-800 dark:hover:bg-gray-600 transition shadow"
             >
-              Okay, Close
+              {t("okay_close")}
             </button>
           </div>
         </div>

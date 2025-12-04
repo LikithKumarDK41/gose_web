@@ -853,21 +853,21 @@ export default function MapTimelineRight({
             </div>
 
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              You’re Too Far Away
+              {translate("too_far_away")}
             </h3>
 
             <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              You are currently{" "}
+              {translate("currently")}{" "}
               <strong className="text-gray-900 dark:text-gray-100">
                 {distancePopup.distance}m
               </strong>{" "}
-              away.
+              {translate("away")}
               <br />
-              You must be within{" "}
+              {translate("must_be")}{" "}
               <strong className="text-gray-900 dark:text-gray-100">
                 {distancePopup.required}m
               </strong>{" "}
-              of this monument to check-in.
+              {translate("within_for_checkin")}
             </p>
 
             {/* Close Button */}
@@ -875,7 +875,7 @@ export default function MapTimelineRight({
               onClick={() => setDistancePopup({ show: false })}
               className="mt-6 w-full py-2.5 rounded-xl bg-gray-900 text-white dark:bg-gray-700 dark:text-white font-semibold hover:bg-gray-800 dark:hover:bg-gray-600 transition shadow"
             >
-              Okay, Close
+              {translate("okay_close")}
             </button>
           </div>
         </div>

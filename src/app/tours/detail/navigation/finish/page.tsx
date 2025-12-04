@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
-import html2canvas from "html2canvas";
 
 import {
   selectNav,

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export default function PrivacyPolicyPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   return (
     <div className="mt-8">
@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
             {t("privacy.title")}
           </h1>
           <p className="text-lg md:text-xl font-medium opacity-90">
-            {t("privacy.updated")}: 2025/01/01
+            {t("privacy.updated")}: {locale=='en'? '2025-01-01':'2025年1月1日'}
           </p>
         </div>
       </section>

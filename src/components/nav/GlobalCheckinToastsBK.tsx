@@ -26,6 +26,7 @@ import { apiCreateStamp } from "@/services/userNavService";
 
 import type { QueueItem } from "@/lib/types/userTour.types";
 import type { VisitHistoryPayload } from "@/services/myListService";
+import { useLocale } from "@/providers/LocaleProvider";
 
 /* ----------------------------------------------
    🧹 Sanitize HTML
@@ -44,6 +45,7 @@ function sanitizeHTML(input: string): string {
 ---------------------------------------------- */
 export default function GlobalCheckinToasts() {
     const dispatch = useAppDispatch();
+    const {t:translate} = useLocale();
 
     const queue = useAppSelector(selectGeofenceQueue) as QueueItem[];
     const auth = useAppSelector((s) => s.auth.data);
@@ -52,6 +54,10 @@ export default function GlobalCheckinToasts() {
 
     useEffect(() => {
         if (!queue.length) return;
+            const successText = translate("checked_in_at");
+    const visitProgressUpdateText =translate("visit_progress_update");
+    const visitProgressSuccessText = translate("visit_progress_success")
+    const pleaseTryAgainText = translate("please_try_again")
 
         for (const item of queue) {
             toast.custom(
@@ -197,17 +203,17 @@ export default function GlobalCheckinToasts() {
                                                 dispatch(confirm(String(item.id)));
                                                 toast.dismiss(t);
 
-                                                toast.success(`🏅 Checked in at ${item.name}`, {
+                                                toast.success(`${successText} ${item.name}`, {
                                                     description: nav.activeTourId
-                                                        ? "Visit + Stamp recorded (Tour Progress Updated)"
-                                                        : "Visit + Stamp recorded successfully.",
+                                                        ? visitProgressUpdateText
+                                                        : visitProgressSuccessText,
                                                     duration: 5000,
                                                 });
                                             } catch (err: any) {
                                                 console.error("❌ Check-in error:", err);
                                                 toast.error("Failed to complete check-in", {
                                                     description:
-                                                        err?.message || "Please try again.",
+                                                        err?.message || pleaseTryAgainText,
                                                 });
                                             }
                                         }}

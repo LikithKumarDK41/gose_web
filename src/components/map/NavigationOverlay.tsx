@@ -58,7 +58,10 @@ function normalizeLngLat(loc: any): { lat: number; lng: number } | null {
   return null;
 }
 
-function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+function haversineMeters(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+) {
   const R = 6371e3;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
   const dLng = ((b.lng - a.lng) * Math.PI) / 180;
@@ -66,8 +69,8 @@ function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng:
   const s =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((a.lat * Math.PI) / 180) *
-    Math.cos((b.lat * Math.PI) / 180) *
-    Math.sin(dLng / 2) ** 2;
+      Math.cos((b.lat * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
 
   return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
@@ -120,7 +123,7 @@ async function getFastLocation(geofenceLast: any) {
               resolve({
                 lat: 0,
                 lng: 0,
-                error: "no-gps-fallback"
+                error: "no-gps-fallback",
               });
               return;
             }
@@ -202,9 +205,7 @@ export default function NavigationOverlay({
       if (!pos) continue;
 
       const radius =
-        typeof p?.monument?.georadius === "number"
-          ? p.monument.georadius
-          : 50;
+        typeof p?.monument?.georadius === "number" ? p.monument.georadius : 50;
 
       if (haversineMeters(user, pos) <= radius) return true;
     }
@@ -218,15 +219,18 @@ export default function NavigationOverlay({
      This makes finish button depend on Redux nav slice data
   ========================================================= */
   useEffect(() => {
-    const source = Array.isArray(reduxTourPoints) && reduxTourPoints.length
-      ? reduxTourPoints
-      : tourPoints;
+    const source =
+      Array.isArray(reduxTourPoints) && reduxTourPoints.length
+        ? reduxTourPoints
+        : tourPoints;
 
     const isFinished = allStamped(source);
     setFinished(isFinished);
 
     if (isFinished && source.length > 0) {
-      console.log("✅ All stamps collected! Finish button available (based on Redux tourpoints).");
+      console.log(
+        "✅ All stamps collected! Finish button available (based on Redux tourpoints)."
+      );
     }
   }, [reduxTourPoints, tourPoints]);
 
@@ -381,7 +385,6 @@ export default function NavigationOverlay({
     router.replace(`/tours/detail/navigation/finish?tourId=${tourId}`);
   };
 
-
   const handleBack = () => {
     loader.show();
     requestAnimationFrame(() => router.back());
@@ -417,8 +420,9 @@ export default function NavigationOverlay({
           <button
             type="button"
             onClick={onCloseList}
-            className={`px-3 py-1.5 rounded-full text-sm ${!listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
-              }`}
+            className={`px-3 py-1.5 rounded-full text-sm ${
+              !listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
+            }`}
           >
             {labels.map}
           </button>
@@ -426,8 +430,9 @@ export default function NavigationOverlay({
           <button
             type="button"
             onClick={onOpenList}
-            className={`px-3 py-1.5 rounded-full text-sm ${listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
-              }`}
+            className={`px-3 py-1.5 rounded-full text-sm ${
+              listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
+            }`}
           >
             {labels.list}
           </button>
@@ -436,7 +441,6 @@ export default function NavigationOverlay({
 
       {/* Bottom Controls */}
       <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center gap-3">
-
         {/* START - Idle state */}
         {nav.status === "idle" && (
           <Button
@@ -489,10 +493,10 @@ export default function NavigationOverlay({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />
-              Youre not in the region
+              {t("out_of_region")}
             </DialogTitle>
             <DialogDescription className="text-gray-600 mt-2">
-              Move closer to one of the tours points to begin your trip.
+              {t("move_closer_to_start_trip")}
             </DialogDescription>
           </DialogHeader>
 
@@ -502,7 +506,7 @@ export default function NavigationOverlay({
               onClick={() => setShowDialog(false)}
               className="rounded-full"
             >
-              OK
+              {t("ok_btn")}
             </Button>
           </DialogFooter>
         </DialogContent>
