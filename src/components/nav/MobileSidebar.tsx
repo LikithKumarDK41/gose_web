@@ -41,7 +41,7 @@ export default function MobileSidebar({
 
         {/* Top bar with close button */}
         <div className="flex items-center justify-end border-b border-border p-2">
-          <SheetClose asChild>
+          <SheetClose asChild className="cursor-pointer">
             <Button
               variant="ghost"
               size="icon"

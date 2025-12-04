@@ -43,7 +43,7 @@ export default function UserProfileDropdown({
 return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted">
+        <Button variant="ghost" size="icon" className="cursor-pointer rounded-full hover:bg-muted">
           {avatar ? (
             <img
               src={avatar}
@@ -79,14 +79,14 @@ return (
         <DropdownMenuSeparator />
 
         {/* View Profile */}
-        <DropdownMenuItem onClick={onViewProfile}>
+        <DropdownMenuItem onClick={onViewProfile} className="cursor-pointer">
           {t("profile.viewProfile")}
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
         {/* Logout */}
-        <DropdownMenuItem onClick={handleLogout} className="text-red-500">
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500">
           {t("profile.logout")}
         </DropdownMenuItem>
       </DropdownMenuContent>

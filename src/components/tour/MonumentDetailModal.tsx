@@ -239,7 +239,7 @@ export default function MonumentDetailModal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-6 top-1/2 -translate-y-1/2 
+            className="cursor-pointer absolute right-6 top-1/2 -translate-y-1/2 
                text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 
                transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 p-2"
           >
@@ -271,7 +271,7 @@ export default function MonumentDetailModal({
                     {/* 🔖 Bookmark Button */}
                     <button
                       onClick={handleBookmarkToggle}
-                      className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition"
+                      className="cursor-pointer absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition"
                       aria-label="Toggle bookmark"
                     >
                       {isBookmarked ? (
@@ -446,7 +446,7 @@ export default function MonumentDetailModal({
                 )}
 
                 {/* 🌍 Region Info */}
-                {details.region && (
+                {details.region.content && (
                   <section>
                     <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
                       <Globe className="h-4 w-4 text-gray-500" />{" "}
@@ -473,7 +473,7 @@ export default function MonumentDetailModal({
                 )}
 
                 {/* 🏷 Theme / Subtheme */}
-                {(details.theme?.length || details.subtheme?.length) && (
+                {(details?.theme?.length > 0 || details?.subtheme?.length > 0) && (
                   <section>
                     <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
                       <Star className="h-4 w-4 text-gray-500" />{" "}

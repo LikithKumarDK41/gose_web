@@ -252,7 +252,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+          className="cursor-pointer h-8 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
         >
@@ -286,7 +286,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+          className="cursor-pointer h-8 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
         >
@@ -397,7 +397,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+            className="cursor-pointer rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
           >
             <Search className="h-4 w-4" />
           </Button>
@@ -421,7 +421,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+            className="cursor-pointer rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
           >
             <ArrowUpDown className="h-4 w-4" />
           </Button>
@@ -436,7 +436,7 @@ function MonumentsToolbar({
               <DropdownMenuItem
                 key={s._id}
                 onClick={() => onSortSelect(s.link || s.name || "")}
-                className={`text-black dark:text-white  flex items-center gap-2 ${
+                className={`cursor-pointer text-black dark:text-white  flex items-center gap-2 ${
                   selectedSort == s.link
                     ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                     : ""

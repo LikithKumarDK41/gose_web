@@ -260,7 +260,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+          className="cursor-pointer h-8 text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
         >
@@ -293,7 +293,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+          className="cursor-pointer h-8 text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
         >
@@ -431,7 +431,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+            className="cursor-pointer rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
           >
             <Search className="h-4 w-4" />
           </Button>
@@ -455,7 +455,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+            className="cursor-pointer rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
           >
             <Filter className="h-4 w-4" />
           </Button>
@@ -468,7 +468,7 @@ function MonumentsToolbar({
           {/* ✅ All Option */}
           <DropdownMenuItem
             onClick={() => onFilterSelect("")}
-            className={`flex items-center gap-2 ${!selectedFilter
+            className={`cursor-pointer flex items-center gap-2 ${!selectedFilter
                 ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                 : ""
               }`}
@@ -487,7 +487,7 @@ function MonumentsToolbar({
                 <DropdownMenuItem
                   key={f._id}
                   onClick={() => onFilterSelect(themeId)}
-                  className={`flex items-center gap-2 ${selectedFilter === themeId
+                  className={`cursor-pointer flex items-center gap-2 ${selectedFilter === themeId
                       ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                       : ""
                     }`}
@@ -515,7 +515,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+            className="cursor-pointer rounded-full text-fuchsia-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
           >
             <ArrowUpDown className="h-4 w-4" />
           </Button>
@@ -530,7 +530,7 @@ function MonumentsToolbar({
               <DropdownMenuItem
                 key={s._id}
                 onClick={() => onSortSelect(s.link || s.name || "")}
-                className={`text-black dark:text-white  flex items-center gap-2 ${selectedSort == s.link
+                className={`cursor-pointer text-black dark:text-white  flex items-center gap-2 ${selectedSort == s.link
                     ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                     : ""
                   }`}
