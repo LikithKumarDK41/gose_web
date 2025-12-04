@@ -255,7 +255,7 @@ const handleShare = async () => {
         <Button
           onClick={handleBackToTours}
           disabled={isResetting}
-          className="w-full py-5 rounded-xl text-lg
+          className="cursor-pointer w-full py-5 rounded-xl text-lg
             border-2 bg-gray-100 text-black border-gray-400 hover:bg-gray-200
             dark:bg-white/10 dark:text-white dark:border-gray-600 dark:hover:bg-white/20"
         >

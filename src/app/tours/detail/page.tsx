@@ -356,13 +356,13 @@ export default function TourDetailsClientPage() {
             <div className="flex justify-end gap-3">
               <Button
                 variant="outline"
-                className="border-gray-300 dark:border-gray-600"
+                className="cursor-pointer border-gray-300 dark:border-gray-600"
                 onClick={() => setShowDifferentTourPopup(false)}
               >
                 {t("actions.cancel") || "Cancel"}
               </Button>
               <Button
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white"
                 onClick={confirmStartDifferentTour}
               >
                 {t("tourDetails.startNewTour") || "Start new tour"}
@@ -392,7 +392,7 @@ export default function TourDetailsClientPage() {
           <button
             onClick={toggleBookmark}
             aria-label="Bookmark tour"
-            className="absolute right-6 top-6 z-10 flex h-11 w-11 items-center justify-center rounded-full 
+            className="cursor-pointer absolute right-6 top-6 z-10 flex h-11 w-11 items-center justify-center rounded-full 
                bg-white/30 hover:bg-white/50 dark:bg-gray-900/40 dark:hover:bg-gray-800 transition 
                backdrop-blur-md shadow"
           >
