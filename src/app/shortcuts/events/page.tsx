@@ -147,7 +147,7 @@ export default function EventsPage() {
                   <TabsTrigger
                     key={monthKey}
                     value={monthKey}
-                    className="px-5 py-2 text-sm font-medium rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-rose-400 data-[state=active]:via-amber-400 data-[state=active]:to-lime-400 data-[state=active]:text-white whitespace-nowrap transition"
+                    className="cursor-pointer px-5 py-2 text-sm font-medium rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-rose-400 data-[state=active]:via-amber-400 data-[state=active]:to-lime-400 data-[state=active]:text-white whitespace-nowrap transition"
                   >
                     {monthKey}月
                   </TabsTrigger>
@@ -241,7 +241,7 @@ function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: () => void }) {
         <Button
           variant="ghost"
           size="sm"
-          className="mt-3 w-full h-8 text-[13px] text-white bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 hover:opacity-90 transition flex justify-center items-center gap-1"
+          className="cursor-pointer mt-3 w-full h-8 text-[13px] text-white bg-gradient-to-r from-rose-400 via-amber-400 to-lime-400 hover:opacity-90 transition flex justify-center items-center gap-1"
           onClick={onOpen}
         >
           {t("actions.details")}

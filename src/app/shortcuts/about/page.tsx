@@ -59,7 +59,7 @@ export default function AboutGosePage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-5 md:px-7 py-2.5 rounded-full text-sm md:text-base font-medium transition-all duration-300
+              className={`cursor-pointer px-5 md:px-7 py-2.5 rounded-full text-sm md:text-base font-medium transition-all duration-300
                 ${
                   activeTab === tab.key
                     ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-md"
