@@ -181,12 +181,6 @@ export default function NavigationOverlay({
 
     const isFinished = allStamped(source);
     setFinished(isFinished);
-
-    if (isFinished && source.length > 0) {
-      console.log(
-        "✅ All stamps collected! Finish button available (based on Redux tourpoints)."
-      );
-    }
   }, [reduxTourPoints, tourPoints]);
 
   /* =========================================================

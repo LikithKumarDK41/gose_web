@@ -191,11 +191,6 @@ export default function GlobalCheckinToasts() {
 
                         const tourId = freshTour?._id || tourDetail?._id;
 
-                        console.log("🔍 Final IDs used for refresh:", {
-                          usertourId,
-                          tourId,
-                        });
-
                         if (usertourId && tourId) {
                           await dispatch(
                             fetchUserTourPoints({ tourId, usertourId })

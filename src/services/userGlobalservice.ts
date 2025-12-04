@@ -367,8 +367,6 @@ export async function apiUpdateUserProfile(
 ) {
   try {
     const { data } = await api.patch(`/v1/userprofiles/${userId}`, payload);
-    console.log("UPDATE PROFILE RESPONSE =", data);
-
     return data;
   } catch (err: any) {
     throw new Error(parseAxiosError(err, "Failed to update profile"));

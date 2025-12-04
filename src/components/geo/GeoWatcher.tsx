@@ -95,7 +95,6 @@ export default function GeoWatcher() {
 
           // 👉 If already stamped → NO popup
           if (stamped) {
-            // Debug (optional): console.log("Skipping stamped point", tpId, tp.name);
             return false;
           }
 
@@ -162,7 +161,6 @@ export default function GeoWatcher() {
     }
 
     const places = getTourPlaces();
-    // Debug: console.log("Geofence places:", places);
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -201,14 +199,12 @@ export default function GeoWatcher() {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "hidden" && nav.status === "running") {
-        console.log("🟠 App hidden → auto-pausing tour");
         dispatch(navPause());
         stopWatching();
       } else if (
         document.visibilityState === "visible" &&
         nav.status === "paused"
       ) {
-        console.log("🟢 App visible → resuming tour tracking");
         dispatch(navResume());
         startWatching();
       }

@@ -226,12 +226,6 @@ export default function NavigationOverlay({
 
     const isFinished = allStamped(source);
     setFinished(isFinished);
-
-    if (isFinished && source.length > 0) {
-      console.log(
-        "✅ All stamps collected! Finish button available (based on Redux tourpoints)."
-      );
-    }
   }, [reduxTourPoints, tourPoints]);
 
   /* =========================================================
@@ -376,7 +370,6 @@ export default function NavigationOverlay({
     if (onRefreshTourPoints) {
       try {
         await onRefreshTourPoints();
-        console.log("🔄 Tourpoints refreshed before finish screen");
       } catch (err) {
         console.warn("Refresh tourpoints failed:", err);
         toast.success(t("tour_finished"));

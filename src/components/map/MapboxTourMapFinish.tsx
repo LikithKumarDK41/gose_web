@@ -207,8 +207,6 @@ export default function MapboxTourMap({
           else if (isEnd) pinEl = makeNumberedPin("E", colorFor("end"));
           else pinEl = makeNumberedPin(String(++ordinal), colorFor(type));
 
-          console.log(stampedPoints);
-
           /* ----------------------------
            ⭐ ADD STAMP BADGE HERE
           ----------------------------- */
