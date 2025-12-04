@@ -53,23 +53,23 @@ export default function FooterBar() {
           </Link>
 
           {/* 🌐 Social Links */}
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <SocialLink href="https://github.com" icon={<Github className="h-5 w-5" />} label={t('footer.social.github')} />
             <SocialLink href="https://twitter.com" icon={<Twitter className="h-5 w-5" />} label={t('footer.social.twitter')} />
             <SocialLink href="https://instagram.com" icon={<Instagram className="h-5 w-5" />} label={t('footer.social.instagram')} />
             <SocialLink href="https://linkedin.com" icon={<Linkedin className="h-5 w-5" />} label={t('footer.social.linkedin')} />
-          </div>
+          </div> */}
         </div>
 
         {/* Copyright */}
         <div className="mt-6 flex flex-wrap items-center justify-between border-t pt-4 text-xs text-muted-foreground">
           <div>{t('footer.copyright', { year: new Date().getFullYear() })}</div>
-           <Link
-    href="/privacy-policy"
-    className="hover:text-foreground transition"
-  >
-    {t('privacyPolicy')}
-  </Link>
+          <Link
+            href="/privacy-policy"
+            className="hover:text-foreground transition"
+          >
+            {t('privacyPolicy')}
+          </Link>
         </div>
       </div>
     </footer>
