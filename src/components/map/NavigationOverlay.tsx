@@ -318,7 +318,7 @@ export default function NavigationOverlay({
         <Button
           size="icon"
           variant="outline"
-          className="rounded-full shadow bg-white/80 dark:bg-black/50 backdrop-blur-sm"
+          className="cursor-pointer rounded-full shadow bg-white/80 dark:bg-black/50 backdrop-blur-sm"
           onClick={handleBack}
         >
           <ArrowLeft className="h-5 w-5" />
@@ -331,7 +331,7 @@ export default function NavigationOverlay({
           <button
             type="button"
             onClick={onCloseList}
-            className={`px-3 py-1.5 rounded-full text-sm ${!listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
+            className={`cursor-pointer px-3 py-1.5 rounded-full text-sm ${!listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
               }`}
           >
             {labels.map}
@@ -340,7 +340,7 @@ export default function NavigationOverlay({
           <button
             type="button"
             onClick={onOpenList}
-            className={`px-3 py-1.5 rounded-full text-sm ${listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
+            className={`cursor-pointer px-3 py-1.5 rounded-full text-sm ${listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
               }`}
           >
             {labels.list}
@@ -354,7 +354,7 @@ export default function NavigationOverlay({
         {nav.status === "idle" && (
           <Button
             size="lg"
-            className="pointer-events-auto rounded-full px-6 shadow-lg bg-sky-600 text-white hover:bg-sky-700"
+            className="cursor-pointer pointer-events-auto rounded-full px-6 shadow-lg bg-sky-600 text-white hover:bg-sky-700"
             onClick={handleStart}
           >
             <Play className="mr-2 h-5 w-5" /> {labels.start}
@@ -366,7 +366,7 @@ export default function NavigationOverlay({
           <Button
             size="lg"
             variant="outline"
-            className="pointer-events-auto rounded-full px-6 shadow-lg bg-white/90 dark:bg-black/40 hover:bg-white dark:hover:bg-black/50"
+            className="cursor-pointer pointer-events-auto rounded-full px-6 shadow-lg bg-white/90 dark:bg-black/40 hover:bg-white dark:hover:bg-black/50"
             onClick={handlePauseResume}
           >
             <Pause className="mr-2 h-5 w-5" /> {labels.pause}
@@ -377,7 +377,7 @@ export default function NavigationOverlay({
         {nav.status === "paused" && (
           <Button
             size="lg"
-            className="pointer-events-auto rounded-full px-6 shadow-lg bg-emerald-600 text-white hover:bg-emerald-700"
+            className="cursor-pointer pointer-events-auto rounded-full px-6 shadow-lg bg-emerald-600 text-white hover:bg-emerald-700"
             onClick={handlePauseResume}
           >
             <Play className="mr-2 h-5 w-5" /> {labels.resume}
@@ -388,7 +388,7 @@ export default function NavigationOverlay({
         {finished && nav.status === "running" && (
           <Button
             size="lg"
-            className="pointer-events-auto rounded-full px-6 shadow-lg bg-green-600 text-white hover:bg-green-700"
+            className="cursor-pointer pointer-events-auto rounded-full px-6 shadow-lg bg-green-600 text-white hover:bg-green-700"
             onClick={handleFinish}
           >
             <CheckCircle2 className="mr-2 h-5 w-5" /> {labels.finish}
@@ -413,7 +413,7 @@ export default function NavigationOverlay({
             <Button
               variant="outline"
               onClick={() => setShowDialog(false)}
-              className="rounded-full"
+              className="cursor-pointer rounded-full"
             >
               {t("ok_btn")}
             </Button>
