@@ -13,42 +13,21 @@ import {
   X,
   Trash2
 } from "lucide-react";
-
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { useDispatch, useSelector } from "react-redux";
 import { useLocale } from "@/providers/LocaleProvider";
+import type { AppDispatch } from "@/lib/store";
+import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
 
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 import {
   apiGetUserBookmarks,
   apiGetVisitHistoryByUser,
   apiDeleteBookmark,
   apiDeleteVisitHistory,
 } from "@/services/myListService";
-
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch } from "@/lib/store";
-import { fetchMonumentDetails } from "@/lib/store/slices/touristSlice";
-import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 import { apiDeleteUserTour } from "@/services/userTourService";
-
-/* TYPES */
-type MonumentItem = {
-  bookmarkId?: string;
-  visitId?: string;
-  _id: string;
-  name?: string;
-  image?: string;
-  description?: string;
-};
-
-type TourItem = {
-  bookmarkId?: string;
-  visitId?: string;
-  _id: string;
-  title?: string;
-  description?: string;
-  image?: string;
-};
 
 /* MAIN PAGE */
 export default function LibraryPage() {

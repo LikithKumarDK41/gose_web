@@ -25,12 +25,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Play, X } from 'lucide-react';
+import { useLocale } from '@/providers/LocaleProvider';
 
 const sampleTours = [
   {
     id: 1,
     name: '東京ツアー (Tokyo Tour)',
-    description: '東京のハイライトを探索しましょう！渋谷交差点、浅草寺、東京タワーなど魅力がいっぱい。',
+    description: 'tokyo_tour_desc',
     videos: [
       '/videos/JP%20Part%201_0%201.mp4',
       '/videos/JP%20part%202_0%201.mp4',
@@ -39,7 +40,7 @@ const sampleTours = [
   {
     id: 2,
     name: '京都ツアー (Kyoto Tour)',
-    description: '日本の伝統と文化の街、京都。金閣寺、伏見稲荷、清水寺など歴史的な名所を満喫できます。',
+    description: 'kyoto_tour_desc',
     videos: [
       '/videos/JP%20Part%201_0%201.mp4',
       '/videos/JP%20part%202_0%201.mp4',
@@ -48,7 +49,7 @@ const sampleTours = [
   {
     id: 3,
     name: '大阪ツアー (Osaka Tour)',
-    description: 'グルメと活気にあふれる大阪。道頓堀、大阪城、ユニバーサル・スタジオを体験しましょう。',
+    description: 'osaka_tour_desc',
     videos: [
       '/videos/JP%20Part%201_0%201.mp4',
       '/videos/JP%20part%202_0%201.mp4',
@@ -57,6 +58,7 @@ const sampleTours = [
 ];
 
 export default function VideoGalleryPage() {
+  const {t} = useLocale();
   const [tours, setTours] = React.useState(sampleTours);
   const [selectedTour, setSelectedTour] = React.useState<number | null>(null);
   const [videoFile, setVideoFile] = React.useState<File | null>(null);
@@ -82,18 +84,18 @@ export default function VideoGalleryPage() {
         <h1 className="text-2xl font-bold">🎥 ツアービデオ (Tour Videos)</h1>
         <Dialog>
           <DialogTrigger asChild>
-            <Button>Upload Video</Button>
+            <Button>{t("upload_video")}</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Upload Video</DialogTitle>
+              <DialogTitle>{t("upload_video")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label>Select Tour</Label>
+                <Label>{t("select_tour")}</Label>
                 <Select onValueChange={(v) => setSelectedTour(Number(v))}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a tour" />
+                    <SelectValue placeholder={t("choose_tour")} />
                   </SelectTrigger>
                   <SelectContent>
                     {tours.map((tour) => (
@@ -106,7 +108,7 @@ export default function VideoGalleryPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="video">Choose Video File</Label>
+                <Label htmlFor="video">{t("choose_video_file")}</Label>
                 <Input
                   id="video"
                   type="file"
@@ -123,7 +125,7 @@ export default function VideoGalleryPage() {
                 onClick={handleUpload}
                 disabled={!selectedTour || !videoFile}
               >
-                Upload
+                {t("upload")}
               </Button>
             </div>
           </DialogContent>
@@ -135,7 +137,7 @@ export default function VideoGalleryPage() {
           <Card key={tour.id} className="shadow-lg border">
             <CardHeader>
               <CardTitle>{tour.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">{tour.description}</p>
+              <p className="text-sm text-muted-foreground">{t(tour.description)}</p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

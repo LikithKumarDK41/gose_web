@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useLocale } from "@/providers/LocaleProvider";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
 
 export default function MeetingsPage() {
   const { t } = useLocale();

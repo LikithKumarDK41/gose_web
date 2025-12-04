@@ -9,9 +9,11 @@ import {
   ArrowUpDown,
   Filter,
 } from "lucide-react";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useLocale } from "@/providers/LocaleProvider";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -20,10 +22,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import PlaceDetailModal from "@/components/tour/PlaceDetailModal";
 import { apiFetchPlaces } from "@/services/userGlobalservice";
 import type { PlaceItem } from "@/lib/types/userGlobal.types";
-import { useGlobalLoader } from "@/providers/LoaderProvider";
-import PlaceDetailModal from "@/components/tour/PlaceDetailModal";
 
 /* =========================================================
    🏞️ Places Page
@@ -237,7 +238,7 @@ function PlacesToolbar({
   sortOrder,
   setSortOrder,
 }: any) {
-  const {t} = useLocale();
+  const { t } = useLocale();
   return (
     <div className="flex justify-end items-center mb-6 gap-3">
       {/* 🔍 Search Button */}
@@ -306,7 +307,7 @@ function PlacesToolbar({
                   : ""
               }`}
             >
-            <Filter className="h-4 w-4 text-muted-foreground" />
+              <Filter className="h-4 w-4 text-muted-foreground" />
               <span>{c}</span>
             </DropdownMenuItem>
           ))}

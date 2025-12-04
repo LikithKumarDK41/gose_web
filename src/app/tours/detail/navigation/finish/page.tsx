@@ -2,24 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
-
 import {
   selectNav,
   selectUserTourPoints,
   resetAll as resetNav,
   setStatus,
 } from "@/lib/store/slices/navSlice";
-
 import { resetAll as resetGeofence } from "@/lib/store/slices/geofenceSlice";
 import { clearTourDetail } from "@/lib/store/slices/touristSlice";
+import { useLocale } from "@/providers/LocaleProvider";
 
 import { Button } from "@/components/ui/button";
-import { Share2, ArrowLeft } from "lucide-react";
-import { useLocale } from "@/providers/LocaleProvider";
-import type { Tour, TourPoint } from "@/lib/types/userTour.types";
-import Image from "next/image";
 import MapboxTourMapFinish from "@/components/map/MapboxTourMapFinish";
+import type { Tour, TourPoint } from "@/lib/types/userTour.types";
 
 export default function FinishPage() {
   const params = useSearchParams();

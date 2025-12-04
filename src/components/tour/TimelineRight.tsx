@@ -361,7 +361,8 @@ export default function MapTimelineRight({
                           {translate("tourDetails.viewDetails")}
                         </Button>
 
-                        <Button
+                        {/* Enable if needed check-in in timeline only  */}
+                        {/* <Button
                           size="sm"
                           variant="outline"
                           className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
@@ -370,9 +371,6 @@ export default function MapTimelineRight({
                             try {
                               setCheckingIn(true);
 
-                              /* ------------------------------------------------
-                                 1️⃣ Validate User Logged In
-                              ------------------------------------------------ */
                               const user =
                                 persisted?.user?._id ||
                                 persisted?.user?.id ||
@@ -384,9 +382,6 @@ export default function MapTimelineRight({
                                 return;
                               }
 
-                              /* ------------------------------------------------
-                                 2️⃣ Monument & TourPoint Validation
-                              ------------------------------------------------ */
                               const monumentId = p?.monument?._id;
                               const tourpointId = p?._id;
 
@@ -403,9 +398,6 @@ export default function MapTimelineRight({
                                 return;
                               }
 
-                              /* ------------------------------------------------
-                                 3️⃣ Parse Monument Coordinates (array OR object)
-                              ------------------------------------------------ */
                               let monumentLat = 0;
                               let monumentLng = 0;
 
@@ -422,9 +414,6 @@ export default function MapTimelineRight({
                                 return;
                               }
 
-                              /* ------------------------------------------------
-                                 4️⃣ Get User Live Location
-                              ------------------------------------------------ */
                               const userLocation = await new Promise<{
                                 lat: number;
                                 lng: number;
@@ -444,9 +433,6 @@ export default function MapTimelineRight({
                                 return;
                               }
 
-                              /* ------------------------------------------------
-                                 5️⃣ Calculate Distance (meters)
-                              ------------------------------------------------ */
                               const R = 6371e3;
                               const dLat =
                                 ((userLocation.lat - monumentLat) * Math.PI) /
@@ -466,9 +452,6 @@ export default function MapTimelineRight({
                                 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                               const distance = R * c;
 
-                              /* ------------------------------------------------
-                                 6️⃣ If user is far → popup (NO toast)
-                              ------------------------------------------------ */
                               if (distance > radius) {
                                 setDistancePopup({
                                   show: true,
@@ -478,9 +461,6 @@ export default function MapTimelineRight({
                                 return;
                               }
 
-                              /* ------------------------------------------------
-                                 8️⃣ Create Visit History
-                              ------------------------------------------------ */
                               const visitPayload: VisitHistoryPayload = {
                                 user: String(user),
                                 historytype: "monument",
@@ -492,9 +472,6 @@ export default function MapTimelineRight({
 
                               await apiCreateVisitHistory(visitPayload);
 
-                              /* ------------------------------------------------
-                                 9️⃣ Create Stamp
-                              ------------------------------------------------ */
                               await apiCreateStamp({
                                 monument: String(monumentId),
                                 tourpoint: String(tourpointId),
@@ -503,9 +480,6 @@ export default function MapTimelineRight({
                                 stamptime: Date.now(),
                               });
 
-                              /* ------------------------------------------------
-                                 🔟 Success Notification
-                              ------------------------------------------------ */
                               toast.success(
                                 `${translate('checked_in_at')} ${m?.name ?? "location"}`,
                                 {
@@ -515,9 +489,6 @@ export default function MapTimelineRight({
                                 }
                               );
 
-                              /* ------------------------------------------------
-                                 1️⃣1️⃣ Refresh TourPoints ONLY After Stamp Success
-                              ------------------------------------------------ */
                               if (onRefreshTourpoints) {
                                 await onRefreshTourpoints();
                               }
@@ -533,7 +504,7 @@ export default function MapTimelineRight({
                           {checkingIn
                             ? translate("checking_in")
                             : translate("tourDetails.checkIn")}
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </div>
@@ -627,7 +598,8 @@ export default function MapTimelineRight({
                           {translate("tourDetails.viewDetails")}
                         </Button>
 
-                        <Button
+                        {/* Enable if needed check-in in timeline only  */}
+                        {/* <Button
                           size="sm"
                           variant="outline"
                           className="flex-1 rounded-full border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
@@ -635,10 +607,6 @@ export default function MapTimelineRight({
                           onClick={async () => {
                             try {
                               setCheckingIn(true);
-
-                              /* ------------------------------------------------
-                                 1️⃣ Validate User Logged In
-                              ------------------------------------------------ */
                               const user =
                                 persisted?.user?._id ||
                                 persisted?.user?.id ||
@@ -649,10 +617,6 @@ export default function MapTimelineRight({
                                 toast.error(translate("please_signin_to_checkin"));
                                 return;
                               }
-
-                              /* ------------------------------------------------
-                                 2️⃣ Monument & TourPoint Validation
-                              ------------------------------------------------ */
                               const monumentId = p?.monument?._id;
                               const tourpointId = p?._id;
 
@@ -668,10 +632,6 @@ export default function MapTimelineRight({
                                 toast.error(translate("monument_location_missing"));
                                 return;
                               }
-
-                              /* ------------------------------------------------
-                                 3️⃣ Parse Monument Coordinates (array OR object)
-                              ------------------------------------------------ */
                               let monumentLat = 0;
                               let monumentLng = 0;
 
@@ -687,10 +647,6 @@ export default function MapTimelineRight({
                                 toast.error(translate("invalid_monument_coordinates"));
                                 return;
                               }
-
-                              /* ------------------------------------------------
-                                 4️⃣ Get User Live Location
-                              ------------------------------------------------ */
                               const userLocation = await new Promise<{
                                 lat: number;
                                 lng: number;
@@ -709,10 +665,6 @@ export default function MapTimelineRight({
                                 toast.error(translate("loc_perm_denied"));
                                 return;
                               }
-
-                              /* ------------------------------------------------
-                                 5️⃣ Calculate Distance (meters)
-                              ------------------------------------------------ */
                               const R = 6371e3;
                               const dLat =
                                 ((userLocation.lat - monumentLat) * Math.PI) /
@@ -732,9 +684,6 @@ export default function MapTimelineRight({
                                 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                               const distance = R * c;
 
-                              /* ------------------------------------------------
-                                 6️⃣ If user is far → popup (NO toast)
-                              ------------------------------------------------ */
                               if (distance > radius) {
                                 setDistancePopup({
                                   show: true,
@@ -744,9 +693,6 @@ export default function MapTimelineRight({
                                 return;
                               }
 
-                              /* ------------------------------------------------
-                                 8️⃣ Create Visit History
-                              ------------------------------------------------ */
                               const visitPayload: VisitHistoryPayload = {
                                 user: String(user),
                                 historytype: "monument",
@@ -758,9 +704,6 @@ export default function MapTimelineRight({
 
                               await apiCreateVisitHistory(visitPayload);
 
-                              /* ------------------------------------------------
-                                 9️⃣ Create Stamp
-                              ------------------------------------------------ */
                               await apiCreateStamp({
                                 monument: String(monumentId),
                                 tourpoint: String(tourpointId),
@@ -769,9 +712,7 @@ export default function MapTimelineRight({
                                 stamptime: Date.now(),
                               });
 
-                              /* ------------------------------------------------
-                                 🔟 Success Notification
-                              ------------------------------------------------ */
+
                               toast.success(
                                 `${translate('checked_in_at')} ${m?.name ?? "location"}`,
                                 {
@@ -781,9 +722,7 @@ export default function MapTimelineRight({
                                 }
                               );
 
-                              /* ------------------------------------------------
-                                 1️⃣1️⃣ Refresh TourPoints ONLY After Stamp Success
-                              ------------------------------------------------ */
+
                               if (onRefreshTourpoints) {
                                 await onRefreshTourpoints();
                               }
@@ -799,7 +738,7 @@ export default function MapTimelineRight({
                           {checkingIn
                             ? translate("checking_in")
                             : translate("tourDetails.checkIn")}
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </article>

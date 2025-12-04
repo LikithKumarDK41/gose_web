@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import {
   ImageIcon,
@@ -9,6 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+import { useLocale } from "@/providers/LocaleProvider";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +21,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-
-import { useLocale } from "@/providers/LocaleProvider";
-import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { apiFetchTours } from "@/services/userTourService";
 import type { Tour } from "@/lib/types/userTour.types";
 

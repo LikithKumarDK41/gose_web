@@ -10,17 +10,12 @@ import {
   Filter,
   ArrowUpDown,
 } from "lucide-react";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+import { useSelector } from "react-redux";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
-import {
-  apiFetchAllMonuments,
-  apiFetchAllMonumentsWithQuery,
-  apiFetchMonumentDetails,
-  apiFetchMonumentSorts,
-} from "@/services/userTourService";
-import type { Monument, MonumentSort } from "@/lib/types/userTour.types";
-import { useLocale } from "@/providers/LocaleProvider";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -29,9 +24,14 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useGlobalLoader } from "@/providers/LoaderProvider";
+import MonumentDetailModal from "@/components/tour/MonumentDetailModal";
 import { apiFetchSubthemesWithQuery } from "@/services/userGlobalservice";
-import { useSelector } from "react-redux";
+import {
+  apiFetchAllMonumentsWithQuery,
+  apiFetchMonumentDetails,
+  apiFetchMonumentSorts,
+} from "@/services/userTourService";
+import type { Monument, MonumentSort } from "@/lib/types/userTour.types";
 
 /* =========================================================
    🏛️ Monuments Page

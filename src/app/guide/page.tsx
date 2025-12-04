@@ -1,11 +1,14 @@
 // src/app/guide/page.tsx
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { HardHat, Sparkles } from 'lucide-react';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { HardHat, Sparkles } from "lucide-react";
+import { useLocale } from "@/providers/LocaleProvider";
 
 export default function GuidePage() {
+  const { t } = useLocale();
+
   return (
     <div className="relative overflow-hidden rounded-2xl border shadow-sm">
       {/* background blobs (light/dark friendly) */}
@@ -23,26 +26,25 @@ export default function GuidePage() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow ring-1 ring-white/10 backdrop-blur dark:bg-black/60">
             <HardHat className="h-3.5 w-3.5" />
-            In development
+            {t("in_dev")}
           </div>
 
           <h1 className="animated-gradient-text mx-auto mt-2 max-w-2xl text-4xl font-extrabold tracking-tight sm:text-6xl">
-            This page is under active development
+            {t("under_dev")}
           </h1>
 
           <p className="mx-auto mt-3 max-w-xl text-sm text-gray-700/85 dark:text-white/90">
-            We’re crafting a guided experience here. Check back soon for tips, walkthroughs,
-            and curated routes.
+            {t("under_dev_desc")}
           </p>
 
           <div className="mt-6 flex items-center justify-center gap-3">
             <Button asChild variant="secondary" className="rounded-full">
-              <Link href="/">Back to Home</Link>
+              <Link href="/">{t("back_to_home")}</Link>
             </Button>
             <Button asChild className="rounded-full">
               <Link href="/tours">
                 <Sparkles className="mr-1 h-4 w-4" />
-                Explore Tours
+                {t("explore_tours")}
               </Link>
             </Button>
           </div>

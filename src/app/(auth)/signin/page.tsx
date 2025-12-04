@@ -3,10 +3,11 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, UserRound, Facebook } from 'lucide-react';
+import { Mail, Facebook } from 'lucide-react';
 import { toast } from 'sonner';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useAppDispatch, useAppSelector } from '@/lib/store/hook';
 
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,8 +16,6 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BrandLogo from "@/components/nav/BrandLogo";
 import LanguageToggle from "@/components/theme/LanguageToggle";
-
-import { useAppDispatch, useAppSelector } from '@/lib/store/hook';
 import {
   signin,
   sendEmailOtp,

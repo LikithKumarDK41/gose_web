@@ -2,27 +2,25 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import MapboxTourMapNavigation from "@/components/map/MapboxTourMapNavigation";
-import NavigationOverlay from "@/components/map/NavigationOverlay";
+import { X } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
-
 import {
   fetchTourById,
   fetchTourPoints,
   selectTourDetail,
 } from "@/lib/store/slices/touristSlice";
-
 import {
   selectNav,
   fetchUserTourPoints,
   selectUserTourPoints,
 } from "@/lib/store/slices/navSlice";
-
-import type { Tour } from "@/lib/types/userTour.types";
-import { useGlobalLoader } from "@/providers/LoaderProvider";
 import { useLocale } from "@/providers/LocaleProvider";
-import { X } from "lucide-react";
+
+import MapboxTourMapNavigation from "@/components/map/MapboxTourMapNavigation";
+import NavigationOverlay from "@/components/map/NavigationOverlay";
 import MapTimelineRight from "@/components/tour/MapTimelineRight";
+import { useGlobalLoader } from "@/providers/LoaderProvider";
+import type { Tour } from "@/lib/types/userTour.types";
 
 export default function NavigationPage() {
   const router = useRouter();
