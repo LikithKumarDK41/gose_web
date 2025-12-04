@@ -10,6 +10,7 @@ import type { Feature, Polygon } from "geojson";
 
 import { useAppSelector } from "@/lib/store/hook";
 import { selectUserTourPoints } from "@/lib/store/slices/navSlice";
+import { getCurrentLocation, startGPSWatcher, type GPSWatcher } from "@/lib/gpsWatcher";
 
 /* -------------------- Helpers -------------------- */
 function normalizeLngLat(
@@ -40,7 +41,6 @@ function makeNumberedPin(label: string, fill: string) {
   el.style.width = "40px";
   el.style.height = "56px";
   el.style.transform = "translateY(-6px)";
-  // el.style.position = "relative"; // needed for badge
   el.innerHTML = `
   <svg viewBox="0 0 40 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
     <path d="M20 0c11 0 20 8.6 20 19.2 0 12.7-13.6 26.5-18.4 31.1a2.2 2.2 0 0 1-3.2 0C13.6 45.7 0 31.9 0 19.2 0 8.6 9 0 20 0z" fill="${fill}" />
@@ -84,12 +84,17 @@ function tidyParagraphs(html: string) {
   return html.replace(/<p>\s*<\/p>/g, "").replace(/(\s*<br>\s*){3,}/g, "<br><br>");
 }
 
-function createCircle(center: [number, number], radius: number, points = 64): Feature<Polygon> {
+function createCircle(
+  center: [number, number],
+  radius: number,
+  points = 64
+): Feature<Polygon> {
   const coords: [number, number][] = [];
   const [lng, lat] = center;
   const earthRadius = 6378137;
   const latConv = (radius / earthRadius) * (180 / Math.PI);
-  const lngConv = (radius / earthRadius) * (180 / Math.PI) / Math.cos((lat * Math.PI) / 180);
+  const lngConv =
+    (radius / earthRadius) * (180 / Math.PI) / Math.cos((lat * Math.PI) / 180);
 
   for (let i = 0; i <= points; i++) {
     const angle = (i * 360) / points;
@@ -139,7 +144,7 @@ export default function MapboxTourMapNavigation({
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const geoWatchIdRef = useRef<number | null>(null);
+  const gpsWatcherRef = useRef<GPSWatcher | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,7 +163,9 @@ export default function MapboxTourMapNavigation({
         if (map.getLayer(srcId)) map.removeLayer(srcId);
         if (map.getLayer(`${srcId}-outline`)) map.removeLayer(`${srcId}-outline`);
         if (map.getSource(srcId)) map.removeSource(srcId);
-      } catch { }
+      } catch {
+        // ignore
+      }
     }
   };
 
@@ -167,7 +174,9 @@ export default function MapboxTourMapNavigation({
       if (map.getLayer("custom-route-line")) map.removeLayer("custom-route-line");
       if (map.getLayer("custom-route-outline")) map.removeLayer("custom-route-outline");
       if (map.getSource("custom-route")) map.removeSource("custom-route");
-    } catch { }
+    } catch {
+      // ignore
+    }
     removeRadiusLayers(map);
   };
 
@@ -188,7 +197,12 @@ export default function MapboxTourMapNavigation({
 
       const firstPoint =
         (tour.tourpoints || [])
-          .map((tp) => normalizeLngLat((tp as any)?.monument?.location ?? (tp as any)?.location) || undefined)
+          .map(
+            (tp) =>
+              normalizeLngLat(
+                (tp as any)?.monument?.location ?? (tp as any)?.location
+              ) || undefined
+          )
           .find(Boolean) ?? [135.75, 34.41];
 
       const map = new mapboxgl.Map({
@@ -227,7 +241,8 @@ export default function MapboxTourMapNavigation({
             if (!pos) return;
 
             const wtype = String(tp.waypointtype ?? "").toLowerCase();
-            const label = wtype === "start" ? "S" : wtype === "end" ? "E" : String(++ordinal);
+            const label =
+              wtype === "start" ? "S" : wtype === "end" ? "E" : String(++ordinal);
             const pin = makeNumberedPin(label, colorFor(wtype));
 
             /* ---------------------- 🔥 STAMP BADGE FROM REDUX ----------------------- */
@@ -248,10 +263,7 @@ export default function MapboxTourMapNavigation({
               badge.style.position = "absolute";
               badge.style.top = "0";
               badge.style.right = "0";
-
-              // magic alignment
               badge.style.transform = "translate(40%, -40%)";
-
               badge.style.background = "#16a34a";
               badge.style.color = "white";
               badge.style.width = "20px";
@@ -274,7 +286,8 @@ export default function MapboxTourMapNavigation({
               mapLocale
             );
 
-            const briefRaw: MaybeI18n = (tp.monument?.content as any)?.brief ?? "";
+            const briefRaw: MaybeI18n =
+              (tp.monument?.content as any)?.brief ?? "";
             const brief = tidyParagraphs(
               sanitizeRichHtml(pickI18n(briefRaw, mapLocale))
             );
@@ -285,15 +298,21 @@ export default function MapboxTourMapNavigation({
 
             const chips = [
               tp.starttime ? `🕒 ${escapeText(tp.starttime)}` : "",
-              (tour as any).duration ? `⏱ ${escapeText((tour as any).duration)}` : "",
-              (tour as any).traveltime ? `🚶 ${escapeText((tour as any).traveltime)}` : "",
+              (tour as any).duration
+                ? `⏱ ${escapeText((tour as any).duration)}`
+                : "",
+              (tour as any).traveltime
+                ? `🚶 ${escapeText((tour as any).traveltime)}`
+                : "",
             ].filter(Boolean);
 
             const popupHtml = `
               <div class="tour-popup__card">
                 ${img ? `<div class="tour-popup__media">${img}</div>` : ""}
                 <div class="tour-popup__body">
-                  <div class="tour-popup__title">${escapeText(title || "Point")}</div>
+                  <div class="tour-popup__title">${escapeText(
+              title || "Point"
+            )}</div>
                   ${chips.length
                 ? `<div class="tour-popup__chips">${chips
                   .map((c) => `<span class="tour-chip">${c}</span>`)
@@ -421,52 +440,56 @@ export default function MapboxTourMapNavigation({
                 new mapboxgl.LngLatBounds(positions[0], positions[0])
               );
               map.fitBounds(bounds, { padding: 56, duration: 800 });
-            } catch { }
+            } catch {
+              // ignore
+            }
           }
 
-          /* ---------------------- FIXED REALTIME GPS TRACKING ---------------------- */
-          if ("geolocation" in navigator && geoWatchIdRef.current == null) {
-            geoWatchIdRef.current = navigator.geolocation.watchPosition(
-              (pos) => {
-                if (!mapRef.current) return; // safety check
+          /* ---------------------- REALTIME GPS TRACKING ---------------------- */
+          if (!gpsWatcherRef.current) {
+            gpsWatcherRef.current = startGPSWatcher(
+              ({ lat, lng, heading }) => {
+                if (!mapRef.current) return;
+                const pos: [number, number] = [lng, lat];
 
-                if (pos.coords.accuracy > 100) return;
-
-                const userPos: [number, number] = [
-                  pos.coords.longitude,
-                  pos.coords.latitude,
-                ];
-
-                // Create marker once
                 if (!userMarkerRef.current) {
+                  // Create a simple marker
                   const el = document.createElement("div");
                   el.className = "user-marker";
-                  el.style.width = "20px";
-                  el.style.height = "20px";
-                  el.style.borderRadius = "50%";
-                  el.style.background = "#2563eb";
-                  el.style.border = "3px solid white";
-                  el.style.boxShadow = "0 0 6px rgba(0,0,0,0.4)";
+                  el.style.cssText = `
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #2563eb;
+          border: 2px solid white;
+          box-shadow: 0 0 4px rgba(0,0,0,0.3);
+          transition: transform 0.1s ease-out;
+        `;
 
-                  userMarkerRef.current = new mapboxgl.Marker(el)
-                    .setLngLat(userPos)
+
+                  userMarkerRef.current = new mapboxgl.Marker(el, {
+                    rotationAlignment: 'map',
+                    pitchAlignment: 'auto',
+                    rotation: heading || 0
+                  })
+                    .setLngLat(pos)
                     .addTo(mapRef.current);
 
-                  // First center
+                  // Center map on user's location
                   mapRef.current.flyTo({
-                    center: userPos,
+                    center: pos,
                     zoom: 16,
                     speed: 1.2,
+                    essential: true
                   });
                 } else {
-                  userMarkerRef.current.setLngLat(userPos);
+                  // Update marker position
+                  userMarkerRef.current.setLngLat(pos);
                 }
               },
-              (err) => console.warn("GPS error:", err),
-              {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 10000,
+              (error) => {
+                console.error('GPS Error:', error);
+                setError(`GPS Error: ${error.message || 'Unable to get your location'}`);
               }
             );
           }
@@ -475,19 +498,22 @@ export default function MapboxTourMapNavigation({
           setError("Map style failed to load.");
         }
       });
-
     })().catch((e) => setError(String(e)));
 
     return () => {
       disposed = true;
 
-      if (geoWatchIdRef.current != null) {
+      // Stop GPS watcher
+      if (gpsWatcherRef.current) {
         try {
-          navigator.geolocation.clearWatch(geoWatchIdRef.current);
-        } catch { }
-        geoWatchIdRef.current = null;
+          gpsWatcherRef.current.stop();
+        } catch {
+          // ignore
+        }
+        gpsWatcherRef.current = null;
       }
 
+      // Clean map + markers
       try {
         clearMarkers();
         const map = mapRef.current;
@@ -495,11 +521,13 @@ export default function MapboxTourMapNavigation({
           removeRouteLayers(map);
           map.remove();
         }
-      } catch { }
+      } catch {
+        // ignore
+      }
       mapRef.current = null;
+      userMarkerRef.current = null;
     };
   }, [tour, profile, mapLocale, reduxTourPoints]);
-
 
   return (
     <div
@@ -518,7 +546,7 @@ export default function MapboxTourMapNavigation({
       )}
 
       {error && (
-        <div className="absolute left-3 top-3 rounded bg-black/80 px-3 py-2 text-xs text-white">
+        <div className="absolute left-3 top-3 rounded bg-black/80 px-3 py-2 text-xs text-white max-w-xs">
           {error}
         </div>
       )}

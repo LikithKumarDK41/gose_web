@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { apiCreateVisitHistory } from "@/services/myListService";
 import { apiCreateStamp } from "@/services/userNavService";
 import type { VisitHistoryPayload } from "@/services/myListService";
+import { getCurrentLocation } from "@/lib/gpsWatcher";
 
 /* ------------------------------------------------------------------ */
 export default function MapTimelineRight({
@@ -146,15 +147,13 @@ export default function MapTimelineRight({
               return (
                 <Fragment key={p._id}>
                   <li
-                    className={`grid grid-cols-[90px_1fr] gap-6 ${
-                      hideBottom ? "pb-8" : "md:pb-10 pb-0"
-                    }`}
+                    className={`grid grid-cols-[90px_1fr] gap-6 ${hideBottom ? "pb-8" : "md:pb-10 pb-0"
+                      }`}
                   >
                     <div className="relative h-full w-[90px]">
                       <div
-                        className={`hidden md:block absolute left-[52px] w-[3px] bg-orange-500 ${
-                          hideTop ? "top-[50%]" : "top-0"
-                        } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
+                        className={`hidden md:block absolute left-[52px] w-[3px] bg-orange-500 ${hideTop ? "top-[50%]" : "top-0"
+                          } ${hideBottom ? "bottom-[50%]" : "bottom-0"}`}
                       />
                       <div className="absolute left-[52px] top-1/2 -translate-x-1/2 -translate-y-1/2">
                         <div
@@ -438,9 +437,9 @@ export default function MapTimelineRight({
                               const a =
                                 Math.sin(dLat / 2) * Math.sin(dLat / 2) +
                                 Math.cos((monumentLat * Math.PI) / 180) *
-                                  Math.cos((userLocation.lat * Math.PI) / 180) *
-                                  Math.sin(dLng / 2) *
-                                  Math.sin(dLng / 2);
+                                Math.cos((userLocation.lat * Math.PI) / 180) *
+                                Math.sin(dLng / 2) *
+                                Math.sin(dLng / 2);
 
                               const c =
                                 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
@@ -668,58 +667,43 @@ export default function MapTimelineRight({
                               }
 
                               /* ------------------------------------------------
-                                 4️⃣ Get User Live Location
-                              ------------------------------------------------ */
-                              const userLocation = await new Promise<{
-                                lat: number;
-                                lng: number;
-                              }>((resolve, reject) => {
-                                navigator.geolocation.getCurrentPosition(
-                                  (pos) =>
-                                    resolve({
-                                      lat: pos.coords.latitude,
-                                      lng: pos.coords.longitude,
-                                    }),
-                                  (err) => reject(err)
-                                );
-                              }).catch(() => null);
+                                4️⃣ Get User Live Location with getCurrentLocation helper
+                              ----------------------------------------------- */
+                              try {
+                                const location = await getCurrentLocation(50, 15000, 2); // 50m accuracy, 15s timeout, 2 retries
+                                const userLocation = {
+                                  lat: location.lat,
+                                  lng: location.lng
+                                };
 
-                              if (!userLocation) {
-                                toast.error(t("loc_perm_denied"));
-                                return;
-                              }
+                                /* ------------------------------------------------
+                                  5️⃣ Calculate Distance (meters)
+                                ------------------------------------------------ */
+                                const R = 6371e3;
+                                const dLat = ((userLocation.lat - monumentLat) * Math.PI) / 180;
+                                const dLng = ((userLocation.lng - monumentLng) * Math.PI) / 180;
 
-                              /* ------------------------------------------------
-                                 5️⃣ Calculate Distance (meters)
-                              ------------------------------------------------ */
-                              const R = 6371e3;
-                              const dLat =
-                                ((userLocation.lat - monumentLat) * Math.PI) /
-                                180;
-                              const dLng =
-                                ((userLocation.lng - monumentLng) * Math.PI) /
-                                180;
-
-                              const a =
-                                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                                Math.cos((monumentLat * Math.PI) / 180) *
+                                const a =
+                                  Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                  Math.cos((monumentLat * Math.PI) / 180) *
                                   Math.cos((userLocation.lat * Math.PI) / 180) *
                                   Math.sin(dLng / 2) *
                                   Math.sin(dLng / 2);
 
-                              const c =
-                                2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                              const distance = R * c;
+                                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                                const distance = R * c;
 
-                              /* ------------------------------------------------
-                                 6️⃣ If user is far → popup (NO toast)
-                              ------------------------------------------------ */
-                              if (distance > radius) {
-                                setDistancePopup({
-                                  show: true,
-                                  distance: Math.round(distance),
-                                  required: radius,
-                                });
+                                /* ------------------------------------------------
+                                   6️⃣ Check if user is within required radius
+                                ------------------------------------------------ */
+                                if (distance > radius) {
+                                  toast.error(t("too_far_from_monument") || `You need to be within ${radius}m to check in. Current distance: ${Math.round(distance)}m`);
+                                  return;
+                                }
+
+                              } catch (error) {
+                                console.warn('Location error:', error);
+                                toast.error(t("error_getting_location") || "Could not get your location. Please try again.");
                                 return;
                               }
 
@@ -755,7 +739,7 @@ export default function MapTimelineRight({
                                 `${t('checked_in_at')} ${m?.name ?? "location"}`,
                                 {
                                   description:
-                                   t("visit_progress_success"),
+                                    t("visit_progress_success"),
                                   duration: 5000,
                                 }
                               );
