@@ -371,7 +371,6 @@ const slice = createSlice({
       s.countriesError = null;
     });
     b.addCase(updateUserProfile.fulfilled, (s, { payload }) => {
-      console.log("🟢 RAW BACKEND RESPONSE (updateUserProfile) =", payload);
 
       s.loading = false;
       if (!s.data) return;
@@ -404,14 +403,10 @@ const slice = createSlice({
       s.error = null;
     });
     b.addCase(uploadProfileImage.fulfilled, (s, { payload }) => {
-      console.log("🟣 RAW BACKEND RESPONSE (uploadProfileImage) =", payload);
-
       s.loading = false;
       if (!s.data) return;
 
       const updatedUser = payload.user;
-
-      console.log("🟣 Extracted updatedUser =", updatedUser);
 
       if (!updatedUser) {
         console.warn("⚠️ No updated userprofile in response:", payload);

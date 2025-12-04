@@ -34,10 +34,8 @@ export const syncUserTourStatus = createAsyncThunk<
   { rejectValue: string }
 >("nav/syncUserTourStatus", async (payload, { rejectWithValue }) => {
   try {
-    console.log("🔄 syncUserTourStatus thunk called with:", payload);
     const data = await apiSyncUserTourStatus(payload);
     const usertour = (data as any)?.usertour || null;
-    console.log("✅ syncUserTourStatus fulfilled:", usertour);
     return usertour;
   } catch (err: any) {
     console.error("❌ syncUserTourStatus error:", err);
@@ -56,28 +54,12 @@ export const fetchUserTourPoints = createAsyncThunk<
   { rejectValue: string }
 >("nav/fetchUserTourPoints", async (payload, { rejectWithValue }) => {
   try {
-    console.log("🔄 fetchUserTourPoints thunk called with:", payload);
-
     const response: UserTourPointResponse = await apiGetUserTourPoints(
       payload.tourId,
       payload.usertourId
     );
 
-    console.log("✅ API response received:", response);
-
-    // Response structure: { tourpoints: TourPoint[] }
     const tourpoints = response?.tourpoints || [];
-
-    console.log("📦 Extracted tourpoints:", tourpoints.length, "points");
-    tourpoints.forEach((p, i) => {
-      const isStamped =
-        p.stamp && typeof p.stamp === "object" && Object.keys(p.stamp).length > 0;
-      console.log(
-        `   [${i}] ${p.name || "Unknown"} (${p.pointtype}) - stamp: ${
-          isStamped ? "✅" : "❌"
-        }`
-      );
-    });
 
     return {
       tourpoints: Array.isArray(tourpoints) ? tourpoints : [],
@@ -148,12 +130,10 @@ const navSlice = createSlice({
       .addCase(syncUserTourStatus.pending, (state) => {
         state.syncing = true;
         state.error = null;
-        console.log("⏳ syncUserTourStatus pending...");
       })
       .addCase(syncUserTourStatus.fulfilled, (state, action) => {
         state.syncing = false;
         state.usertour = action.payload;
-        console.log("✅ syncUserTourStatus fulfilled, state updated:", state.usertour);
       })
       .addCase(syncUserTourStatus.rejected, (state, { payload }) => {
         state.syncing = false;
@@ -165,26 +145,11 @@ const navSlice = createSlice({
       .addCase(fetchUserTourPoints.pending, (state) => {
         state.syncing = true;
         state.error = null;
-        console.log("⏳ fetchUserTourPoints pending...");
       })
       .addCase(fetchUserTourPoints.fulfilled, (state, { payload }) => {
         state.syncing = false;
         state.usertourPoints = payload.tourpoints;
         state.usertourPointsFor = payload.usertourId;
-
-        const stampedCount = payload.tourpoints.filter(
-          (p) =>
-            p.stamp &&
-            typeof p.stamp === "object" &&
-            Object.keys(p.stamp).length > 0
-        ).length;
-
-        console.log("✅ fetchUserTourPoints fulfilled:", {
-          totalPoints: payload.tourpoints.length,
-          stampedPoints: stampedCount,
-          usertourId: payload.usertourId,
-          stateUpdated: true,
-        });
       })
       .addCase(fetchUserTourPoints.rejected, (state, { payload }) => {
         state.syncing = false;

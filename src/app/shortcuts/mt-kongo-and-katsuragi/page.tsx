@@ -396,7 +396,7 @@ function MonumentsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800"
+            className="rounded-full text-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
           >
             <Search className="h-4 w-4" />
           </Button>

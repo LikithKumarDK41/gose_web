@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hook";
-import html2canvas from "html2canvas";
 
 import {
   selectNav,
@@ -85,7 +84,6 @@ export default function FinishPage() {
   /* ---------- SHARE ACHIEVEMENT ---------- */
 const handleShare = async () => {
   try {
-    console.log("Requesting screen capture...");
 
     const stream = await navigator.mediaDevices.getDisplayMedia({
       video: true
@@ -94,7 +92,6 @@ const handleShare = async () => {
     const track = stream.getVideoTracks()[0];
     const imageCapture = new (window as any).ImageCapture(track);
 
-    console.log("Capturing frame...");
     const bitmap: ImageBitmap = await imageCapture.grabFrame();
 
     const canvas = document.createElement("canvas");
@@ -115,8 +112,6 @@ const handleShare = async () => {
 
     // STOP screen capture
     stream.getTracks().forEach((t) => t.stop());
-
-    console.log("Screenshot generated.");
 
     // Convert screenshot to image URL
     const imgURL = URL.createObjectURL(blob);

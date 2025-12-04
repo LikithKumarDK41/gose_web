@@ -192,7 +192,6 @@ export default function MonumentDetailModal({
           return;
         }
 
-        console.log("🔴 Removing bookmark:", bookmarkId);
         await apiRemoveBookmark(bookmarkId);
 
         setIsBookmarked(false);
@@ -213,8 +212,6 @@ export default function MonumentDetailModal({
 
       const newId =
         created?._id || created?.data?._id || created?.bookmark?._id || null;
-
-      console.log("🟢 Bookmark created id:", newId);
 
       setIsBookmarked(true);
       setBookmarkId(newId);
