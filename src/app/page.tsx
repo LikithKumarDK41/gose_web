@@ -812,6 +812,7 @@ function SearchFab() {
                       loading={loading}
                       details={selectedMonument}
                       onOpenAnother={(id: string) => openMonumentModal(id)}
+          customStyle="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90 transition-all"
                     />
                   )}
                 </>

@@ -446,7 +446,7 @@ export default function MonumentDetailModal({
                 )}
 
                 {/* 🌍 Region Info */}
-                {details.region && (
+                {details.region.content && (
                   <section>
                     <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
                       <Globe className="h-4 w-4 text-gray-500" />{" "}
@@ -473,7 +473,7 @@ export default function MonumentDetailModal({
                 )}
 
                 {/* 🏷 Theme / Subtheme */}
-                {(details.theme?.length || details.subtheme?.length) && (
+                {(details?.theme?.length > 0 || details?.subtheme?.length > 0) && (
                   <section>
                     <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
                       <Star className="h-4 w-4 text-gray-500" />{" "}
