@@ -553,5 +553,28 @@
   "under_dev": "This page is under active development",
   "under_dev_desc": "We’re crafting a guided experience here. Check back soon for tips, walkthroughs,and curated routes.",
   "back_to_home": "Back to Home",
-  "explore_tours": "Explore Tours"
+  "explore_tours": "Explore Tours",
+  "chatbot": {
+    "title": "Transport Guide",
+    "welcome": "Welcome to Nara Kofun Transport Guide. I'm here to help you about transportation to kofuns in Nara.\n\nPlease select your query from the below.",
+    "options": {
+      "search_routes": "Search Routes",
+      "transit_options": "Transit Options",
+      "transit_stations": "Transit Stations",
+      "paid_trains": "Using Paid Trains",
+      "start_again": "Start Again",
+      "back": "Back"
+    },
+    "help_text": {
+      "search_routes": "So you want to search routes.\nPlease use the following to search routes by setting search conditions.",
+      "paid_trains": "Please click the following for Kintetsu Limited Express Information.",
+      "click_to_visit": "Click the following to visit {label}.",
+      "previous_options": "Here are the previous options:"
+    },
+    "input_placeholder": "Type a message...",
+    "thinking": "Thinking...",
+    "reset_chat": "Reset Chat",
+    "error_api": "Sorry, I couldn't reach the guidebot. Please try again.",
+    "error_invalid": "Invalid response format"
+  }
 }

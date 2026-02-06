@@ -568,7 +568,7 @@ function SearchFab() {
       {/* Floating Button */}
       <button
         onClick={() => setOpen(true)}
-        className="cursor-pointer fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center 
+        className="cursor-pointer fixed bottom-6 right-20 sm:right-24 z-50 flex h-14 w-14 items-center justify-center 
                    rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 
                    text-white shadow-lg hover:scale-105 hover:shadow-xl transition-transform"
       >

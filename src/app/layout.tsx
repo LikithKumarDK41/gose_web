@@ -11,6 +11,7 @@ import AuthGuard from "@/components/system/AuthGuard";
 import AppToaster from "@/components/system/AppToaster";
 
 import AppInitProvider from "@/providers/AppInitProvider";
+import Chatbot from "@/components/chatbot/Chatbot";
 
 export const metadata: Metadata = { title: "Tourist" };
 export const viewport: Viewport = { themeColor: "#0b0f14" };
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
               <GeoWatcher />
               <GlobalCheckinToasts />
+              <Chatbot />
             </LocaleProvider>
           </LoaderProvider>
         </StoreProvider>

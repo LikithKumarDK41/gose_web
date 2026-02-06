@@ -61,8 +61,12 @@ api.interceptors.request.use(
       const token = getAuthToken();
       const locale = getLocale();
 
-      (config.headers as Record<string, string>)["Accept-Language"] = locale;
-      (config.headers as Record<string, string>)["locale"] = locale;
+      
+      // Enforce strictly "ja" or "en"
+      const apiLocale = locale === "ja" ? "ja" : "en";
+
+      (config.headers as Record<string, string>)["Accept-Language"] = apiLocale;
+      (config.headers as Record<string, string>)["locale"] = apiLocale;
 
       if (token) {
         (config.headers as Record<string, string>)["Authorization"] = token;

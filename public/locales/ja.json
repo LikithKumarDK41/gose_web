@@ -553,5 +553,28 @@
   "under_dev": "このページは現在開発中です",
   "under_dev_desc": "ガイド付きの体験を準備しています。近日中にヒント、案内、厳選ルートをご覧いただけます。",
   "back_to_home": "ホームに戻る",
-  "explore_tours": "ツアーを探す"
+  "explore_tours": "ツアーを探す",
+  "chatbot": {
+    "title": "交通ガイド",
+    "welcome": "奈良古墳 交通ガイドへようこそ。\n奈良の古墳へのアクセスをご案内します。\n\n以下から質問を選んでください。",
+    "options": {
+      "search_routes": "ルート検索",
+      "transit_options": "乗車・乗換方法",
+      "transit_stations": "乗換駅",
+      "paid_trains": "有料特急の利用",
+      "start_again": "最初に戻る",
+      "back": "戻る"
+    },
+    "help_text": {
+      "search_routes": "ルート検索ですね。\n以下より条件を設定して検索してください。",
+      "paid_trains": "近鉄特急の情報は以下をクリックしてください。",
+      "click_to_visit": "{label} を開くには以下をクリックしてください。",
+      "previous_options": "前の選択肢に戻ります："
+    },
+    "input_placeholder": "メッセージを入力...",
+    "thinking": "処理中...",
+    "reset_chat": "チャットをリセット",
+    "error_api": "申し訳ありません。ガイドボットに接続できませんでした。もう一度お試しください。",
+    "error_invalid": "無効な応答形式です"
+  }
 }
