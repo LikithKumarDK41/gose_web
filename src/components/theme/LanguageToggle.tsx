@@ -46,7 +46,7 @@ export default function LanguageToggle() {
         <button
             onClick={cycle}
             title={`Language: ${locale.toUpperCase()}`}
-            className="
+            className="cursor-pointer
         h-9 w-9 flex items-center justify-center
         rounded-full border border-white/20
         bg-black/20 backdrop-blur-md

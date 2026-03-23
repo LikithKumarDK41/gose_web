@@ -87,7 +87,7 @@ export default function PlaceDetailModal({
             <button
               onClick={onClose}
               aria-label="Close"
-              className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="cursor-pointer absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               <X className="h-6 w-6" />
             </button>

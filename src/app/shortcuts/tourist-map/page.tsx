@@ -83,7 +83,7 @@ export default function ToursPage() {
                   {/* Image */}
                   <button
                     type="button"
-                    className="block w-full aspect-[16/10] overflow-hidden"
+                    className="cursor-pointer block w-full aspect-[16/10] overflow-hidden"
                     onClick={() =>
                       setSelectedImage(tour.routeImage!.secure_url!)
                     }
@@ -120,7 +120,7 @@ export default function ToursPage() {
                       onClick={() =>
                         router.push(`/tours/detail/?id=${tour._id}`)
                       }
-                      className="shrink-0 rounded-full px-4 py-2 text-sm font-medium
+                      className="cursor-pointer shrink-0 rounded-full px-4 py-2 text-sm font-medium
                                  border border-violet-600 text-violet-600
                                  hover:bg-violet-600 hover:text-white transition-colors
                                  dark:border-violet-400 dark:text-violet-300
@@ -151,7 +151,7 @@ export default function ToursPage() {
           <button
             type="button"
             onClick={() => setSelectedImage(null)}
-            className="absolute top-4 right-4 z-50 rounded-full p-2
+            className="cursor-pointer absolute top-4 right-4 z-50 rounded-full p-2
                        bg-white/90 text-violet-700 hover:bg-white shadow-md
                        dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700
                        transition-all duration-200 focus:outline-none

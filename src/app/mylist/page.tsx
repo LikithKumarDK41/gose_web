@@ -328,10 +328,10 @@ export default function LibraryPage() {
         className="space-y-6"
       >
         <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted/70 p-1 shadow ring-1 ring-border">
-          <TabsTrigger value="bookmarks">
+          <TabsTrigger value="bookmarks" className="cursor-pointer">
             <Bookmark className="mr-2 h-4 w-4" /> {t("Bookmarks")}
           </TabsTrigger>
-          <TabsTrigger value="visited">
+          <TabsTrigger value="visited" className="cursor-pointer">
             <CheckCircle2 className="mr-2 h-4 w-4" /> {t("Visited")}
           </TabsTrigger>
         </TabsList>
@@ -402,10 +402,10 @@ function InnerTabs({
     >
       <div className="flex justify-center">
         <TabsList className="mx-auto flex w-[420px] max-w-full items-center justify-center rounded-full bg-muted/50 p-1 shadow ring-1 ring-border">
-          <TabsTrigger value="monuments">
+          <TabsTrigger value="monuments" className="cursor-pointer">
             <Landmark className="mr-2 h-4 w-4" /> {t("Monuments")}
           </TabsTrigger>
-          <TabsTrigger value="tours">
+          <TabsTrigger value="tours" className="cursor-pointer">
             <Compass className="mr-2 h-4 w-4" /> {t("Tours")}
           </TabsTrigger>
         </TabsList>
@@ -483,7 +483,7 @@ function MonumentCard({
     <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl border">
       {/* DELETE BUTTON */}
       <button
-        className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow hover:bg-red-600 z-20"
+        className="cursor-pointer absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow hover:bg-red-600 z-20"
         onClick={() =>
           isBookmarkTab
             ? onDeleteBookmark(m.bookmarkId)
@@ -521,7 +521,7 @@ function MonumentCard({
         </div>
 
         <Button
-          className="mt-3 h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90"
+          className="cursor-pointer mt-3 h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90"
           onClick={() => onOpen(m._id)}
         >
           {t("Details")}
@@ -547,7 +547,7 @@ function TourCard({
     <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/40 shadow-md hover:shadow-xl border">
       {/* DELETE BUTTON */}
       <button
-        className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow hover:bg-red-600 z-20"
+        className="cursor-pointer absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow hover:bg-red-600 z-20"
         onClick={() => {
           if (isBookmarkTab) {
             onDeleteBookmark(tour.bookmarkId);
@@ -588,7 +588,7 @@ function TourCard({
 
         <Button
           asChild
-          className="h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90"
+          className="cursor-pointer h-9 rounded-lg bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 text-white hover:opacity-90"
         >
           <Link href={`/tours/detail?id=${encodeURIComponent(tour._id)}`}>
             {tr("Details")}

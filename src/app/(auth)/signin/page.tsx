@@ -457,7 +457,7 @@ export default function SignInPage() {
               >
                 <TabsTrigger
                   value="login"
-                  className="
+                  className="cursor-pointer
                     px-6 py-2 rounded-full transition-all duration-300
                     text-gray-400
                     data-[state=active]:bg-white 
@@ -471,7 +471,7 @@ export default function SignInPage() {
 
                 <TabsTrigger
                   value="register"
-                  className="
+                  className="cursor-pointer
                     px-6 py-2 rounded-full transition-all duration-300
                     text-gray-400
                     data-[state=active]:bg-white 
@@ -511,7 +511,7 @@ export default function SignInPage() {
                     )}
                   </div>
 
-                  <Button type="submit" disabled={loading} className="w-full">
+                  <Button type="submit" disabled={loading} className="cursor-pointer w-full">
                     {loading ? t("auth.please_wait") : t("auth.btn_login")}
                   </Button>
 
@@ -527,7 +527,7 @@ export default function SignInPage() {
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <Button
                       variant="outline"
-                      className="w-full h-12"
+                      className="w-full h-12 cursor-pointer"
                       type="button"
                       onClick={() => handleSocial('google')}
                       disabled={loading}
@@ -536,7 +536,7 @@ export default function SignInPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full h-12"
+                      className="w-full h-12 cursor-pointer"
                       type="button"
                       onClick={() => handleSocial('facebook')}
                       disabled={loading}
@@ -572,7 +572,7 @@ export default function SignInPage() {
                         />
                       </div>
 
-                      <Button type="submit" disabled={loading} className="w-full">
+                      <Button type="submit" disabled={loading} className="w-full cursor-pointer">
                         {loading ? t("auth.please_wait") : t("auth.btn_send_otp")}
                       </Button>
                     </>
@@ -602,7 +602,7 @@ export default function SignInPage() {
                         )}
                       </div>
 
-                      <Button type="submit" disabled={loading} className="w-full">
+                      <Button type="submit" disabled={loading} className="w-full cursor-pointer">
                         {loading ? t("auth.please_wait") : t("auth.btn_verify_otp")}
                       </Button>
                     </>
@@ -714,7 +714,7 @@ export default function SignInPage() {
                         {regErrors.phoneNumber && <p className="text-xs text-red-600">{regErrors.phoneNumber}</p>}
                       </div>
 
-                      <Button type="submit" disabled={loading} className="w-full">
+                      <Button type="submit" disabled={loading} className="w-full cursor-pointer">
                         {loading ? t("auth.please_wait") : t("auth.btn_register")}
                       </Button>
                     </>
@@ -733,7 +733,7 @@ export default function SignInPage() {
                       <div className="grid grid-cols-2 gap-4 pt-2">
                         <Button
                           variant="outline"
-                          className="w-full h-12"
+                          className="w-full h-12 cursor-pointer"
                           type="button"
                           onClick={() => handleSocialRegister('google')}
                           disabled={loading}
@@ -742,7 +742,7 @@ export default function SignInPage() {
                         </Button>
                         <Button
                           variant="outline"
-                          className="w-full h-12"
+                          className="w-full h-12 cursor-pointer"
                           type="button"
                           onClick={() => handleSocialRegister('facebook')}
                           disabled={loading}

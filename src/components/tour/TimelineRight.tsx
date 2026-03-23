@@ -355,7 +355,7 @@ export default function MapTimelineRight({
                       <div className="flex flex-wrap gap-3 mt-5">
                         <Button
                           size="sm"
-                          className="flex-1 rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 font-medium border border-gray-300 dark:border-gray-700"
+                          className="cursor-pointer flex-1 rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 font-medium border border-gray-300 dark:border-gray-700"
                           onClick={() => handleOpen(p._id)}
                         >
                           {translate("tourDetails.viewDetails")}
@@ -592,7 +592,7 @@ export default function MapTimelineRight({
                       <div className="mt-5 flex gap-3">
                         <Button
                           size="sm"
-                          className="flex-1 rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 font-medium border border-gray-300 dark:border-gray-700"
+                          className="cursor-pointer flex-1 rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 font-medium border border-gray-300 dark:border-gray-700"
                           onClick={() => handleOpen(p._id)}
                         >
                           {translate("tourDetails.viewDetails")}

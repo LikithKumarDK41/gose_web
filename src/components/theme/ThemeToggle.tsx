@@ -63,20 +63,20 @@ export default function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" aria-label={label} title={label} className="relative">
+        <Button variant="outline" size="icon" aria-label={label} title={label} className="relative cursor-pointer">
           <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">{label}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem onClick={() => onPick("light")} className={mode === "light" ? "font-semibold" : ""}>
+        <DropdownMenuItem onClick={() => onPick("light")} className={`cursor-pointer ${mode === "light" ? "font-semibold" : ""}`}>
           <Sun className="mr-2 h-4 w-4" /> Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onPick("dark")} className={mode === "dark" ? "font-semibold" : ""}>
+        <DropdownMenuItem onClick={() => onPick("dark")} className={`cursor-pointer ${mode === "dark" ? "font-semibold" : ""}`}>
           <Moon className="mr-2 h-4 w-4" /> Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onPick("system")} className={mode === "system" ? "font-semibold" : ""}>
+        <DropdownMenuItem onClick={() => onPick("system")}className={`cursor-pointer ${mode === "system" ? "font-semibold" : ""}`}>
           <Monitor className="mr-2 h-4 w-4" /> System
         </DropdownMenuItem>
       </DropdownMenuContent>

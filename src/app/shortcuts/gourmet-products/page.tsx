@@ -247,7 +247,7 @@ function PlacesToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-yellow-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+            className="cursor-pointer rounded-full text-yellow-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
           >
             <Search className="h-5 w-5" />
           </Button>
@@ -273,7 +273,7 @@ function PlacesToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-yellow-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+            className="cursor-pointer rounded-full text-yellow-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
           >
             <Filter className="h-5 w-5" />
           </Button>
@@ -286,7 +286,7 @@ function PlacesToolbar({
           {/* All categories */}
           <DropdownMenuItem
             onClick={() => setSelectedCategory("all")}
-            className={`flex items-center gap-2 ${
+            className={`cursor-pointer flex items-center gap-2 ${
               selectedCategory === "all"
                 ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                 : ""
@@ -301,7 +301,7 @@ function PlacesToolbar({
             <DropdownMenuItem
               key={c}
               onClick={() => setSelectedCategory(c)}
-              className={`flex items-center gap-2 ${
+              className={`cursor-pointer flex items-center gap-2 ${
                 selectedCategory === c
                   ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                   : ""
@@ -320,7 +320,7 @@ function PlacesToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full text-yellow-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
+            className="cursor-pointer rounded-full text-yellow-600 hover:bg-fuchsia-50 dark:hover:bg-slate-800"
           >
             <ArrowUpDown className="h-5 w-5" />
           </Button>
@@ -333,7 +333,7 @@ function PlacesToolbar({
           {/* A → Z */}
           <DropdownMenuItem
             onClick={() => setSortOrder("az")}
-            className={`flex items-center gap-2 ${
+            className={`cursor-pointer flex items-center gap-2 ${
               sortOrder === "az"
                 ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                 : ""
@@ -345,7 +345,7 @@ function PlacesToolbar({
           {/* Z → A */}
           <DropdownMenuItem
             onClick={() => setSortOrder("za")}
-            className={`flex items-center gap-2 ${
+            className={`cursor-pointer flex items-center gap-2 ${
               sortOrder === "za"
                 ? "bg-gray-100 dark:bg-gray-900 font-semibold"
                 : ""
@@ -392,7 +392,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="outline"
           size="sm"
-          className="h-8 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-slate-800"
+          className="cursor-pointer h-8 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
         >
@@ -426,7 +426,7 @@ function PageNavigator({ totalPages, page, onPageChange, t }: any) {
         <Button
           variant="outline"
           size="sm"
-          className="h-8 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-slate-800"
+          className="cursor-pointer h-8 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-slate-800"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
         >

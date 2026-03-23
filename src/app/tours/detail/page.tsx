@@ -356,13 +356,13 @@ export default function TourDetailsClientPage() {
             <div className="flex justify-end gap-3">
               <Button
                 variant="outline"
-                className="border-gray-300 dark:border-gray-600"
+                className="cursor-pointer border-gray-300 dark:border-gray-600"
                 onClick={() => setShowDifferentTourPopup(false)}
               >
                 {t("actions.cancel") || "Cancel"}
               </Button>
               <Button
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white"
                 onClick={confirmStartDifferentTour}
               >
                 {t("tourDetails.startNewTour") || "Start new tour"}
@@ -392,7 +392,7 @@ export default function TourDetailsClientPage() {
           <button
             onClick={toggleBookmark}
             aria-label="Bookmark tour"
-            className="absolute right-6 top-6 z-10 flex h-11 w-11 items-center justify-center rounded-full 
+            className="cursor-pointer absolute right-6 top-6 z-10 flex h-11 w-11 items-center justify-center rounded-full 
                bg-white/30 hover:bg-white/50 dark:bg-gray-900/40 dark:hover:bg-gray-800 transition 
                backdrop-blur-md shadow"
           >
@@ -510,7 +510,7 @@ export default function TourDetailsClientPage() {
               <div className="flex flex-wrap sm:flex-nowrap justify-center gap-4">
                 <Button
                   size="lg"
-                  className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700
+                  className="cursor-pointer w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700
                   text-white font-semibold shadow-md hover:shadow-xl transition-all hover:scale-[1.04]"
                   onClick={handleStartNavigation}
                 >
@@ -520,7 +520,7 @@ export default function TourDetailsClientPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full sm:w-auto border-gray-300 dark:border-gray-600 
+                  className="cursor-pointer w-full sm:w-auto border-gray-300 dark:border-gray-600 
                   text-gray-800 dark:text-gray-200 hover:bg-gray-100/30 dark:hover:bg-gray-800/50 
                   font-semibold transition-all hover:scale-[1.04]"
                   asChild

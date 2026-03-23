@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 
 import type { TourPoint } from "@/lib/types/userTour.types";
+import { getCurrentLocation } from "@/lib/gpsWatcher";
 
 /* =========================================================
    🌍 Helpers
@@ -69,72 +70,10 @@ function haversineMeters(
   const s =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((a.lat * Math.PI) / 180) *
-      Math.cos((b.lat * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
+    Math.cos((b.lat * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
 
   return 2 * R * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
-}
-
-async function getFastLocation(geofenceLast: any) {
-  return new Promise((resolve) => {
-    let resolved = false;
-
-    // 1️⃣ Try very-fast GPS (watchPosition)
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        if (!resolved) {
-          resolved = true;
-          navigator.geolocation.clearWatch(watchId);
-          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        }
-      },
-      (err) => {
-        console.warn("watchPosition error:", err);
-      },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 8000 }
-    );
-
-    // 2️⃣ After 200ms → try fallback getCurrentPosition
-    setTimeout(() => {
-      if (resolved) return;
-
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          if (!resolved) {
-            resolved = true;
-            resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          }
-        },
-        (err) => {
-          console.warn("getCurrentPosition error:", err);
-
-          // 3️⃣ FINAL FALLBACK — use last geofence OR last known browser location
-          if (!resolved) {
-            resolved = true;
-
-            // last known geofence
-            if (geofenceLast) {
-              resolve(geofenceLast);
-              return;
-            }
-
-            // last known browser location
-            if (navigator.geolocation) {
-              resolve({
-                lat: 0,
-                lng: 0,
-                error: "no-gps-fallback",
-              });
-              return;
-            }
-
-            resolve(null);
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    }, 200);
-  });
 }
 
 /* =========================================================
@@ -229,28 +168,6 @@ export default function NavigationOverlay({
   }, [reduxTourPoints, tourPoints]);
 
   /* =========================================================
-     ⭐ Auto-refresh tourpoints every 5 seconds when running
-     (still triggers onRefreshTourPoints if provided)
-  ========================================================= */
-  // useEffect(() => {
-  //   if (nav.status !== "running" || !tourId) return;
-
-  //   const interval = setInterval(async () => {
-  //     if (onRefreshTourPoints) {
-  //       try {
-  //         await onRefreshTourPoints();
-  //       } catch (err) {
-  //         console.warn("Auto-refresh tourpoints failed:", err);
-  //       }
-  //     }
-  //   }, 5000);
-
-  //   return () => clearInterval(interval);
-  // }, [nav.status, tourId, onRefreshTourPoints]);
-
-  // ...existing code (handleStart, handlePauseResume, handleFinish, UI) ...
-
-  /* =========================================================
      ⭐ START
   ========================================================= */
   const handleStart = async () => {
@@ -261,7 +178,8 @@ export default function NavigationOverlay({
       return;
     }
 
-    const gps = await getFastLocation(geofence.last);
+    const gps = await getCurrentLocation();
+
     if (!gps) {
       toast.error(t("gps_enable"));
       return;
@@ -400,7 +318,7 @@ export default function NavigationOverlay({
         <Button
           size="icon"
           variant="outline"
-          className="rounded-full shadow bg-white/80 dark:bg-black/50 backdrop-blur-sm"
+          className="cursor-pointer rounded-full shadow bg-white/80 dark:bg-black/50 backdrop-blur-sm"
           onClick={handleBack}
         >
           <ArrowLeft className="h-5 w-5" />
@@ -413,9 +331,8 @@ export default function NavigationOverlay({
           <button
             type="button"
             onClick={onCloseList}
-            className={`px-3 py-1.5 rounded-full text-sm ${
-              !listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
-            }`}
+            className={`cursor-pointer px-3 py-1.5 rounded-full text-sm ${!listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
+              }`}
           >
             {labels.map}
           </button>
@@ -423,9 +340,8 @@ export default function NavigationOverlay({
           <button
             type="button"
             onClick={onOpenList}
-            className={`px-3 py-1.5 rounded-full text-sm ${
-              listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
-            }`}
+            className={`cursor-pointer px-3 py-1.5 rounded-full text-sm ${listOpen ? "bg-sky-600 text-white" : "hover:bg-white/70"
+              }`}
           >
             {labels.list}
           </button>
@@ -438,7 +354,7 @@ export default function NavigationOverlay({
         {nav.status === "idle" && (
           <Button
             size="lg"
-            className="pointer-events-auto rounded-full px-6 shadow-lg bg-sky-600 text-white hover:bg-sky-700"
+            className="cursor-pointer pointer-events-auto rounded-full px-6 shadow-lg bg-sky-600 text-white hover:bg-sky-700"
             onClick={handleStart}
           >
             <Play className="mr-2 h-5 w-5" /> {labels.start}
@@ -450,7 +366,7 @@ export default function NavigationOverlay({
           <Button
             size="lg"
             variant="outline"
-            className="pointer-events-auto rounded-full px-6 shadow-lg bg-white/90 dark:bg-black/40 hover:bg-white dark:hover:bg-black/50"
+            className="cursor-pointer pointer-events-auto rounded-full px-6 shadow-lg bg-white/90 dark:bg-black/40 hover:bg-white dark:hover:bg-black/50"
             onClick={handlePauseResume}
           >
             <Pause className="mr-2 h-5 w-5" /> {labels.pause}
@@ -461,7 +377,7 @@ export default function NavigationOverlay({
         {nav.status === "paused" && (
           <Button
             size="lg"
-            className="pointer-events-auto rounded-full px-6 shadow-lg bg-emerald-600 text-white hover:bg-emerald-700"
+            className="cursor-pointer pointer-events-auto rounded-full px-6 shadow-lg bg-emerald-600 text-white hover:bg-emerald-700"
             onClick={handlePauseResume}
           >
             <Play className="mr-2 h-5 w-5" /> {labels.resume}
@@ -472,7 +388,7 @@ export default function NavigationOverlay({
         {finished && nav.status === "running" && (
           <Button
             size="lg"
-            className="pointer-events-auto rounded-full px-6 shadow-lg bg-green-600 text-white hover:bg-green-700"
+            className="cursor-pointer pointer-events-auto rounded-full px-6 shadow-lg bg-green-600 text-white hover:bg-green-700"
             onClick={handleFinish}
           >
             <CheckCircle2 className="mr-2 h-5 w-5" /> {labels.finish}
@@ -497,7 +413,7 @@ export default function NavigationOverlay({
             <Button
               variant="outline"
               onClick={() => setShowDialog(false)}
-              className="rounded-full"
+              className="cursor-pointer rounded-full"
             >
               {t("ok_btn")}
             </Button>
